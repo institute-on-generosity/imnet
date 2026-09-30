@@ -1,4 +1,4 @@
-# imnet — Impact Network
+# imnet: Impact Network
 
 An impact storytelling engine plus a shared network layer: "LinkedIn for nonprofits."
 
