@@ -3,6 +3,7 @@
 A LinkedIn for generosity. Nonprofits get rich profiles built on real impact. Donors discover causes through stories, not tax IDs and star ratings, and share what their giving became.
 
 - **Vision and research:** [docs/vision/iteration-1.md](docs/vision/iteration-1.md)
+- **Domain terms:** [CONTEXT.md](CONTEXT.md)
 - **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **Decisions:** [docs/decisions/](docs/decisions/)
 

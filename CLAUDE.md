@@ -2,7 +2,7 @@
 
 # imnet
 
-LinkedIn for generosity. Phase I = the network. Phase II = AI media tools. See `docs/ARCHITECTURE.md` and `docs/decisions/`.
+LinkedIn for generosity. Phase I = the network. Phase II = AI media tools. See `CONTEXT.md` (domain terms), `docs/ARCHITECTURE.md` and `docs/decisions/`.
 
 ## Rules
 - Design principles in README are non-negotiable: no fabrication, human approval, beneficiary dignity, no dark patterns.
