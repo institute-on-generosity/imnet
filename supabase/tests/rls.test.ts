@@ -98,14 +98,26 @@ describe("posts", () => {
   })
 
   it("F-011: posts with images need beneficiary consent", async () => {
-    const noConsent = await t.as(STAFF, `insert into posts (org_id, author_id, body, image_paths) values ('${ORG_1}', '${STAFF}', 'x', '{a.jpg}')`)
+    const noConsent = await t.as(STAFF, `insert into posts (org_id, author_id, body, image_paths, image_alts) values ('${ORG_1}', '${STAFF}', 'x', '{a.jpg}', '{photo}')`)
     expect(noConsent.error).toMatch(/images_need_consent/)
 
     const consent = await t.as(
       STAFF,
-      `insert into posts (org_id, author_id, body, image_paths, beneficiary_consent) values ('${ORG_1}', '${STAFF}', 'x', '{a.jpg}', true)`,
+      `insert into posts (org_id, author_id, body, image_paths, image_alts, beneficiary_consent) values ('${ORG_1}', '${STAFF}', 'x', '{a.jpg}', '{photo}', true)`,
     )
     expect(consent.error).toBeUndefined()
+  })
+
+  it("F-027: every photo needs alt text; at most 4 photos; credits match photos", async () => {
+    const post = (paths: string, alts: string, credits = "'{}'") =>
+      t.as(STAFF, `insert into posts (org_id, author_id, body, image_paths, image_alts, image_credits, beneficiary_consent)
+                   values ('${ORG_1}', '${STAFF}', 'photos', ${paths}, ${alts}, ${credits}, true)`)
+
+    expect((await post(`'{a.jpg}'`, `'{}'`)).error).toMatch(/images_have_alts/)
+    expect((await post(`'{a.jpg}'`, `'{""}'`)).error).toMatch(/images_have_alts/)
+    expect((await post(`'{a,b,c,d,e}'`, `'{1,2,3,4,5}'`)).error).toMatch(/images_max_four/)
+    expect((await post(`'{a.jpg,b.jpg}'`, `'{x,y}'`, `'{only-one}'`)).error).toMatch(/images_credit_each/)
+    expect((await post(`'{a.jpg,b.jpg}'`, `'{Keys,Boxes}'`)).error).toBeUndefined()
   })
 
   it("B-003: staff can't move a post to another org", async () => {

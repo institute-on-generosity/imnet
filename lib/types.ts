@@ -25,6 +25,8 @@ export type Post = {
   body: string
   embed_url: string | null
   image_paths: string[]
+  image_alts: string[]
+  image_credits: string[]
   created_at: string
   org: OrgSummary
 }

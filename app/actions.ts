@@ -6,10 +6,11 @@ import { z } from "zod"
 import { draftProfileFromWebsite, fetchWebsiteText, suggestCauses } from "@/lib/ai/assists"
 import { toEmbed } from "@/lib/embeds"
 import { formValues } from "@/lib/form-values"
+import { validateImages } from "@/lib/post-images"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
 // values: what the user typed, sent back on error so forms can refill (React 19 resets forms after an action).
-export type ActionState = { ok?: boolean; error?: string; message?: string; values?: Record<string, string> } | null
+export type ActionState = { ok?: boolean; error?: string; message?: string; values?: Record<string, string>; id?: string } | null
 
 function fail(form: FormData, error: string): ActionState {
   return { error, values: formValues(form) }
@@ -149,7 +150,7 @@ const PostSchema = z.object({
 
 export async function createPost(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
   const userId = await requireUser()
-  const parsed = PostSchema.safeParse(Object.fromEntries(form))
+  const parsed = PostSchema.safeParse({ kind: form.get("kind"), body: form.get("body"), embed: form.get("embed") || undefined })
   if (!parsed.success) return fail(form, parsed.error.issues[0].message)
 
   let embed_url: string | null = null
@@ -159,18 +160,29 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
     embed_url = embed.src
   }
 
+  const images = validateImages(orgId, form.getAll("image_paths").map(String), form.getAll("image_alts").map(String))
+  if ("error" in images) return fail(form, images.error)
+  const consent = form.get("beneficiary_consent") === "on"
+  if (images.paths.length > 0 && !consent) return fail(form, "Confirm consent before posting photos.")
+
   const supabase = await createClient()
-  const { error } = await supabase.from("posts").insert({
-    org_id: orgId,
-    author_id: userId,
-    kind: parsed.data.kind,
-    body: parsed.data.body,
-    embed_url,
-    beneficiary_consent: form.get("beneficiary_consent") === "on",
-  })
+  const { data, error } = await supabase
+    .from("posts")
+    .insert({
+      org_id: orgId,
+      author_id: userId,
+      kind: parsed.data.kind,
+      body: parsed.data.body,
+      embed_url,
+      image_paths: images.paths,
+      image_alts: images.alts,
+      beneficiary_consent: consent,
+    })
+    .select("id")
+    .single()
   if (error) return fail(form, error.message)
   revalidatePath("/")
-  return { ok: true, message: "Posted." }
+  return { ok: true, message: "Posted.", id: data.id }
 }
 
 // ---------------------------------------------------------------------------

@@ -1,11 +1,11 @@
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { postImageUrl } from "@/lib/queries"
 import type { Post } from "@/lib/types"
 import { ExpandableText } from "./expandable-text"
 import { MovedButton } from "./moved-button"
 import { OrgMark } from "./org-mark"
 import { PostKindLabel } from "./post-kind"
+import { PostMedia } from "./post-media"
 import { ShareButton } from "./share-button"
 import { Panel } from "./shell"
 
@@ -42,22 +42,7 @@ export function PostCard({ post, full = false, moved = false, signedIn = false }
         )}
       </div>
 
-      {post.embed_url && (
-        <div className="mt-3 aspect-video bg-muted">
-          <iframe
-            src={post.embed_url}
-            className="h-full w-full"
-            loading="lazy"
-            allow="encrypted-media; picture-in-picture; fullscreen"
-            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
-            title={`Video from ${post.org.name}`}
-          />
-        </div>
-      )}
-      {post.image_paths.map((path) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img key={path} src={postImageUrl(path)} alt="" className="mt-3 w-full" loading="lazy" />
-      ))}
+      <PostMedia post={post} />
 
       <footer className="mt-3 flex items-center gap-1 border-t px-2 py-1">
         <MovedButton postId={post.id} moved={moved} signedIn={signedIn} />

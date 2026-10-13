@@ -47,19 +47,29 @@ insert into impact_stats (org_id, label, value, source_url, as_of, sort) values
   ('00000000-0000-4000-a000-000000000003', 'Students tutored', '310', 'https://example.org/riverbend/report', '2026-06-01', 0),
   ('00000000-0000-4000-a000-000000000003', 'Reading at grade level (from 38%)', '71%', 'https://example.org/riverbend/report', '2026-06-01', 1);
 
-insert into posts (org_id, kind, body, created_at) values
-  ('00000000-0000-4000-a000-000000000001', 'impact_story',
-   'This summer our Eastside kitchen served its 10,000th meal. Maria, a retired line cook, now runs Tuesday service and teaches knife skills to new volunteers.',
+-- Photos live in supabase/seed-images/post-images (loaded by `supabase seed buckets`); credits in seed-images/CREDITS.md.
+insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, beneficiary_consent, created_at) values
+  ('00000000-0000-4000-a000-000000000001', 'impact_story', 'This summer our Eastside kitchen served its 10,000th meal. Maria, a retired line cook, now runs Tuesday service and teaches knife skills to new volunteers.',
+   array['00000000-0000-4000-a000-000000000001/red-peppers.jpg']::text[], array['Fresh red peppers in a wooden crate']::text[], array['Shixart1985, CC BY 2.0, via Wikimedia Commons']::text[], true,
    now() - interval '2 days'),
-  ('00000000-0000-4000-a000-000000000001', 'ask',
-   'Our walk-in freezer is failing. A new one keeps 800 meals a week safe. We are $3,400 away.',
+  ('00000000-0000-4000-a000-000000000001', 'update', 'This week''s grocery boxes went to 212 households: shelf-stable staples plus fresh produce from two local farms.',
+   array['00000000-0000-4000-a000-000000000001/food-assistance-greens.jpg', '00000000-0000-4000-a000-000000000001/food-assistance-applesauce.jpg']::text[], array['Hands lifting cans of collard greens from a box of food-assistance groceries', 'Cans of applesauce packed in a cardboard case for distribution']::text[], array['USDAgov, public domain, via Wikimedia Commons', 'USDAgov, public domain, via Wikimedia Commons']::text[], true,
+   now() - interval '6 days'),
+  ('00000000-0000-4000-a000-000000000001', 'ask', 'Our walk-in freezer is failing. A new one keeps 800 meals a week safe. We are $3,400 away.',
+   '{}'::text[], '{}'::text[], '{}'::text[], false,
    now() - interval '9 days'),
-  ('00000000-0000-4000-a000-000000000002', 'impact_story',
-   'The Okafor family got their keys on Friday. Three kids, three beds, one very happy dog. Our caseworker will check in weekly for the next six months.',
-   now() - interval '1 day'),
-  ('00000000-0000-4000-a000-000000000002', 'update',
-   'Quarterly numbers are in: 14 families moved from shelter to home this quarter, and every family from last year is still housed.',
+  ('00000000-0000-4000-a000-000000000002', 'impact_story', 'The Okafor family got their keys on Friday. Three kids, three beds, one very happy dog. Our caseworker will check in weekly for the next six months.',
+   array['00000000-0000-4000-a000-000000000002/keys-at-door.jpg']::text[], array['A hand holding house keys beside a door lock']::text[], array['Shixart1985, CC BY 2.0, via Wikimedia Commons']::text[], true,
+   now() - interval '1 days'),
+  ('00000000-0000-4000-a000-000000000002', 'update', 'Moving day crews helped four families this month. Volunteers wrap, carry and set up, so families start their first night with beds made.',
+   array['00000000-0000-4000-a000-000000000002/moving-box.jpg']::text[], array['A mover wrapping furniture for a family''s move']::text[], array['U.S. Army photo by Lisa Bishop, public domain, via Wikimedia Commons']::text[], true,
+   now() - interval '12 days'),
+  ('00000000-0000-4000-a000-000000000002', 'update', 'Quarterly numbers are in: 14 families moved from shelter to home this quarter, and every family from last year is still housed.',
+   '{}'::text[], '{}'::text[], '{}'::text[], false,
    now() - interval '20 days'),
-  ('00000000-0000-4000-a000-000000000003', 'impact_story',
-   'In September, 42 second graders started with a tutor. Their teachers already see the difference: more hands up during read-aloud.',
-   now() - interval '4 days');
+  ('00000000-0000-4000-a000-000000000003', 'impact_story', 'In September, 42 second graders started with a tutor. Their teachers already see the difference: more hands up during read-aloud.',
+   array['00000000-0000-4000-a000-000000000003/picture-book-shelf.jpg', '00000000-0000-4000-a000-000000000003/book-spines.jpg']::text[], array['A children''s library shelf of picture books', 'Colorful children''s book spines stacked together']::text[], array['Alequihdez, CC BY-SA 4.0, via Wikimedia Commons', 'Carol VanHook, CC BY-SA 2.0, via Wikimedia Commons']::text[], true,
+   now() - interval '4 days'),
+  ('00000000-0000-4000-a000-000000000003', 'update', 'Take-home book sets are packed for the fall: each student picks three books to keep.',
+   '{}'::text[], '{}'::text[], '{}'::text[], false,
+   now() - interval '15 days');

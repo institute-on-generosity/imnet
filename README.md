@@ -28,6 +28,7 @@ Everything runs on your machine: Postgres, auth, storage and a mail inbox for si
    ```sh
    npm install
    npx supabase start
+   npx supabase seed buckets --local   # demo photos
    ```
 3. Create `.env.local` from `.env.example`. Fill `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from `npx supabase status`. `ANTHROPIC_API_KEY` is optional (only "Draft from website" needs it).
 4. Run the app at **http://localhost:3100** (port 3100 so it doesn't clash with other projects on 3000):
@@ -47,7 +48,7 @@ Everything runs on your machine: Postgres, auth, storage and a mail inbox for si
 | Studio (database UI) | http://127.0.0.1:54323 |
 | API | http://127.0.0.1:54321 |
 
-Reset the local database to the demo data: `npx supabase db reset`. Stop everything: `npx supabase stop`.
+Reset the local database to the demo data: `npx supabase db reset && npx supabase seed buckets --local`. Stop everything: `npx supabase stop`.
 
 ## Scripts
 | Command | Does |

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import type { Cause, ImpactStat, Org, Post } from "@/lib/types"
 
 const PAGE_SIZE = 20
-const POST_FIELDS = "id, org_id, kind, body, embed_url, image_paths, created_at"
+const POST_FIELDS = "id, org_id, kind, body, embed_url, image_paths, image_alts, image_credits, created_at"
 
 // Chronological, no engagement ranking (design principle #4).
 export async function getFeed(opts: { cause?: string; orgIds?: string[] } = {}): Promise<Post[]> {
