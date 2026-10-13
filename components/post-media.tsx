@@ -6,7 +6,7 @@ import { AutoplayVideo } from "./autoplay-video"
 
 // LinkedIn-style photo layouts: 1 full, 2 side by side, 3 = one large + two, 4 = a 2×2 grid.
 const GRID: Record<number, string> = {
-  1: "grid-cols-1",
+  1: "grid-cols-1 grid-rows-1",
   2: "grid-cols-2",
   3: "grid-cols-2 grid-rows-2",
   4: "grid-cols-2 grid-rows-2",
@@ -21,7 +21,7 @@ export function PostMedia({ post }: { post: Pick<Post, "org" | "embed_url" | "em
       {images.length > 0 && (
         <figure className="mt-3">
           {/* Fixed 4:3 frame so lazy-loaded photos don't shift the feed as they arrive */}
-          <div className={cn("grid aspect-[4/3] gap-0.5 bg-muted", GRID[images.length])}>
+          <div className={cn("grid aspect-[4/3] gap-0.5 overflow-hidden bg-muted", GRID[images.length])}>
             {images.map((path, i) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -30,7 +30,7 @@ export function PostMedia({ post }: { post: Pick<Post, "org" | "embed_url" | "em
                 alt={post.image_alts[i] ?? ""}
                 loading="lazy"
                 className={cn(
-                  "h-full w-full object-cover",
+                  "h-full min-h-0 w-full object-cover",
                   images.length === 3 && i === 0 && "row-span-2",
                 )}
               />

@@ -2,6 +2,7 @@ import Link from "next/link"
 import { DonateButton } from "@/components/donate-button"
 import { FollowButton } from "@/components/follow-button"
 import { OrgMark } from "@/components/org-mark"
+import { OrgTypeBadge } from "@/components/org-type-badge"
 import { Feed } from "@/components/post-card"
 import { ShareButton } from "@/components/share-button"
 import { Panel, TwoColumn } from "@/components/shell"
@@ -33,16 +34,25 @@ type Props = {
 export function OrgProfile({ org, stats, causes, followers, posts, similar, signedIn, following, movedIds, tab }: Props) {
   const base = `/o/${org.slug}`
   return (
-    <TwoColumn right={<SuggestedOrgs title="Similar nonprofits" orgs={similar} signedIn={signedIn} />}>
+    <TwoColumn right={<SuggestedOrgs title="Similar organizations" orgs={similar} signedIn={signedIn} />}>
       <TrackView orgId={org.id} />
 
       <Panel className="overflow-hidden">
-        <div className="relative h-28 bg-leaf sm:h-36">
-          <div aria-hidden className="absolute inset-0 opacity-15 [background:repeating-linear-gradient(135deg,transparent_0_14px,white_14px_15px)]" />
-        </div>
+        {org.org_type === "foundation" ? (
+          <div className="relative h-28 bg-primary sm:h-36">
+            <div aria-hidden className="absolute inset-0 opacity-40 [background:repeating-linear-gradient(135deg,transparent_0_14px,var(--marigold)_14px_15px)]" />
+          </div>
+        ) : (
+          <div className="relative h-28 bg-leaf sm:h-36">
+            <div aria-hidden className="absolute inset-0 opacity-15 [background:repeating-linear-gradient(135deg,transparent_0_14px,white_14px_15px)]" />
+          </div>
+        )}
         <div className="px-4 pb-4 sm:px-6">
           <div className="relative -mt-12 sm:-mt-14"><OrgMark org={org} size="xl" /></div>
-          <h1 className="mt-3 text-3xl font-semibold">{org.name}</h1>
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="text-3xl font-semibold">{org.name}</h1>
+            <OrgTypeBadge type={org.org_type} className="px-2.5 py-1 text-xs" />
+          </div>
           {org.mission && <p className="mt-1 line-clamp-2 max-w-prose text-muted-foreground">{org.mission}</p>}
           <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
             {causes.length > 0 && <span>{causes.map((c) => c.name).join(", ")}</span>}

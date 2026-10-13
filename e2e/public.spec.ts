@@ -46,6 +46,22 @@ test.describe("with reduced motion", () => {
   })
 })
 
+test("F-033: foundations and nonprofits look different, and the feed filters by type", async ({ page }) => {
+  await page.goto("/")
+  const grantPost = page.locator("section").filter({ hasText: "Fall Community Fund grants are out" }).first()
+  await expect(grantPost.getByText("Foundation", { exact: true })).toBeVisible()
+  const harborPost = page.locator("section").filter({ hasText: "10,000th family visit" }).first()
+  await expect(harborPost.getByText("Nonprofit", { exact: true })).toBeVisible()
+
+  await page.getByRole("navigation", { name: "Filter by organization type" }).getByRole("link", { name: "Foundations" }).click()
+  await expect(page).toHaveURL(/type=foundation/)
+  await expect(page.getByText("Fall Community Fund grants are out")).toBeVisible()
+  await expect(page.getByText("10,000th family visit")).toHaveCount(0)
+
+  await page.goto("/o/lakeshore-community-foundation")
+  await expect(page.locator("main h1 + span", { hasText: "Foundation" })).toBeVisible()
+})
+
 test("F-003 / F-024 / F-021: org profile tabs and footnoted impact stats", async ({ page }) => {
   await page.goto("/o/open-door-homes")
   await expect(page.getByRole("heading", { name: "Open Door Homes (Demo)" })).toBeVisible()
@@ -65,7 +81,7 @@ test("F-003: unknown org is a 404", async ({ page }) => {
 
 test("F-025: search finds orgs by name", async ({ page }) => {
   await page.goto("/")
-  await page.getByRole("searchbox", { name: "Search nonprofits" }).first().fill("river")
+  await page.getByRole("searchbox", { name: "Search organizations" }).first().fill("river")
   await page.keyboard.press("Enter")
   await expect(page.getByRole("link", { name: /Riverbend Readers/ })).toBeVisible()
 })

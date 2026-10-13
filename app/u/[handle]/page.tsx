@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { OrgMark } from "@/components/org-mark"
+import { OrgTypeBadge } from "@/components/org-type-badge"
+import type { OrgType } from "@/lib/types"
 import { Panel, TwoColumn } from "@/components/shell"
 import { createClient } from "@/lib/supabase/server"
 
@@ -14,12 +16,12 @@ async function getProfile(handle: string) {
     .maybeSingle()
   if (!profile) return null
   const [{ data: supports }, { data: causes }] = await Promise.all([
-    supabase.from("follows").select("org:orgs(slug, name)").eq("user_id", profile.id).eq("supporter", true),
+    supabase.from("follows").select("org:orgs(slug, name, org_type)").eq("user_id", profile.id).eq("supporter", true),
     supabase.from("profile_causes").select("cause:causes(slug, name)").eq("user_id", profile.id),
   ])
   return {
     profile,
-    supports: ((supports ?? []) as unknown as { org: { slug: string; name: string } | null }[])
+    supports: ((supports ?? []) as unknown as { org: { slug: string; name: string; org_type: OrgType } | null }[])
       .flatMap((s) => (s.org ? [s.org] : [])),
     causes: ((causes ?? []) as unknown as { cause: { slug: string; name: string } }[]).map((c) => c.cause),
   }
@@ -74,8 +76,9 @@ export default async function ProfilePage({ params }: PageProps<"/u/[handle]">) 
             {supports.map((o) => (
               <li key={o.slug}>
                 <Link href={`/o/${o.slug}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 sm:px-6">
-                  <OrgMark org={{ name: o.name, logo_url: null }} />
+                  <OrgMark org={{ name: o.name, logo_url: null, org_type: o.org_type }} />
                   <span className="font-medium">{o.name}</span>
+                  <OrgTypeBadge type={o.org_type} />
                 </Link>
               </li>
             ))}

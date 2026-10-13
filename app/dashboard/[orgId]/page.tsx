@@ -17,7 +17,7 @@ export default async function OrgDashboardPage({ params }: PageProps<"/dashboard
   if (!member) notFound()
 
   const [{ data: org }, { data: orgCauses }, causes, counts, { data: followers }] = await Promise.all([
-    supabase.from("orgs").select("id, slug, name, ein, website, mission, what_gifts_fund, logo_url, everyorg_slug, status").eq("id", orgId).single<Org>(),
+    supabase.from("orgs").select("id, slug, name, ein, website, mission, what_gifts_fund, logo_url, everyorg_slug, status, org_type").eq("id", orgId).single<Org>(),
     supabase.from("org_causes").select("cause_slug").eq("org_id", orgId),
     getCauses(),
     getOrgEventCounts(orgId),

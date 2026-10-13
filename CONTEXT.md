@@ -11,7 +11,8 @@ Domain language for imnet. Use these terms in code, docs and UI. Table names in 
 - **Individual fundraiser**: a person raising money for themselves. Deferred past Phase I (decisions/0004).
 
 ## Nonprofits
-- **Org**: a verified nonprofit with a public profile (`orgs`). Only `verified` orgs are public.
+- **Org**: a verified organization with a public profile (`orgs`). Only `verified` orgs are public.
+- **Org type**: `nonprofit` (does the work) or `foundation` (funds the work, e.g. through grants). Set at claim time; only admins change it.
 - **Claim**: a staff member's request to represent an org (`org_claims`). Needs an EIN, an https website and a work email on that domain. An admin approves it with `approve_claim()`, which creates the org and the membership.
 - **Profile**: an org's public page (`/o/[slug]`): mission, causes, what gifts fund, impact stats, posts, donate.
 - **Impact stat**: one number on a profile with a required source link (`impact_stats`). No source, no stat.
@@ -98,6 +99,7 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-030 Shared videos.** Wikimedia Commons video links (`.webm`, `.ogv`) embed through Commons' own player, alongside YouTube, Vimeo and Instagram. A video can carry a credit line ("Video: ..."); the database rejects a credit without a video. Test: `lib/embeds.test.ts`, `supabase/tests/rls.test.ts`
 - **F-031 Upload cleanup.** Removing a photo in the composer deletes it from storage at once. `npm run cleanup:uploads` deletes photos older than a day that no post uses (via `orphan_post_images()`, callable only by the service role; the script uses `SUPABASE_SECRET_KEY`, never the web app). Test: `supabase/tests/rls.test.ts` (listing and permissions)
 - **F-032 Video posts that autoplay.** Posts can carry a native video (file in the `post-videos` bucket, with a poster, a required description and an optional credit). In the feed, videos play muted while 60% on screen and pause when scrolled away; YouTube and Vimeo links start muted when scrolled into view. No autoplay when the device asks to reduce motion. A post has at most one video (native or embedded). Demo: Harbor Table's pantry garden harvest and a new demo org, Greenway Stewards (environment), with trail and fence-removal crews; openly licensed footage with no real org named, credited. Test: `supabase/tests/rls.test.ts`, `lib/autoplay-src.test.ts`, `e2e/public.spec.ts`
+- **F-033 Nonprofits vs. foundations.** Every org is a nonprofit or a foundation, chosen on the claim form and carried to the approved org (staff can't change it). They look different everywhere: nonprofits get a green mark, banner and "Nonprofit" badge; foundations a navy mark with a marigold letter, a navy banner and a "Foundation" badge. Explore and Following filter by All / Nonprofits / Foundations, kept alongside the cause filter. Demo: Lakeshore Community Foundation posts its grants to the demo nonprofits. Test: `supabase/tests/rls.test.ts`, `lib/feed-href.test.ts`, `e2e/public.spec.ts`
 
 ### Fixes
 
@@ -114,3 +116,4 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **B-008 Forms lost what you typed after an error.** React 19 resets a form after every action, so a claim rejected for its email came back empty. Server actions now return the submitted values with the error, and the login, claim, composer and profile forms refill from them. Test: `lib/form-values.test.ts`, `e2e/signed-in.spec.ts`
 - **B-009 Org tab labels were lowercase for screen readers.** Tabs showed "Home / About / Posts" only through CSS capitalization; the text was "home / about / posts". Labels are now real text. Test: `e2e/public.spec.ts`
 - **B-010 Feed jumped as photos loaded.** Lazy-loaded single photos had no reserved height, so posts shifted as images arrived (and photos below the fold had zero height). Single photos now sit in a fixed 4:3 frame like galleries. Test: `e2e/public.spec.ts`
+- **B-011 Single portrait photos overflowed their frame.** The 4:3 frame from B-010 held galleries but a single tall photo grew past it. The frame now clips and the photo fills it. Test: none (visual)

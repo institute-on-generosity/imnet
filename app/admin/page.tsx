@@ -3,6 +3,7 @@ import { approveClaim, rejectClaim } from "@/app/actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { OrgTypeBadge } from "@/components/org-type-badge"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
 export const metadata = { title: "Admin" }
@@ -15,7 +16,7 @@ export default async function AdminPage() {
   if (!me?.is_admin) notFound()
 
   const [{ data: claims }, { data: reports }] = await Promise.all([
-    supabase.from("org_claims").select("id, org_name, ein, website, work_email, note, created_at").eq("status", "pending").order("created_at"),
+    supabase.from("org_claims").select("id, org_name, org_type, ein, website, work_email, note, created_at").eq("status", "pending").order("created_at"),
     supabase.from("reports").select("id, reason, post_id, created_at").eq("status", "open").order("created_at"),
   ])
 
@@ -27,7 +28,7 @@ export default async function AdminPage() {
         <h2 className="font-medium">Pending claims ({claims?.length ?? 0})</h2>
         {(claims ?? []).map((c) => (
           <Card key={c.id}>
-            <CardHeader><CardTitle>{c.org_name}</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2">{c.org_name} <OrgTypeBadge type={c.org_type} /></CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               <p>
                 EIN {c.ein} · <a href={c.website} className="underline" target="_blank" rel="noopener noreferrer">{c.website}</a> · {c.work_email}

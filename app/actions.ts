@@ -92,6 +92,7 @@ export async function reportPost(postId: string, reason: string) {
 // Nonprofit staff
 // ---------------------------------------------------------------------------
 const ClaimSchema = z.object({
+  org_type: z.enum(["nonprofit", "foundation"], { message: "Choose nonprofit or foundation." }),
   org_name: z.string().trim().min(2).max(200),
   ein: z.string().trim().regex(/^\d{2}-?\d{7}$/, "EIN looks like 12-3456789"),
   website: z.url({ protocol: /^https$/ }),

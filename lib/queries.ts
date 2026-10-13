@@ -1,16 +1,16 @@
 import { escapeLike } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
-import type { Cause, ImpactStat, Org, Post } from "@/lib/types"
+import type { Cause, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
 
 const PAGE_SIZE = 20
 const POST_FIELDS = "id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at"
 
 // Chronological, no engagement ranking (design principle #4).
-export async function getFeed(opts: { cause?: string; orgIds?: string[] } = {}): Promise<Post[]> {
+export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType?: OrgType } = {}): Promise<Post[]> {
   const supabase = await createClient()
   const orgJoin = opts.cause
-    ? "org:orgs!inner(id, slug, name, logo_url, org_causes!inner(cause_slug))"
-    : "org:orgs!inner(id, slug, name, logo_url)"
+    ? "org:orgs!inner(id, slug, name, logo_url, org_type, org_causes!inner(cause_slug))"
+    : "org:orgs!inner(id, slug, name, logo_url, org_type)"
 
   let query = supabase
     .from("posts")
@@ -21,6 +21,7 @@ export async function getFeed(opts: { cause?: string; orgIds?: string[] } = {}):
 
   if (opts.cause) query = query.eq("org.org_causes.cause_slug", opts.cause)
   if (opts.orgIds) query = query.in("org_id", opts.orgIds)
+  if (opts.orgType) query = query.eq("org.org_type", opts.orgType)
 
   const { data, error } = await query
   if (error) throw error
@@ -37,7 +38,7 @@ export async function getOrgBySlug(slug: string) {
   const supabase = await createClient()
   const { data: org } = await supabase
     .from("orgs")
-    .select("id, slug, name, ein, website, mission, what_gifts_fund, logo_url, everyorg_slug, status")
+    .select("id, slug, name, ein, website, mission, what_gifts_fund, logo_url, everyorg_slug, status, org_type")
     .eq("slug", slug)
     .maybeSingle<Org>()
   if (!org) return null
@@ -64,7 +65,7 @@ export async function getPost(id: string): Promise<Post | null> {
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select(`${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url)`)
+    .select(`${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type)`)
     .eq("id", id)
     .maybeSingle()
   return data as unknown as Post | null
@@ -130,7 +131,7 @@ export async function getSuggestedOrgs(opts: { userId?: string | null; cause?: s
 
   let query = supabase
     .from("orgs")
-    .select(opts.cause ? "id, slug, name, logo_url, mission, org_causes!inner(cause_slug)" : "id, slug, name, logo_url, mission")
+    .select(opts.cause ? "id, slug, name, logo_url, org_type, mission, org_causes!inner(cause_slug)" : "id, slug, name, logo_url, org_type, mission")
     .eq("status", "verified")
     .order("name")
     .limit(opts.limit ?? 5)
@@ -141,7 +142,7 @@ export async function getSuggestedOrgs(opts: { userId?: string | null; cause?: s
   return (data ?? []) as unknown as (OrgSummaryWithMission)[]
 }
 
-export type OrgSummaryWithMission = { id: string; slug: string; name: string; logo_url: string | null; mission: string | null }
+export type OrgSummaryWithMission = OrgSummary & { mission: string | null }
 
 export async function getMovedPostIds(userId: string | null, postIds: string[]): Promise<Set<string>> {
   if (!userId || postIds.length === 0) return new Set()
@@ -157,7 +158,7 @@ export async function searchOrgs(q: string): Promise<OrgSummaryWithMission[]> {
   const escaped = escapeLike(term)
   const { data } = await supabase
     .from("orgs")
-    .select("id, slug, name, logo_url, mission")
+    .select("id, slug, name, logo_url, org_type, mission")
     .eq("status", "verified")
     .ilike("name", `%${escaped}%`)
     .order("name")

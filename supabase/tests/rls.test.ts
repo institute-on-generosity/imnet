@@ -66,6 +66,21 @@ describe("orgs and claims", () => {
     expect(await t.owner(`select 1 from org_members where org_id = '${orgId}' and user_id = '${DONOR}'`)).toHaveLength(1)
   })
 
+  it("F-033: a claim's org type carries to the approved org; staff can't change it", async () => {
+    const user = "10000000-0000-4000-8000-0000000000f3"
+    await t.owner(`insert into auth.users (id, email) values ('${user}', 'grants@lake.example.org')`)
+    const claim = await t.as(
+      user,
+      `insert into org_claims (user_id, org_type, org_name, ein, website, work_email)
+       values ('${user}', 'foundation', 'Lake Fund', '55-5555555', 'https://lake.example.org', 'grants@lake.example.org') returning id`,
+    )
+    const approved = await t.as(ADMIN, `select approve_claim('${claim.rows![0].id}', 'lake-fund') as org_id`)
+    const orgId = approved.rows![0].org_id
+    expect((await t.owner(`select org_type from orgs where id = '${orgId}'`))[0].org_type).toBe("foundation")
+
+    expect((await t.as(user, `update orgs set org_type = 'nonprofit' where id = '${orgId}'`)).error).toMatch(/permission denied/)
+  })
+
   it("F-019: users can't make themselves admin or change an org's status", async () => {
     // Throwaway user and org, so a regression here can't leak admin rights into other tests.
     const user = "10000000-0000-4000-8000-0000000000f1"

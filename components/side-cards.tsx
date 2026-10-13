@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button"
 import type { OrgSummaryWithMission, Viewer } from "@/lib/queries"
 import { FollowButton } from "./follow-button"
 import { OrgMark } from "./org-mark"
+import { OrgTypeBadge } from "./org-type-badge"
 import { Panel } from "./shell"
 
 // Left column: who you are on imnet.
@@ -43,14 +44,14 @@ export function ViewerCard({ viewer }: { viewer: Viewer }) {
 export function JoinCard() {
   return (
     <Panel className="space-y-3 p-4">
-      <p className="font-heading text-lg font-semibold leading-snug">Follow the nonprofits you care about</p>
+      <p className="font-heading text-lg font-semibold leading-snug">Follow the nonprofits and foundations you care about</p>
       <p className="text-sm text-muted-foreground">See their stories in one feed, and share the ones that move you.</p>
       <Link href="/login" className={buttonVariants({ className: "w-full" })}>Join now</Link>
     </Panel>
   )
 }
 
-// Right column: orgs to follow. Alphabetical, never popularity-ranked.
+// Right column: organizations to follow. Alphabetical, never popularity-ranked.
 export function SuggestedOrgs({ title, orgs, signedIn }: { title: string; orgs: OrgSummaryWithMission[]; signedIn: boolean }) {
   if (orgs.length === 0) return null
   return (
@@ -62,6 +63,7 @@ export function SuggestedOrgs({ title, orgs, signedIn }: { title: string; orgs: 
             <OrgMark org={org} />
             <div className="min-w-0 flex-1 space-y-1.5">
               <Link href={`/o/${org.slug}`} className="block truncate font-medium hover:underline">{org.name}</Link>
+              <OrgTypeBadge type={org.org_type} />
               {org.mission && <p className="line-clamp-2 text-xs text-muted-foreground">{org.mission}</p>}
               {signedIn ? (
                 <FollowButton orgId={org.id} slug={org.slug} following={false} compact />

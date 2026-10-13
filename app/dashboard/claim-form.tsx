@@ -12,6 +12,20 @@ export function ClaimForm() {
   const v = state?.values
   return (
     <form action={action} className="space-y-3">
+      <fieldset className="space-y-1">
+        <legend className="text-sm font-medium">This organization is a</legend>
+        <div className="flex gap-4 text-sm">
+          {[
+            ["nonprofit", "Nonprofit (does the work)"],
+            ["foundation", "Foundation (funds the work)"],
+          ].map(([value, label]) => (
+            <label key={value} className="flex items-center gap-1.5">
+              <input type="radio" name="org_type" value={value} required defaultChecked={(v?.org_type ?? "nonprofit") === value} />
+              {label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <Field label="Organization name" name="org_name" defaultValue={v?.org_name} />
       <Field label="EIN" name="ein" defaultValue={v?.ein} placeholder="12-3456789" />
       <Field label="Website" name="website" defaultValue={v?.website} type="url" placeholder="https://example.org" />

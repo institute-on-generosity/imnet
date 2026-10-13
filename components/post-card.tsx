@@ -4,6 +4,7 @@ import type { Post } from "@/lib/types"
 import { ExpandableText } from "./expandable-text"
 import { MovedButton } from "./moved-button"
 import { OrgMark } from "./org-mark"
+import { OrgTypeBadge } from "./org-type-badge"
 import { PostKindLabel } from "./post-kind"
 import { PostMedia } from "./post-media"
 import { ShareButton } from "./share-button"
@@ -26,7 +27,10 @@ export function PostCard({ post, full = false, moved = false, signedIn = false }
       <header className="flex items-start gap-3 px-4 pt-4">
         <Link href={`/o/${post.org.slug}`} tabIndex={-1} aria-hidden><OrgMark org={post.org} size="md" /></Link>
         <div className="min-w-0 flex-1 leading-tight">
-          <Link href={`/o/${post.org.slug}`} className="block truncate font-semibold hover:text-leaf hover:underline">{post.org.name}</Link>
+          <div className="flex min-w-0 items-center gap-2">
+            <Link href={`/o/${post.org.slug}`} className="truncate font-semibold hover:text-leaf hover:underline">{post.org.name}</Link>
+            <OrgTypeBadge type={post.org.org_type} />
+          </div>
           <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
             <PostKindLabel kind={post.kind} />
             <time dateTime={post.created_at}>{relative(post.created_at)}</time>

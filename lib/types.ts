@@ -1,12 +1,14 @@
 // Hand-written row shapes for Phase I. Replace with `npm run db:types` output once linked.
 
 export type PostKind = "update" | "impact_story" | "ask"
+export type OrgType = "nonprofit" | "foundation"
 
 export type OrgSummary = {
   id: string
   slug: string
   name: string
   logo_url: string | null
+  org_type: OrgType
 }
 
 export type Org = OrgSummary & {
@@ -45,6 +47,8 @@ export type ImpactStat = {
 }
 
 export type Cause = { slug: string; name: string }
+
+export const ORG_TYPE_LABEL: Record<OrgType, string> = { nonprofit: "Nonprofit", foundation: "Foundation" }
 
 export const POST_KIND_LABEL: Record<PostKind, string> = {
   update: "Update",

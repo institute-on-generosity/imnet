@@ -36,13 +36,25 @@ insert into orgs (id, slug, name, ein, website, mission, what_gifts_fund, status
    'verified')
 on conflict do nothing;
 
+insert into orgs (id, slug, name, ein, website, mission, what_gifts_fund, status, org_type) values
+  ('00000000-0000-4000-a000-000000000005', 'lakeshore-community-foundation', 'Lakeshore Community Foundation (Demo)', '00-0000005',
+   'https://example.org/lakeshore',
+   'A community foundation pooling local giving into grants for neighborhood nonprofits, with a focus on small groups that have no grant writer.',
+   'Gifts to the Community Fund become grants. $1,000 funds a small nonprofit''s volunteer training; $10,000 funds a year of a program.',
+   'verified', 'foundation')
+on conflict do nothing;
+
 insert into org_causes (org_id, cause_slug) values
   ('00000000-0000-4000-a000-000000000001', 'hunger'),
   ('00000000-0000-4000-a000-000000000002', 'housing'),
   ('00000000-0000-4000-a000-000000000002', 'youth'),
   ('00000000-0000-4000-a000-000000000003', 'education'),
   ('00000000-0000-4000-a000-000000000003', 'youth'),
-  ('00000000-0000-4000-a000-000000000004', 'environment')
+  ('00000000-0000-4000-a000-000000000004', 'environment'),
+  ('00000000-0000-4000-a000-000000000005', 'hunger'),
+  ('00000000-0000-4000-a000-000000000005', 'housing'),
+  ('00000000-0000-4000-a000-000000000005', 'education'),
+  ('00000000-0000-4000-a000-000000000005', 'environment')
 on conflict do nothing;
 
 insert into impact_stats (org_id, label, value, source_url, as_of, sort) values
@@ -53,7 +65,9 @@ insert into impact_stats (org_id, label, value, source_url, as_of, sort) values
   ('00000000-0000-4000-a000-000000000003', 'Students tutored', '310', 'https://example.org/riverbend/report', '2026-06-01', 0),
   ('00000000-0000-4000-a000-000000000003', 'Reading at grade level (from 38%)', '71%', 'https://example.org/riverbend/report', '2026-06-01', 1),
   ('00000000-0000-4000-a000-000000000004', 'Volunteer hours', '3,400', 'https://example.org/greenway/2026-report', '2026-09-01', 0),
-  ('00000000-0000-4000-a000-000000000004', 'Miles of trail restored', '12', 'https://example.org/greenway/2026-report', '2026-09-01', 1);
+  ('00000000-0000-4000-a000-000000000004', 'Miles of trail restored', '12', 'https://example.org/greenway/2026-report', '2026-09-01', 1),
+  ('00000000-0000-4000-a000-000000000005', 'Granted in 2026', '$1.2M', 'https://example.org/lakeshore/grants-2026', '2026-09-30', 0),
+  ('00000000-0000-4000-a000-000000000005', 'Local nonprofits funded', '48', 'https://example.org/lakeshore/grants-2026', '2026-09-30', 1);
 
 -- Photos live in supabase/seed-images/post-images (loaded by `supabase seed buckets`); credits in seed-images/CREDITS.md.
 insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, beneficiary_consent, created_at) values
@@ -102,3 +116,16 @@ insert into posts (org_id, kind, body, video_path, video_poster_path, video_alt,
    '00000000-0000-4000-a000-000000000004/fence-removal.webm', '00000000-0000-4000-a000-000000000004/fence-removal.jpg',
    'A volunteer coiling old wire fencing in an open field while others work behind', 'BLM Oregon & Washington, public domain, via Wikimedia Commons',
    now() - interval '8 days');
+
+-- The demo foundation posts about its grants to the demo nonprofits.
+insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, beneficiary_consent, created_at) values
+  ('00000000-0000-4000-a000-000000000005', 'impact_story',
+   'Fall Community Fund grants are out: $1.2M to 48 local nonprofits. Harbor Table (Demo) gets its new walk-in freezer, and Riverbend Readers (Demo) can train 30 more volunteer tutors. Thank you to the 2,100 neighbors who gave to the fund.',
+   array['00000000-0000-4000-a000-000000000001/pantry-team.jpg']::text[], array['Volunteers in green shirts working together in a food pantry']::text[],
+   array['USDAgov, public domain, via Wikimedia Commons']::text[], true,
+   now() - interval '1 day 12 hours'),
+  ('00000000-0000-4000-a000-000000000005', 'update',
+   'Spring grant applications open November 1. Small nonprofits without a grant writer: tell us, and we''ll pair you with a volunteer who has written one before.',
+   '{}'::text[], '{}'::text[], '{}'::text[], false,
+   now() - interval '10 days');
+
