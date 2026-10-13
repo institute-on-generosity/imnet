@@ -40,6 +40,7 @@ Domain language for imnet. Use these terms in code, docs and UI. Table names in 
 
 ## Giving
 - **Grant**: money a foundation gives a nonprofit (`grants`). The foundation records it, optionally tagged on a post; the nonprofit **confirms** it. Only confirmed grants are public.
+- **Grant report**: a nonprofit's post about what a confirmed grant made possible (`posts.reports_grant_id`). Shown with a banner on the post and as the latest report on the foundation's Grantees list.
 - **Funded by / Grantees**: a nonprofit's confirmed grants by funder / a foundation's confirmed grants by recipient. Totals are computed from grants, never typed in.
 - **Donate**: handled by Every.org (`orgs.everyorg_slug`). imnet never touches money.
 
@@ -104,6 +105,7 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-033 Nonprofits vs. foundations.** Every org is a nonprofit or a foundation, chosen on the claim form and carried to the approved org (staff can't change it). They look different everywhere: nonprofits get a green mark, banner and "Nonprofit" badge; foundations a navy mark with a marigold letter, a navy banner and a "Foundation" badge. Explore and Following filter by All / Nonprofits / Foundations, kept alongside the cause filter. Demo: Lakeshore Community Foundation posts its grants to the demo nonprofits. Test: `supabase/tests/rls.test.ts`, `lib/feed-href.test.ts`, `e2e/public.spec.ts`
 - **F-034 Grants link foundations to nonprofits.** A foundation's staff can tag up to 10 nonprofits on a post, each with an optional whole-dollar amount and purpose. Each grant stays private (visible only to both orgs' staff) until the nonprofit's staff confirm it from their dashboard ("Grants to confirm": Confirm or Not ours). Confirmed grants show on the post as links to the grantee. Only foundations give, only nonprofits receive; the funder can never confirm its own grant; changing a confirmed grant's amount, purpose or grantee un-confirms it. Test: `supabase/tests/rls.test.ts`, `lib/grants.test.ts`, `e2e/signed-in.spec.ts`, `e2e/public.spec.ts`
 - **F-035 Funded by / Grantees.** Nonprofit profiles list confirmed grants by foundation ("Funded by"); foundation profiles list confirmed grantees with a computed total ("$43,000 to 2 nonprofits, each confirmed by the grantee"). Test: `lib/grants.test.ts`, `e2e/public.spec.ts`
+- **F-036 Grant reports.** A nonprofit can mark a post as its report on a confirmed grant it received (composer: "This post reports on a grant"). The post shows a "Grant report for <foundation>" banner linking to the foundation; the foundation's Grantees list shows each grantee's latest report; the announcement post marks grants with "Report posted". The nonprofit's dashboard lists confirmed grants without a report ("Share how your grants are going") with a one-click "Write a report". The database only accepts reports on confirmed grants the posting org received. Test: `supabase/tests/rls.test.ts`, `e2e/public.spec.ts`, `e2e/signed-in.spec.ts`
 
 ### Fixes
 

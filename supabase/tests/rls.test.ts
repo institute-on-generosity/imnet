@@ -300,6 +300,19 @@ describe("grants", () => {
     expect((await t.owner(`select confirmed_at from grants where id = '${id}'`))[0].confirmed_at).toBeNull()
   })
 
+  it("F-036: a post can report only on a confirmed grant its own org received", async () => {
+    const confirmed = String((await give(FUNDER, ORG_1)).rows![0].id)
+    await t.as(STAFF, `select confirm_grant('${confirmed}')`)
+    const pending = String((await give(FUNDER, ORG_1)).rows![0].id)
+    const report = (grant: string, org = ORG_1, who = STAFF) =>
+      t.as(who, `insert into posts (org_id, author_id, body, reports_grant_id) values ('${org}', '${who}', 'Our freezer is in', '${grant}')`)
+
+    expect((await report(pending)).error).toMatch(/confirmed grant your organization received/)
+    // The foundation can't post a "report" on its own grant.
+    expect((await report(confirmed, FOUNDATION, FUNDER)).error).toMatch(/confirmed grant your organization received/)
+    expect((await report(confirmed)).error).toBeUndefined()
+  })
+
   it("F-034: the grantee can remove a grant that isn't theirs ('not ours')", async () => {
     const id = (await give(FUNDER, ORG_1)).rows![0].id
     expect((await t.as(STAFF, `delete from grants where id = '${id}' returning id`)).rows).toHaveLength(1)

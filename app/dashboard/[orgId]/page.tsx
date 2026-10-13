@@ -1,15 +1,16 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCauses, getGrantsToConfirm, getOrgEventCounts } from "@/lib/queries"
+import { getCauses, getGrantsNeedingReport, getGrantsToConfirm, getOrgEventCounts, getReportableGrants } from "@/lib/queries"
 import type { Org } from "@/lib/types"
 import { createClient, getUserId } from "@/lib/supabase/server"
 import { Composer } from "./composer"
+import { GrantsNeedingReport } from "./grants-needing-report"
 import { GrantsToConfirm } from "./grants-to-confirm"
 import { ProfileForm } from "./profile-form"
 
-export default async function OrgDashboardPage({ params }: PageProps<"/dashboard/[orgId]">) {
-  const { orgId } = await params
+export default async function OrgDashboardPage({ params, searchParams }: PageProps<"/dashboard/[orgId]">) {
+  const [{ orgId }, { report }] = await Promise.all([params, searchParams])
   const userId = await getUserId()
   if (!userId) redirect("/login")
   const supabase = await createClient()
@@ -41,10 +42,18 @@ export default async function OrgDashboardPage({ params }: PageProps<"/dashboard
       </section>
 
       {org.org_type === "nonprofit" && <GrantsToConfirm orgId={org.id} grants={await getGrantsToConfirm(org.id)} />}
+      {org.org_type === "nonprofit" && <GrantsNeedingReport orgId={org.id} grants={await getGrantsNeedingReport(org.id)} />}
 
-      <Card>
+      <Card id="composer" className="scroll-mt-20">
         <CardHeader><CardTitle>New post</CardTitle></CardHeader>
-        <CardContent><Composer orgId={org.id} orgType={org.org_type} /></CardContent>
+        <CardContent>
+          <Composer
+            orgId={org.id}
+            orgType={org.org_type}
+            reportableGrants={org.org_type === "nonprofit" ? await getReportableGrants(org.id) : []}
+            reportOn={typeof report === "string" ? report : undefined}
+          />
+        </CardContent>
       </Card>
 
       <Card>

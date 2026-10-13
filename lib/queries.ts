@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server"
 import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
 
 const PAGE_SIZE = 20
-const POST_FIELDS = "id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at"
+const POST_FIELDS = `id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at,
+  report_grant:grants!posts_reports_grant_id_fkey(id, amount_usd, purpose, foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type))`
 
 // Chronological, no engagement ranking (design principle #4).
 export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType?: OrgType } = {}): Promise<Post[]> {
@@ -171,7 +172,8 @@ export async function searchOrgs(q: string): Promise<OrgSummaryWithMission[]> {
 // ---------------------------------------------------------------------------
 const GRANT_FIELDS = `id, post_id, amount_usd, purpose, awarded_on, confirmed_at,
   foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type),
-  grantee:orgs!grants_grantee_id_fkey(id, slug, name, logo_url, org_type)`
+  grantee:orgs!grants_grantee_id_fkey(id, slug, name, logo_url, org_type),
+  reports:posts!posts_reports_grant_id_fkey(id, body, created_at)`
 
 export async function getGrantsForPosts(postIds: string[]): Promise<Map<string, Grant[]>> {
   const byPost = new Map<string, Grant[]>()
@@ -207,6 +209,30 @@ export async function getGrantsToConfirm(orgId: string): Promise<Grant[]> {
     .eq("grantee_id", orgId)
     .is("confirmed_at", null)
     .order("created_at", { ascending: false })
+  return (data ?? []) as unknown as Grant[]
+}
+
+// Confirmed grants this nonprofit received that it hasn't reported on yet (dashboard nudge).
+export async function getGrantsNeedingReport(orgId: string): Promise<Grant[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("grants")
+    .select(GRANT_FIELDS)
+    .eq("grantee_id", orgId)
+    .not("confirmed_at", "is", null)
+    .order("awarded_on", { ascending: false })
+  return ((data ?? []) as unknown as Grant[]).filter((g) => g.reports.length === 0)
+}
+
+// Confirmed grants a nonprofit can report on (composer picker).
+export async function getReportableGrants(orgId: string): Promise<Grant[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("grants")
+    .select(GRANT_FIELDS)
+    .eq("grantee_id", orgId)
+    .not("confirmed_at", "is", null)
+    .order("awarded_on", { ascending: false })
   return (data ?? []) as unknown as Grant[]
 }
 

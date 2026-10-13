@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 import type { Grant, Post } from "@/lib/types"
 import { ExpandableText } from "./expandable-text"
 import { GrantChips } from "./grant-chips"
+import { GrantReportBanner } from "./grant-report-banner"
 import { MovedButton } from "./moved-button"
 import { OrgMark } from "./org-mark"
 import { OrgTypeBadge } from "./org-type-badge"
@@ -38,6 +39,8 @@ export function PostCard({ post, full = false, moved = false, signedIn = false, 
           </p>
         </div>
       </header>
+
+      {post.report_grant && <GrantReportBanner grant={post.report_grant} />}
 
       <div className="px-4 pt-3">
         {full ? (

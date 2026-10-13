@@ -146,6 +146,23 @@ test("F-034: a foundation tags a grantee; it stays private until the nonprofit c
   await anon.close()
 })
 
+test("F-036: the dashboard nudges a report on the confirmed grant; the report reaches the foundation", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await expect(page.getByRole("heading", { name: "Share how your grants are going" })).toBeVisible()
+  await page.getByRole("link", { name: "Write a report" }).click()
+  await expect(page).toHaveURL(/report=/)
+  await expect(page.getByLabel("This post reports on a grant (optional)")).toHaveValue(/[0-9a-f-]{36}/)
+
+  await page.getByLabel("What happened?").fill(`Dinner supplies arrived: we served 90 neighbors this week. Report ${id}.`)
+  await page.getByRole("button", { name: "Post", exact: true }).click()
+  await expect(page.getByText("Posted.")).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Share how your grants are going" })).toHaveCount(0)
+
+  await page.goto("/o/lakeshore-community-foundation")
+  await expect(page.getByRole("link", { name: new RegExp(`Latest report: Dinner supplies arrived.*Report ${id}`) })).toBeVisible()
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

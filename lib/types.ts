@@ -36,7 +36,12 @@ export type Post = {
   image_credits: string[]
   created_at: string
   org: OrgSummary
+  // Set when this post is a grantee's report on a confirmed grant (hidden if the grant isn't visible).
+  report_grant: ReportGrant | null
 }
+
+export type ReportGrant = { id: string; amount_usd: number | null; purpose: string | null; foundation: OrgSummary }
+export type GrantReport = { id: string; body: string; created_at: string }
 
 export type ImpactStat = {
   id: string
@@ -66,5 +71,6 @@ export type Grant = {
   confirmed_at: string | null
   foundation: OrgSummary
   grantee: OrgSummary
+  reports: GrantReport[]
 }
 

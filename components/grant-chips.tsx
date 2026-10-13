@@ -25,6 +25,7 @@ export function GrantChips({ grants }: { grants: Grant[] }) {
                 {g.purpose && <span className="text-muted-foreground"> for {g.purpose.charAt(0).toLowerCase() + g.purpose.slice(1)}</span>}
               </span>
               {!g.confirmed_at && <span className="shrink-0 text-xs text-muted-foreground">Awaiting confirmation</span>}
+              {g.reports.length > 0 && <span className="shrink-0 rounded-full bg-leaf-soft px-2 py-0.5 text-xs text-leaf">Report posted</span>}
               {g.amount_usd && <span className="shrink-0 font-medium tabular-nums">{formatUsd(g.amount_usd)}</span>}
             </Link>
           </li>

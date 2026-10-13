@@ -144,3 +144,15 @@ select '00000000-0000-4000-a000-000000000005', g.grantee, announcement.id, g.amo
     ('00000000-0000-4000-a000-000000000003'::uuid, 18000, 'Training 30 volunteer tutors', now() - interval '1 day'),
     ('00000000-0000-4000-a000-000000000004'::uuid, 5000, 'Native plants for the riverbank', null::timestamptz)
   ) as g(grantee, amount, purpose, confirmed);
+
+-- Harbor Table reports on Lakeshore's freezer grant (Riverbend hasn't reported yet).
+insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, beneficiary_consent, reports_grant_id, created_at)
+select '00000000-0000-4000-a000-000000000001', 'impact_story',
+       'The new walk-in freezer is in. 800 meals a week now stay safe, and we can say yes to fresh produce donations again: 1,100 pounds of it this week alone. Thank you, Lakeshore Community Foundation, and everyone who gives to the Community Fund.',
+       array['00000000-0000-4000-a000-000000000001/pantry-restock.jpg']::text[],
+       array['A volunteer restocking food pantry shelves with a box of canned goods']::text[],
+       array['USDAgov, public domain, via Wikimedia Commons']::text[], true,
+       g.id, now() - interval '6 hours'
+  from grants g
+ where g.foundation_id = '00000000-0000-4000-a000-000000000005'
+   and g.grantee_id = '00000000-0000-4000-a000-000000000001';

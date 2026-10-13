@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import type { OrgType } from "@/lib/types"
+import { formatUsd } from "@/lib/grants"
+import type { Grant, OrgType } from "@/lib/types"
 import { GranteePicker } from "./grantee-picker"
 import { ImagePicker } from "./image-picker"
 
-export function Composer({ orgId, orgType = "nonprofit" }: { orgId: string; orgType?: OrgType }) {
+type ComposerProps = { orgId: string; orgType?: OrgType; reportableGrants?: Grant[]; reportOn?: string }
+
+export function Composer({ orgId, orgType = "nonprofit", reportableGrants = [], reportOn }: ComposerProps) {
   const [state, action, pending] = useActionState(createPost.bind(null, orgId), null)
   const v = state?.values
   return (
@@ -31,6 +34,27 @@ export function Composer({ orgId, orgType = "nonprofit" }: { orgId: string; orgT
         <span className="text-sm font-medium">Photos (optional, up to 4)</span>
         <ImagePicker key={state?.id ?? "new"} orgId={orgId} />
       </div>
+      {reportableGrants.length > 0 && (
+        <div className="space-y-1">
+          <Label htmlFor="reports_grant_id">This post reports on a grant (optional)</Label>
+          <select
+            id="reports_grant_id"
+            name="reports_grant_id"
+            key={`${state?.id ?? "new"}-${reportOn ?? ""}`}
+            defaultValue={v?.reports_grant_id ?? reportOn ?? ""}
+            className="h-8 w-full rounded-lg border bg-background px-2 text-sm"
+          >
+            <option value="">Not a grant report</option>
+            {reportableGrants.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.foundation.name}
+                {g.amount_usd ? `, ${formatUsd(g.amount_usd)}` : ""}
+                {g.purpose ? ` for ${g.purpose}` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       {orgType === "foundation" && (
         <div className="space-y-1">
           <span className="text-sm font-medium">Grantees (optional)</span>

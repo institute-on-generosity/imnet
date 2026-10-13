@@ -81,6 +81,23 @@ test("F-034 / F-035: foundation posts link confirmed grantees; profiles show Fun
   await expect(page.getByText("$18,000, Training 30 volunteer tutors")).toBeVisible()
 })
 
+test("F-036: a nonprofit's grant report links to the foundation and shows on its Grantees list", async ({ page }) => {
+  await page.goto("/o/harbor-table")
+  const banner = page.getByRole("link", { name: /Grant report for Lakeshore Community Foundation/ })
+  await expect(banner).toContainText("$25,000 for new walk-in freezer")
+
+  await page.goto("/o/lakeshore-community-foundation")
+  await expect(page.getByRole("link", { name: /Latest report: The new walk-in freezer is in/ })).toBeVisible()
+
+  await page.goto("/o/lakeshore-community-foundation?tab=posts")
+  await expect(page.locator("li").filter({ hasText: "for new walk-in freezer" }).getByText("Report posted")).toBeVisible()
+  await expect(page.locator("li").filter({ hasText: "for training 30 volunteer tutors" }).getByText("Report posted")).toHaveCount(0)
+
+  await page.goto("/o/harbor-table")
+  await banner.click()
+  await expect(page).toHaveURL(/\/o\/lakeshore-community-foundation$/)
+})
+
 test("F-003 / F-024 / F-021: org profile tabs and footnoted impact stats", async ({ page }) => {
   await page.goto("/o/open-door-homes")
   await expect(page.getByRole("heading", { name: "Open Door Homes (Demo)" })).toBeVisible()

@@ -175,6 +175,9 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
   )
   if ("error" in grantFields) return fail(form, grantFields.error)
 
+  const reportsGrant = String(form.get("reports_grant_id") ?? "")
+  if (reportsGrant && !/^[0-9a-f-]{36}$/.test(reportsGrant)) return fail(form, "Pick a grant from the list.")
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("posts")
@@ -187,6 +190,7 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
       image_paths: images.paths,
       image_alts: images.alts,
       beneficiary_consent: consent,
+      reports_grant_id: reportsGrant || null,
     })
     .select("id")
     .single()
