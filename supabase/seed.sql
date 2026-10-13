@@ -129,3 +129,18 @@ insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, b
    '{}'::text[], '{}'::text[], '{}'::text[], false,
    now() - interval '10 days');
 
+
+-- Grants from the demo foundation, tagged on its announcement post.
+-- Harbor Table and Riverbend have confirmed; Greenway hasn't yet (so it stays private).
+with announcement as (
+  select id from posts
+   where org_id = '00000000-0000-4000-a000-000000000005' and kind = 'impact_story'
+   order by created_at desc limit 1
+)
+insert into grants (foundation_id, grantee_id, post_id, amount_usd, purpose, awarded_on, confirmed_at)
+select '00000000-0000-4000-a000-000000000005', g.grantee, announcement.id, g.amount, g.purpose, current_date - 2, g.confirmed
+  from announcement, (values
+    ('00000000-0000-4000-a000-000000000001'::uuid, 25000, 'New walk-in freezer', now() - interval '1 day'),
+    ('00000000-0000-4000-a000-000000000003'::uuid, 18000, 'Training 30 volunteer tutors', now() - interval '1 day'),
+    ('00000000-0000-4000-a000-000000000004'::uuid, 5000, 'Native plants for the riverbank', null::timestamptz)
+  ) as g(grantee, amount, purpose, confirmed);

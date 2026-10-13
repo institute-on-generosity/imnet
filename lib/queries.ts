@@ -1,6 +1,6 @@
 import { escapeLike } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
-import type { Cause, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
+import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
 
 const PAGE_SIZE = 20
 const POST_FIELDS = "id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at"
@@ -165,3 +165,48 @@ export async function searchOrgs(q: string): Promise<OrgSummaryWithMission[]> {
     .limit(20)
   return data ?? []
 }
+
+// ---------------------------------------------------------------------------
+// Grants (RLS shows confirmed grants to everyone, unconfirmed ones only to the two orgs' staff)
+// ---------------------------------------------------------------------------
+const GRANT_FIELDS = `id, post_id, amount_usd, purpose, awarded_on, confirmed_at,
+  foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type),
+  grantee:orgs!grants_grantee_id_fkey(id, slug, name, logo_url, org_type)`
+
+export async function getGrantsForPosts(postIds: string[]): Promise<Map<string, Grant[]>> {
+  const byPost = new Map<string, Grant[]>()
+  if (postIds.length === 0) return byPost
+  const supabase = await createClient()
+  const { data } = await supabase.from("grants").select(GRANT_FIELDS).in("post_id", postIds).order("amount_usd", { ascending: false, nullsFirst: false })
+  for (const g of (data ?? []) as unknown as Grant[]) {
+    const list = byPost.get(g.post_id!) ?? []
+    list.push(g)
+    byPost.set(g.post_id!, list)
+  }
+  return byPost
+}
+
+// Funded-by (nonprofit) or grantees (foundation), confirmed only, newest first.
+export async function getOrgGrants(org: Pick<Org, "id" | "org_type">): Promise<Grant[]> {
+  const supabase = await createClient()
+  const column = org.org_type === "foundation" ? "foundation_id" : "grantee_id"
+  const { data } = await supabase
+    .from("grants")
+    .select(GRANT_FIELDS)
+    .eq(column, org.id)
+    .not("confirmed_at", "is", null)
+    .order("awarded_on", { ascending: false })
+  return (data ?? []) as unknown as Grant[]
+}
+
+export async function getGrantsToConfirm(orgId: string): Promise<Grant[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("grants")
+    .select(GRANT_FIELDS)
+    .eq("grantee_id", orgId)
+    .is("confirmed_at", null)
+    .order("created_at", { ascending: false })
+  return (data ?? []) as unknown as Grant[]
+}
+

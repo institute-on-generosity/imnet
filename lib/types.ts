@@ -55,3 +55,16 @@ export const POST_KIND_LABEL: Record<PostKind, string> = {
   impact_story: "Impact story",
   ask: "Ask",
 }
+
+// A foundation's grant to a nonprofit. Public only once the nonprofit confirms it.
+export type Grant = {
+  id: string
+  post_id: string | null
+  amount_usd: number | null
+  purpose: string | null
+  awarded_on: string
+  confirmed_at: string | null
+  foundation: OrgSummary
+  grantee: OrgSummary
+}
+

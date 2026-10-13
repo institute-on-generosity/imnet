@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import type { OrgType } from "@/lib/types"
+import { GranteePicker } from "./grantee-picker"
 import { ImagePicker } from "./image-picker"
 
-export function Composer({ orgId }: { orgId: string }) {
+export function Composer({ orgId, orgType = "nonprofit" }: { orgId: string; orgType?: OrgType }) {
   const [state, action, pending] = useActionState(createPost.bind(null, orgId), null)
   const v = state?.values
   return (
@@ -29,6 +31,12 @@ export function Composer({ orgId }: { orgId: string }) {
         <span className="text-sm font-medium">Photos (optional, up to 4)</span>
         <ImagePicker key={state?.id ?? "new"} orgId={orgId} />
       </div>
+      {orgType === "foundation" && (
+        <div className="space-y-1">
+          <span className="text-sm font-medium">Grantees (optional)</span>
+          <GranteePicker key={state?.id ?? "new"} />
+        </div>
+      )}
       <div className="space-y-1">
         <Label htmlFor="embed">Video link (optional)</Label>
         <Input id="embed" name="embed" defaultValue={v?.embed} placeholder="YouTube, Vimeo, Instagram or Wikimedia Commons link" />

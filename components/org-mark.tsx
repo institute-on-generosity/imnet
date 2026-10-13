@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils"
 import type { OrgSummary } from "@/lib/types"
 
 const SIZES = {
+  sm: "size-6 text-xs rounded-md",
   md: "size-12 text-xl rounded-lg",
   lg: "size-16 text-3xl rounded-xl",
   xl: "size-24 text-5xl rounded-2xl border-4 border-card",

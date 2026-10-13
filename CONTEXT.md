@@ -39,6 +39,8 @@ Domain language for imnet. Use these terms in code, docs and UI. Table names in 
 - **Event**: an analytics record: `view`, `share` or `donate_click` (`events`). Readable by the org's staff only.
 
 ## Giving
+- **Grant**: money a foundation gives a nonprofit (`grants`). The foundation records it, optionally tagged on a post; the nonprofit **confirms** it. Only confirmed grants are public.
+- **Funded by / Grantees**: a nonprofit's confirmed grants by funder / a foundation's confirmed grants by recipient. Totals are computed from grants, never typed in.
 - **Donate**: handled by Every.org (`orgs.everyorg_slug`). imnet never touches money.
 
 ## AI
@@ -100,6 +102,8 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-031 Upload cleanup.** Removing a photo in the composer deletes it from storage at once. `npm run cleanup:uploads` deletes photos older than a day that no post uses (via `orphan_post_images()`, callable only by the service role; the script uses `SUPABASE_SECRET_KEY`, never the web app). Test: `supabase/tests/rls.test.ts` (listing and permissions)
 - **F-032 Video posts that autoplay.** Posts can carry a native video (file in the `post-videos` bucket, with a poster, a required description and an optional credit). In the feed, videos play muted while 60% on screen and pause when scrolled away; YouTube and Vimeo links start muted when scrolled into view. No autoplay when the device asks to reduce motion. A post has at most one video (native or embedded). Demo: Harbor Table's pantry garden harvest and a new demo org, Greenway Stewards (environment), with trail and fence-removal crews; openly licensed footage with no real org named, credited. Test: `supabase/tests/rls.test.ts`, `lib/autoplay-src.test.ts`, `e2e/public.spec.ts`
 - **F-033 Nonprofits vs. foundations.** Every org is a nonprofit or a foundation, chosen on the claim form and carried to the approved org (staff can't change it). They look different everywhere: nonprofits get a green mark, banner and "Nonprofit" badge; foundations a navy mark with a marigold letter, a navy banner and a "Foundation" badge. Explore and Following filter by All / Nonprofits / Foundations, kept alongside the cause filter. Demo: Lakeshore Community Foundation posts its grants to the demo nonprofits. Test: `supabase/tests/rls.test.ts`, `lib/feed-href.test.ts`, `e2e/public.spec.ts`
+- **F-034 Grants link foundations to nonprofits.** A foundation's staff can tag up to 10 nonprofits on a post, each with an optional whole-dollar amount and purpose. Each grant stays private (visible only to both orgs' staff) until the nonprofit's staff confirm it from their dashboard ("Grants to confirm": Confirm or Not ours). Confirmed grants show on the post as links to the grantee. Only foundations give, only nonprofits receive; the funder can never confirm its own grant; changing a confirmed grant's amount, purpose or grantee un-confirms it. Test: `supabase/tests/rls.test.ts`, `lib/grants.test.ts`, `e2e/signed-in.spec.ts`, `e2e/public.spec.ts`
+- **F-035 Funded by / Grantees.** Nonprofit profiles list confirmed grants by foundation ("Funded by"); foundation profiles list confirmed grantees with a computed total ("$43,000 to 2 nonprofits, each confirmed by the grantee"). Test: `lib/grants.test.ts`, `e2e/public.spec.ts`
 
 ### Fixes
 
@@ -117,3 +121,5 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **B-009 Org tab labels were lowercase for screen readers.** Tabs showed "Home / About / Posts" only through CSS capitalization; the text was "home / about / posts". Labels are now real text. Test: `e2e/public.spec.ts`
 - **B-010 Feed jumped as photos loaded.** Lazy-loaded single photos had no reserved height, so posts shifted as images arrived (and photos below the fold had zero height). Single photos now sit in a fixed 4:3 frame like galleries. Test: `e2e/public.spec.ts`
 - **B-011 Single portrait photos overflowed their frame.** The 4:3 frame from B-010 held galleries but a single tall photo grew past it. The frame now clips and the photo fills it. Test: none (visual)
+
+- **B-012 Dashboard card titles weren't headings.** shadcn's `CardTitle` renders a `<div>`, so screen-reader users couldn't jump between dashboard and admin sections. It now renders an `<h2>`. Test: `e2e/signed-in.spec.ts`

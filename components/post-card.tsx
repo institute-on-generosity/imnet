@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import type { Post } from "@/lib/types"
+import type { Grant, Post } from "@/lib/types"
 import { ExpandableText } from "./expandable-text"
+import { GrantChips } from "./grant-chips"
 import { MovedButton } from "./moved-button"
 import { OrgMark } from "./org-mark"
 import { OrgTypeBadge } from "./org-type-badge"
@@ -18,10 +19,10 @@ const relative = (iso: string) => {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
 
-type CardProps = { post: Post; full?: boolean; moved?: boolean; signedIn?: boolean }
+type CardProps = { post: Post; full?: boolean; moved?: boolean; signedIn?: boolean; grants?: Grant[] }
 
 // A LinkedIn-style post: author header, text with "see more", media, then an action bar.
-export function PostCard({ post, full = false, moved = false, signedIn = false }: CardProps) {
+export function PostCard({ post, full = false, moved = false, signedIn = false, grants = [] }: CardProps) {
   return (
     <Panel>
       <header className="flex items-start gap-3 px-4 pt-4">
@@ -47,6 +48,7 @@ export function PostCard({ post, full = false, moved = false, signedIn = false }
       </div>
 
       <PostMedia post={post} />
+      <GrantChips grants={grants} />
 
       <footer className="mt-3 flex items-center gap-1 border-t px-2 py-1">
         <MovedButton postId={post.id} moved={moved} signedIn={signedIn} />
@@ -61,12 +63,14 @@ export function PostCard({ post, full = false, moved = false, signedIn = false }
   )
 }
 
-export function Feed({ posts, empty, movedIds, signedIn = false }: { posts: Post[]; empty: React.ReactNode; movedIds?: Set<string>; signedIn?: boolean }) {
+type FeedProps = { posts: Post[]; empty: React.ReactNode; movedIds?: Set<string>; signedIn?: boolean; grantsByPost?: Map<string, Grant[]> }
+
+export function Feed({ posts, empty, movedIds, signedIn = false, grantsByPost }: FeedProps) {
   if (posts.length === 0) return <Panel className="p-6 text-muted-foreground">{empty}</Panel>
   return (
     <div className="space-y-3">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} moved={movedIds?.has(post.id)} signedIn={signedIn} />
+        <PostCard key={post.id} post={post} moved={movedIds?.has(post.id)} signedIn={signedIn} grants={grantsByPost?.get(post.id)} />
       ))}
     </div>
   )

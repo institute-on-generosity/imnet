@@ -7,6 +7,8 @@ import { draftProfileFromWebsite, fetchWebsiteText, suggestCauses } from "@/lib/
 import { toEmbed } from "@/lib/embeds"
 import { formValues } from "@/lib/form-values"
 import { validateImages } from "@/lib/post-images"
+import { parseGrantFields } from "@/lib/grants"
+import { escapeLike } from "@/lib/search"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
 // values: what the user typed, sent back on error so forms can refill (React 19 resets forms after an action).
@@ -166,6 +168,13 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
   const consent = form.get("beneficiary_consent") === "on"
   if (images.paths.length > 0 && !consent) return fail(form, "Confirm consent before posting photos.")
 
+  const grantFields = parseGrantFields(
+    form.getAll("grantee_ids").map(String),
+    form.getAll("grant_amounts").map(String),
+    form.getAll("grant_purposes").map(String),
+  )
+  if ("error" in grantFields) return fail(form, grantFields.error)
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("posts")
@@ -182,8 +191,55 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
     .select("id")
     .single()
   if (error) return fail(form, error.message)
+
+  // Foundations can tag grantees; each grant waits for the nonprofit to confirm it.
+  if (grantFields.grants.length) {
+    const { error: grantError } = await supabase
+      .from("grants")
+      .insert(grantFields.grants.map((g) => ({ ...g, foundation_id: orgId, post_id: data.id, created_by: userId })))
+    if (grantError) return { ok: true, id: data.id, message: `Posted, but the grants weren't saved: ${grantError.message}` }
+  }
   revalidatePath("/")
-  return { ok: true, message: "Posted.", id: data.id }
+  return {
+    ok: true,
+    id: data.id,
+    message: grantFields.grants.length ? "Posted. Grants show once each nonprofit confirms them." : "Posted.",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Grants
+// ---------------------------------------------------------------------------
+export async function searchGrantees(q: string) {
+  await requireUser()
+  const term = q.trim().slice(0, 100)
+  if (term.length < 2) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("orgs")
+    .select("id, slug, name, logo_url, org_type")
+    .eq("status", "verified")
+    .eq("org_type", "nonprofit")
+    .ilike("name", `%${escapeLike(term)}%`)
+    .order("name")
+    .limit(8)
+  return data ?? []
+}
+
+export async function confirmGrant(grantId: string, orgId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("confirm_grant", { target: grantId })
+  if (error) throw error
+  revalidatePath(`/dashboard/${orgId}`)
+  revalidatePath("/", "layout")
+}
+
+export async function declineGrant(grantId: string, orgId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("grants").delete().eq("id", grantId)
+  revalidatePath(`/dashboard/${orgId}`)
 }
 
 // ---------------------------------------------------------------------------

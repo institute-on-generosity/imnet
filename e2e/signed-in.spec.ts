@@ -8,12 +8,21 @@ const id = uniq()
 const email = `dana.${id}@example.com`
 const domain = `kitchen${id}.example.org`
 const slug = `test-kitchen-${id}`
+const orgName = `Test Kitchen ${id}`
 let userId = ""
 // One signed-in page for the whole journey: sign in once, like a real visit.
 let page: Page
 
 test.beforeAll(async ({ browser }) => {
   page = await (await browser.newContext()).newPage()
+})
+
+// Leave the local database as we found it: remove this run's org, posts, grants and user.
+test.afterAll(async () => {
+  await sql`delete from posts where body like ${`%${id}%`}`
+  await sql`delete from orgs where slug = ${slug}`
+  await sql`delete from org_claims where org_name = ${orgName}`
+  if (userId) await sql`delete from auth.users where id = ${userId}`
 })
 const altText = `Volunteers setting tables for dinner ${id}`
 
@@ -45,13 +54,13 @@ test("F-013: 'Moved me' is saved privately, with no public count", async () => {
 
 test("F-008 / B-008: claim checks the work email and keeps what you typed", async () => {
   await page.goto("/dashboard")
-  await page.getByLabel("Organization name").fill("Test Kitchen Collective")
+  await page.getByLabel("Organization name").fill(orgName)
   await page.getByLabel("EIN").fill(`9${id.slice(-1)}-${id.slice(-7)}`)
   await page.getByLabel("Website").fill(`https://${domain}`)
   await page.getByLabel(/work email/).fill("dana@example.com")
   await page.getByRole("button", { name: "Submit claim" }).click()
   await expect(page.getByText(`Use an email on ${domain}`)).toBeVisible()
-  await expect(page.getByLabel("Organization name")).toHaveValue("Test Kitchen Collective")
+  await expect(page.getByLabel("Organization name")).toHaveValue(orgName)
 
   await page.getByLabel(/work email/).fill(`dana@${domain}`)
   await page.getByRole("button", { name: "Submit claim" }).click()
@@ -63,7 +72,7 @@ test("F-008 / B-008: claim checks the work email and keeps what you typed", asyn
 test("F-009 / F-017: an admin approves the claim", async () => {
   await sql`update profiles set is_admin = true where id = ${userId}`
   await page.goto("/admin")
-  const card = page.locator("main section > div, main [data-slot=card]").filter({ hasText: "Test Kitchen Collective" }).first()
+  const card = page.locator("main section > div, main [data-slot=card]").filter({ hasText: orgName }).first()
   await card.getByPlaceholder("profile-slug").fill(slug)
   await card.getByRole("button", { name: "Approve" }).click()
   await expect.poll(async () => (await sql`select status from orgs where slug = ${slug}`)[0]?.status).toBe("verified")
@@ -99,6 +108,42 @@ test("F-028 / F-010: staff post with a photo (description and consent required) 
 
   await page.goto("/")
   await expect(page.getByAltText(altText)).toBeVisible()
+})
+
+test("F-034: a foundation tags a grantee; it stays private until the nonprofit confirms", async () => {
+  // Make this user staff of the demo foundation too (they already run the Test Kitchen nonprofit).
+  const FOUNDATION = "00000000-0000-4000-a000-000000000005"
+  await sql`insert into org_members (org_id, user_id) values (${FOUNDATION}, ${userId}) on conflict do nothing`
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+
+  await page.goto(`/dashboard/${FOUNDATION}`)
+  await page.getByLabel("What happened?").fill(`Welcome to our newest grantee, Test Kitchen ${id}.`)
+  await page.getByLabel("Search nonprofits to tag as grantees").fill(orgName)
+  await page.getByRole("button", { name: orgName }).click()
+  await page.getByLabel(`Grant amount for ${orgName}`).fill("7,500")
+  await page.getByLabel(`Grant purpose for ${orgName}`).fill("Community dinner supplies")
+  await page.getByRole("button", { name: "Post", exact: true }).click()
+  await expect(page.getByText("Posted. Grants show once each nonprofit confirms them.")).toBeVisible()
+
+  const [grant] = await sql`select id, amount_usd, confirmed_at from grants where grantee_id = ${kitchen.id}`
+  expect(grant.amount_usd).toBe(7500)
+  expect(grant.confirmed_at).toBeNull()
+
+  // Signed-out visitors don't see the unconfirmed grant.
+  const anon = await page.context().browser()!.newPage()
+  await anon.goto(`/o/${slug}`)
+  await expect(anon.getByRole("heading", { name: "Funded by" })).toHaveCount(0)
+
+  // The nonprofit confirms it from its dashboard.
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await expect(page.getByRole("heading", { name: "Grants to confirm" })).toBeVisible()
+  await page.getByRole("button", { name: "Confirm" }).click()
+  await expect.poll(async () => (await sql`select confirmed_at from grants where id = ${grant.id}`)[0].confirmed_at).not.toBeNull()
+
+  await anon.goto(`/o/${slug}`)
+  await expect(anon.getByRole("heading", { name: "Funded by" })).toBeVisible()
+  await expect(anon.getByText("$7,500, Community dinner supplies")).toBeVisible()
+  await anon.close()
 })
 
 test("F-015: staff can't open another org's dashboard", async () => {

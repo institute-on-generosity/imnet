@@ -40,6 +40,7 @@ const SUPABASE_STANDINS = `
 export const ORG_1 = "00000000-0000-4000-a000-000000000001" // Harbor Table
 export const ORG_2 = "00000000-0000-4000-a000-000000000002" // Open Door Homes
 export const ORG_PENDING = "00000000-0000-4000-a000-0000000000ff" // not verified
+export const FOUNDATION = "00000000-0000-4000-a000-000000000005" // Lakeshore Community Foundation
 
 // Test users
 export const DONOR = "10000000-0000-4000-8000-000000000001"

@@ -1,10 +1,11 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCauses, getOrgEventCounts } from "@/lib/queries"
+import { getCauses, getGrantsToConfirm, getOrgEventCounts } from "@/lib/queries"
 import type { Org } from "@/lib/types"
 import { createClient, getUserId } from "@/lib/supabase/server"
 import { Composer } from "./composer"
+import { GrantsToConfirm } from "./grants-to-confirm"
 import { ProfileForm } from "./profile-form"
 
 export default async function OrgDashboardPage({ params }: PageProps<"/dashboard/[orgId]">) {
@@ -39,9 +40,11 @@ export default async function OrgDashboardPage({ params }: PageProps<"/dashboard
         <Stat label="Donate clicks (30d)" value={counts.donate_click} />
       </section>
 
+      {org.org_type === "nonprofit" && <GrantsToConfirm orgId={org.id} grants={await getGrantsToConfirm(org.id)} />}
+
       <Card>
         <CardHeader><CardTitle>New post</CardTitle></CardHeader>
-        <CardContent><Composer orgId={org.id} /></CardContent>
+        <CardContent><Composer orgId={org.id} orgType={org.org_type} /></CardContent>
       </Card>
 
       <Card>

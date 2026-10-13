@@ -1,7 +1,7 @@
 // Database security rules (RLS, grants, checks). Each test is named after its CONTEXT.md Ledger entry.
 
 import { beforeAll, describe, expect, it } from "vitest"
-import { ADMIN, createTestDb, DONOR, ORG_1, ORG_2, ORG_PENDING, STAFF } from "./harness"
+import { ADMIN, createTestDb, DONOR, FOUNDATION, ORG_1, ORG_2, ORG_PENDING, STAFF } from "./harness"
 
 let t: Awaited<ReturnType<typeof createTestDb>>
 
@@ -253,5 +253,56 @@ describe("upload cleanup", () => {
 
     expect((await t.as(STAFF, `select * from orphan_post_images()`)).error).toMatch(/permission denied/)
     expect((await t.as(null, `select * from orphan_post_images()`)).error).toMatch(/permission denied/)
+  })
+})
+
+describe("grants", () => {
+  // FUNDER is staff of the seeded FOUNDATION; STAFF is staff of ORG_1 (a nonprofit).
+  const FUNDER = "10000000-0000-4000-8000-0000000000f5"
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${FUNDER}', 'grants@lakeshore.example.org') on conflict do nothing`)
+    await t.owner(`insert into org_members (org_id, user_id) values ('${FOUNDATION}', '${FUNDER}') on conflict do nothing`)
+  })
+  const give = (who: string, grantee: string, extra = "") =>
+    t.as(who, `insert into grants (foundation_id, grantee_id, amount_usd, purpose, created_by${extra ? ", confirmed_at" : ""})
+               values ('${FOUNDATION}', '${grantee}', 25000, 'New freezer', '${who}'${extra}) returning id`)
+
+  it("F-034: only a foundation's staff can record its grants, only to nonprofits, never pre-confirmed", async () => {
+    expect((await give(STAFF, ORG_1)).error).toMatch(/row-level security/)
+    expect((await give(FUNDER, ORG_1, ", now()")).error).toMatch(/row-level security/)
+    expect((await t.as(FUNDER, `insert into grants (foundation_id, grantee_id, created_by) values ('${FOUNDATION}', '${FOUNDATION}', '${FUNDER}')`)).error).toMatch(/grant_not_self|grants go to nonprofits/)
+    expect((await t.as(STAFF, `insert into grants (foundation_id, grantee_id, created_by) values ('${ORG_1}', '${ORG_2}', '${STAFF}')`)).error).toMatch(/row-level security|given by foundations/)
+    expect((await give(FUNDER, ORG_1)).error).toBeUndefined()
+  })
+
+  it("F-034: unconfirmed grants are private; the grantee confirms; then they're public", async () => {
+    const id = (await give(FUNDER, ORG_2)).rows![0].id
+    expect((await t.as(null, `select id from grants where id = '${id}'`)).rows).toHaveLength(0)
+    expect((await t.as(DONOR, `select id from grants where id = '${id}'`)).rows).toHaveLength(0)
+    expect((await t.as(FUNDER, `select id from grants where id = '${id}'`)).rows).toHaveLength(1)
+
+    // The funder can't confirm its own grant, directly or through the function.
+    expect((await t.as(FUNDER, `update grants set confirmed_at = now() where id = '${id}'`)).error).toMatch(/permission denied/)
+    expect((await t.as(FUNDER, `select confirm_grant('${id}')`)).error).toMatch(/not yours to confirm/)
+    // Staff of a different nonprofit can't either.
+    expect((await t.as(STAFF, `select confirm_grant('${id}')`)).error).toMatch(/not yours to confirm/)
+
+    await t.owner(`insert into org_members (org_id, user_id) values ('${ORG_2}', '${DONOR}') on conflict do nothing`)
+    expect((await t.as(DONOR, `select confirm_grant('${id}')`)).error).toBeUndefined()
+    expect((await t.as(null, `select amount_usd from grants where id = '${id}'`)).rows).toEqual([{ amount_usd: 25000 }])
+    await t.owner(`delete from org_members where org_id = '${ORG_2}' and user_id = '${DONOR}'`)
+  })
+
+  it("F-034: changing a confirmed grant's amount un-confirms it", async () => {
+    const id = (await give(FUNDER, ORG_1)).rows![0].id
+    expect((await t.as(STAFF, `select confirm_grant('${id}')`)).error).toBeUndefined()
+    expect((await t.as(FUNDER, `update grants set amount_usd = 99999 where id = '${id}'`)).error).toBeUndefined()
+    expect((await t.owner(`select confirmed_at from grants where id = '${id}'`))[0].confirmed_at).toBeNull()
+  })
+
+  it("F-034: the grantee can remove a grant that isn't theirs ('not ours')", async () => {
+    const id = (await give(FUNDER, ORG_1)).rows![0].id
+    expect((await t.as(STAFF, `delete from grants where id = '${id}' returning id`)).rows).toHaveLength(1)
+    expect((await t.as(DONOR, `delete from grants where grantee_id = '${ORG_1}' returning id`)).rows).toHaveLength(0)
   })
 })

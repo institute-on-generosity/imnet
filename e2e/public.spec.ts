@@ -62,6 +62,25 @@ test("F-033: foundations and nonprofits look different, and the feed filters by 
   await expect(page.locator("main h1 + span", { hasText: "Foundation" })).toBeVisible()
 })
 
+test("F-034 / F-035: foundation posts link confirmed grantees; profiles show Funded by and Grantees", async ({ page }) => {
+  await page.goto("/o/lakeshore-community-foundation?tab=posts")
+  const chips = page.locator("li").filter({ hasText: "for new walk-in freezer" })
+  await expect(chips.first()).toContainText("$25,000")
+  // Greenway hasn't confirmed its grant, so it isn't shown.
+  await expect(page.getByText("for native plants for the riverbank")).toHaveCount(0)
+  await chips.first().getByRole("link").click()
+  await expect(page).toHaveURL(/\/o\/harbor-table$/)
+
+  await expect(page.getByRole("heading", { name: "Funded by" })).toBeVisible()
+  await expect(page.getByText("$25,000, New walk-in freezer")).toBeVisible()
+
+  await page.goto("/o/lakeshore-community-foundation")
+  await expect(page.getByRole("heading", { name: "Grantees" })).toBeVisible()
+  // Exact totals are unit-tested (grantTotals); other test runs may add grants here.
+  await expect(page.getByText(/\$[\d,.]+M? to \d+ nonprofits, each confirmed by the grantee/)).toBeVisible()
+  await expect(page.getByText("$18,000, Training 30 volunteer tutors")).toBeVisible()
+})
+
 test("F-003 / F-024 / F-021: org profile tabs and footnoted impact stats", async ({ page }) => {
   await page.goto("/o/open-door-homes")
   await expect(page.getByRole("heading", { name: "Open Door Homes (Demo)" })).toBeVisible()

@@ -6,13 +6,14 @@ import { OrgTypeBadge } from "@/components/org-type-badge"
 import { Feed } from "@/components/post-card"
 import { ShareButton } from "@/components/share-button"
 import { Panel, TwoColumn } from "@/components/shell"
+import { GrantsPanel } from "@/components/grants-panel"
 import { SuggestedOrgs } from "@/components/side-cards"
 import { TrackView } from "@/components/track-view"
 import { buttonVariants } from "@/components/ui/button"
 import { footnotes } from "@/lib/footnotes"
 import { ORG_TAB_LABEL, ORG_TABS, type OrgTab } from "@/lib/org-tabs"
 import type { OrgSummaryWithMission } from "@/lib/queries"
-import type { Cause, ImpactStat, Org, Post } from "@/lib/types"
+import type { Cause, Grant, ImpactStat, Org, Post } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 const longDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
@@ -28,10 +29,12 @@ type Props = {
   signedIn: boolean
   following: boolean
   movedIds?: Set<string>
+  grants: Grant[]
+  grantsByPost: Map<string, Grant[]>
   tab: OrgTab
 }
 
-export function OrgProfile({ org, stats, causes, followers, posts, similar, signedIn, following, movedIds, tab }: Props) {
+export function OrgProfile({ org, stats, causes, followers, posts, similar, signedIn, following, movedIds, grants, grantsByPost, tab }: Props) {
   const base = `/o/${org.slug}`
   return (
     <TwoColumn right={<SuggestedOrgs title="Similar organizations" orgs={similar} signedIn={signedIn} />}>
@@ -98,9 +101,10 @@ export function OrgProfile({ org, stats, causes, followers, posts, similar, sign
           )}
           <GiftsFund org={org} />
           <ImpactLedger stats={stats} />
+          <GrantsPanel org={org} grants={grants} />
           <section aria-labelledby="recent" className="space-y-3">
             <h2 id="recent" className="px-1 font-sans text-lg font-semibold tracking-normal">Recent posts</h2>
-            <Feed posts={posts.slice(0, 3)} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} />
+            <Feed posts={posts.slice(0, 3)} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
             {posts.length > 3 && (
               <Link href={`${base}?tab=posts`} className={buttonVariants({ variant: "outline", className: "w-full" })}>Show all posts</Link>
             )}
@@ -142,10 +146,11 @@ export function OrgProfile({ org, stats, causes, followers, posts, similar, sign
           </Panel>
           <GiftsFund org={org} />
           <ImpactLedger stats={stats} />
+          <GrantsPanel org={org} grants={grants} />
         </>
       )}
 
-      {tab === "posts" && <Feed posts={posts} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} />}
+      {tab === "posts" && <Feed posts={posts} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} grantsByPost={grantsByPost} />}
     </TwoColumn>
   )
 }

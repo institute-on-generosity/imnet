@@ -2,7 +2,7 @@ import { CauseFilter, OrgTypeFilter } from "@/components/cause-filter"
 import { Feed } from "@/components/post-card"
 import { Panel, ThreeColumn } from "@/components/shell"
 import { JoinCard, SuggestedOrgs, ViewerCard } from "@/components/side-cards"
-import { getCauses, getFeed, getFollowedOrgIds, getMovedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
+import { getCauses, getFeed, getFollowedOrgIds, getGrantsForPosts, getMovedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 import type { OrgType } from "@/lib/types"
 
@@ -16,7 +16,8 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath }: { ca
     orgIds && orgIds.length === 0 ? Promise.resolve([]) : getFeed({ cause, orgIds, orgType }),
     getSuggestedOrgs({ userId, cause }),
   ])
-  const movedIds = await getMovedPostIds(userId, posts.map((p) => p.id))
+  const ids = posts.map((p) => p.id)
+  const [movedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getGrantsForPosts(ids)])
 
   const empty = followingOnly
     ? orgIds?.length
@@ -45,7 +46,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath }: { ca
         </div>
         <CauseFilter causes={causes} active={cause} type={orgType} basePath={basePath} />
       </Panel>
-      <Feed posts={posts} empty={empty} movedIds={movedIds} signedIn={!!userId} />
+      <Feed posts={posts} empty={empty} movedIds={movedIds} signedIn={!!userId} grantsByPost={grantsByPost} />
     </ThreeColumn>
   )
 }
