@@ -59,7 +59,11 @@ export function ImagePicker({ orgId }: { orgId: string }) {
           <button
             type="button"
             aria-label={`Remove photo ${i + 1}`}
-            onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
+            onClick={() => {
+              setImages((prev) => prev.filter((_, j) => j !== i))
+              // Removed before posting: delete the upload now rather than leaving it for cleanup.
+              void createClient().storage.from("post-images").remove([img.path])
+            }}
             className="rounded-md p-1 text-muted-foreground hover:bg-muted"
           >
             <X className="size-4" />

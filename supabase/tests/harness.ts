@@ -11,6 +11,7 @@ const SUPABASE_DIR = join(__dirname, "..")
 const SUPABASE_STANDINS = `
   create role anon nologin;
   create role authenticated nologin;
+  create role service_role nologin;
   grant usage on schema public to anon, authenticated;
 
   -- Supabase grants API roles full table privileges by default; RLS and our revokes narrow them.
@@ -26,7 +27,8 @@ const SUPABASE_STANDINS = `
   create schema storage;
   grant usage on schema storage to anon, authenticated;
   create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
-  create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
+  create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, created_at timestamptz not null default now());
+  grant usage on schema public, storage to service_role;
   alter table storage.objects enable row level security;
   grant select, insert, delete on storage.objects to authenticated;
   create function storage.foldername(name text) returns text[] language sql as $$
@@ -77,10 +79,22 @@ export async function createTestDb() {
     }
   }
 
+  // Run as the Supabase service role (ops scripts), which bypasses RLS but not grants.
+  async function asService(sql: string): Promise<Result> {
+    await db.exec("set role service_role")
+    try {
+      return { rows: (await db.query<Record<string, unknown>>(sql)).rows }
+    } catch (e) {
+      return { error: (e as Error).message }
+    } finally {
+      await db.exec("reset role")
+    }
+  }
+
   // Run as the database owner (bypasses RLS) to set up or inspect state.
   async function owner(sql: string) {
     return (await db.query<Record<string, unknown>>(sql)).rows
   }
 
-  return { db, as, owner }
+  return { db, as, asService, owner }
 }

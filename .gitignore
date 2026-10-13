@@ -46,3 +46,5 @@ pnpm-debug.log*
 # local data (never commit real nonprofit or beneficiary materials)
 /data/private/
 *.local.csv
+
+/blob-report/

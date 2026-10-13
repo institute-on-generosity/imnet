@@ -31,7 +31,7 @@ export function Composer({ orgId }: { orgId: string }) {
       </div>
       <div className="space-y-1">
         <Label htmlFor="embed">Video link (optional)</Label>
-        <Input id="embed" name="embed" defaultValue={v?.embed} placeholder="YouTube, Vimeo, or Instagram link" />
+        <Input id="embed" name="embed" defaultValue={v?.embed} placeholder="YouTube, Vimeo, Instagram or Wikimedia Commons link" />
       </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="beneficiary_consent" className="mt-1" defaultChecked={v?.beneficiary_consent === "on"} />

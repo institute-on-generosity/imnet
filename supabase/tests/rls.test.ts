@@ -120,6 +120,16 @@ describe("posts", () => {
     expect((await post(`'{a.jpg,b.jpg}'`, `'{Keys,Boxes}'`)).error).toBeUndefined()
   })
 
+  it("F-030: a video credit needs a video", async () => {
+    const noVideo = await t.as(STAFF, `insert into posts (org_id, author_id, body, embed_credit) values ('${ORG_1}', '${STAFF}', 'x', 'Someone, CC BY')`)
+    expect(noVideo.error).toMatch(/embed_credit_needs_embed/)
+    const ok = await t.as(
+      STAFF,
+      `insert into posts (org_id, author_id, body, embed_url, embed_credit) values ('${ORG_1}', '${STAFF}', 'x', 'https://player.vimeo.com/video/1', 'Someone, CC BY')`,
+    )
+    expect(ok.error).toBeUndefined()
+  })
+
   it("B-003: staff can't move a post to another org", async () => {
     const [post] = await t.owner(`insert into posts (org_id, author_id, body) values ('${ORG_1}', '${STAFF}', 'stay here') returning id`)
     const moved = await t.as(STAFF, `update posts set org_id = '${ORG_2}' where id = '${post.id}'`)
@@ -189,5 +199,25 @@ describe("storage", () => {
 
     const donor = await t.as(DONOR, `insert into storage.objects (bucket_id, name) values ('post-images', '${ORG_1}/photo.jpg')`)
     expect(donor.error).toMatch(/row-level security/)
+  })
+})
+
+describe("upload cleanup", () => {
+  it("F-031: lists only photos older than a day that no post uses, and only to the service role", async () => {
+    const used = `${ORG_1}/aaaaaaaa-0000-4000-8000-000000000001.jpg`
+    const orphanOld = `${ORG_1}/aaaaaaaa-0000-4000-8000-000000000002.jpg`
+    const orphanNew = `${ORG_1}/aaaaaaaa-0000-4000-8000-000000000003.jpg`
+    await t.owner(`insert into storage.objects (bucket_id, name, created_at) values
+      ('post-images', '${used}', now() - interval '3 days'),
+      ('post-images', '${orphanOld}', now() - interval '3 days'),
+      ('post-images', '${orphanNew}', now() - interval '1 hour'),
+      ('other-bucket', 'old.jpg', now() - interval '3 days')`)
+    await t.owner(`insert into posts (org_id, body, image_paths, image_alts, beneficiary_consent) values ('${ORG_1}', 'uses a photo', '{${used}}', '{photo}', true)`)
+
+    const listed = await t.asService(`select name from orphan_post_images()`)
+    expect(listed.rows!.map((r) => r.name)).toEqual([orphanOld])
+
+    expect((await t.as(STAFF, `select * from orphan_post_images()`)).error).toMatch(/permission denied/)
+    expect((await t.as(null, `select * from orphan_post_images()`)).error).toMatch(/permission denied/)
   })
 })

@@ -42,6 +42,9 @@ supabase/
   migrations/              Schema + RLS
   seed.sql                 Synthetic demo data
   tests/                   RLS tests on a throwaway Postgres (PGlite)
+  seed-images/             Openly licensed demo photos + CREDITS.md
+e2e/                       Playwright browser tests (local Supabase)
+scripts/                   Ops scripts (may use the secret key; the app never does)
 ```
 
 ## Data model

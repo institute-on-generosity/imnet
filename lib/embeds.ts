@@ -1,7 +1,7 @@
-// Turns a pasted YouTube / Vimeo / Instagram link into a safe iframe src.
+// Turns a pasted YouTube / Vimeo / Instagram / Wikimedia Commons video link into a safe iframe src.
 // Returns null for anything else, so arbitrary URLs never reach an iframe.
 
-export type Embed = { provider: "youtube" | "vimeo" | "instagram"; src: string }
+export type Embed = { provider: "youtube" | "vimeo" | "instagram" | "commons"; src: string }
 
 const YT_ID = /^[\w-]{11}$/
 
@@ -39,6 +39,13 @@ export function toEmbed(raw: string): Embed | null {
     const code = i >= 0 ? parts[i + 1] : undefined
     return code && /^[\w-]+$/.test(code)
       ? { provider: "instagram", src: `https://www.instagram.com/${parts[i]}/${code}/embed` }
+      : null
+  }
+  if (host === "commons.wikimedia.org" && parts[0] === "wiki" && parts.length === 2) {
+    // Openly licensed video files; Commons serves its own embeddable player.
+    const file = decodeURIComponent(parts[1])
+    return /^File:[^/?#<>]+\.(webm|ogv)$/i.test(file)
+      ? { provider: "commons", src: `https://commons.wikimedia.org/wiki/${encodeURIComponent(file)}?embedplayer=yes` }
       : null
   }
   return null

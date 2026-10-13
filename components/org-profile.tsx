@@ -9,7 +9,7 @@ import { SuggestedOrgs } from "@/components/side-cards"
 import { TrackView } from "@/components/track-view"
 import { buttonVariants } from "@/components/ui/button"
 import { footnotes } from "@/lib/footnotes"
-import { ORG_TABS, type OrgTab } from "@/lib/org-tabs"
+import { ORG_TAB_LABEL, ORG_TABS, type OrgTab } from "@/lib/org-tabs"
 import type { OrgSummaryWithMission } from "@/lib/queries"
 import type { Cause, ImpactStat, Org, Post } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -65,11 +65,11 @@ export function OrgProfile({ org, stats, causes, followers, posts, similar, sign
               href={t === "home" ? base : `${base}?tab=${t}`}
               aria-current={tab === t ? "page" : undefined}
               className={cn(
-                "border-b-2 px-3 py-3 text-sm font-semibold capitalize transition-colors",
+                "border-b-2 px-3 py-3 text-sm font-semibold transition-colors",
                 tab === t ? "border-leaf text-leaf" : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
-              {t}
+              {ORG_TAB_LABEL[t]}
             </Link>
           ))}
         </nav>

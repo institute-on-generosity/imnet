@@ -11,7 +11,9 @@
     "test": "vitest run",
     "db:link": "supabase link",
     "db:push": "supabase db push --include-seed",
-    "db:types": "supabase gen types typescript --linked > lib/database.types.ts"
+    "db:types": "supabase gen types typescript --linked > lib/database.types.ts",
+    "cleanup:uploads": "node --env-file-if-exists=.env.local scripts/cleanup-uploads.mts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.130.0",
@@ -30,12 +32,14 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.9",
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24.19.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
+    "postgres": "^3.4.9",
     "shadcn": "^4.21.0",
     "supabase": "^2.118.0",
     "tailwindcss": "^4",

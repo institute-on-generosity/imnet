@@ -59,42 +59,44 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **Behavior** is a testable statement: given X, expect Y.
 - **Test** is the test file, or `none`. Entries marked `none` are the test backlog.
 - Database rules are tested in `supabase/tests/` against a throwaway Postgres (PGlite), no Supabase project needed.
-- 2026-10-13: a one-off browser run against local Supabase passed for F-001, F-002, F-007, F-008, F-009, F-010, F-012, F-013, F-014, F-015 and B-008. Re-run with photo upload: 20/20, adding F-028. It isn't in the repo yet, so those `none` entries still count as backlog.
+- Pages and flows are tested in `e2e/` with Playwright against local Supabase (`npm run test:e2e`; CI runs both).
 
 ### Features
 
 **2026-09-30**
-- **F-001 Explore feed.** Shows published posts from verified orgs only, newest first. `?cause=x` shows only posts from orgs with that cause. Test: `supabase/tests/rls.test.ts` (database rules only; page not tested)
-- **F-002 Following feed.** Shows posts only from orgs the user follows. Signed-out users are sent to `/login`. Test: none
-- **F-003 Org profile.** `/o/[slug]` shows mission, causes, what gifts fund, impact stats, follower count and posts. Unknown or unverified slug → 404 for the public. Test: `supabase/tests/rls.test.ts` (database rules only; page not tested)
+- **F-001 Explore feed.** Shows published posts from verified orgs only, newest first. `?cause=x` shows only posts from orgs with that cause. Test: `e2e/public.spec.ts`, `supabase/tests/rls.test.ts`
+- **F-002 Following feed.** Shows posts only from orgs the user follows. Signed-out users are sent to `/login`. Test: `e2e/public.spec.ts`, `e2e/signed-in.spec.ts`
+- **F-003 Org profile.** `/o/[slug]` shows mission, causes, what gifts fund, impact stats, follower count and posts. Unknown or unverified slug → 404 for the public. Test: `e2e/public.spec.ts`, `supabase/tests/rls.test.ts`
 - **F-004 Impact stats need a source.** An impact stat without an http(s) `source_url` is rejected by the database. Test: `supabase/tests/rls.test.ts`
 - **F-005 Post page.** `/p/[id]` renders the post with share-preview metadata (title = org name, description = first 200 chars). Test: none
 - **F-006 Donor profile.** `/u/[handle]` shows the user's causes and only the follows marked `supporter`. Test: none
-- **F-007 Sign-up creates a profile.** A new auth user gets a `profiles` row with a generated handle matching `^[a-z0-9_]{3,30}$`. Test: `supabase/tests/rls.test.ts`
-- **F-008 Org claim.** A claim is rejected unless the EIN looks like `12-3456789`, the website is https, and the work email is on the website's domain. Test: none
-- **F-009 Claim approval.** Only an admin can approve. Approval creates a verified org and makes the claimant staff. Test: `supabase/tests/rls.test.ts`
-- **F-010 Post composer.** Staff can post an update, impact story or ask, with an optional YouTube, Vimeo or Instagram link. Test: `supabase/tests/rls.test.ts` (database rules only; page not tested)
+- **F-007 Sign-up creates a profile.** A new auth user gets a `profiles` row with a generated handle matching `^[a-z0-9_]{3,30}$`. Test: `e2e/signed-in.spec.ts`, `supabase/tests/rls.test.ts`
+- **F-008 Org claim.** A claim is rejected unless the EIN looks like `12-3456789`, the website is https, and the work email is on the website's domain. Test: `e2e/signed-in.spec.ts`
+- **F-009 Claim approval.** Only an admin can approve. Approval creates a verified org and makes the claimant staff. Test: `e2e/signed-in.spec.ts`, `supabase/tests/rls.test.ts`
+- **F-010 Post composer.** Staff can post an update, impact story or ask, with an optional YouTube, Vimeo or Instagram link. Test: `e2e/signed-in.spec.ts`, `supabase/tests/rls.test.ts`
 - **F-011 Images need consent.** A post with images and `beneficiary_consent = false` is rejected by the database. Test: `supabase/tests/rls.test.ts`
-- **F-012 Follow.** Users can follow and unfollow orgs. Other people's follows are hidden unless marked `supporter`. Test: `supabase/tests/rls.test.ts`
-- **F-013 Moved is private.** A user sees only their own "moved" marks. `moved_count()` returns a number only to that org's staff and admins, `null` to everyone else. Test: `supabase/tests/rls.test.ts`
-- **F-014 Events.** Anyone can log `view`, `share` or `donate_click`. Only the org's staff and admins can read them. A user can't log an event as another user. Test: `supabase/tests/rls.test.ts`
-- **F-015 Org dashboard.** `/dashboard/[orgId]` shows followers and 30-day views, shares and donate clicks. Non-staff get a 404. Test: none
+- **F-012 Follow.** Users can follow and unfollow orgs. Other people's follows are hidden unless marked `supporter`. Test: `e2e/signed-in.spec.ts`, `supabase/tests/rls.test.ts`
+- **F-013 Moved is private.** A user sees only their own "moved" marks. `moved_count()` returns a number only to that org's staff and admins, `null` to everyone else. Test: `e2e/signed-in.spec.ts`, `supabase/tests/rls.test.ts`
+- **F-014 Events.** Anyone can log `view`, `share` or `donate_click`. Only the org's staff and admins can read them. A user can't log an event as another user. Test: `e2e/signed-in.spec.ts`, `supabase/tests/rls.test.ts`
+- **F-015 Org dashboard.** `/dashboard/[orgId]` shows followers and 30-day views, shares and donate clicks. Non-staff get a 404. Test: `e2e/signed-in.spec.ts`
 - **F-016 AI profile draft.** "Draft from website" only fills the form; nothing is saved until staff click Save. Only that org's staff can run it. Websites must be https and public. Test: none
-- **F-017 Admin queue.** `/admin` lists pending claims and open reports. Non-admins get a 404. Test: none
+- **F-017 Admin queue.** `/admin` lists pending claims and open reports. Non-admins get a 404. Test: `e2e/signed-in.spec.ts` (approve flow)
 - **F-018 Post image uploads.** Staff can upload only into their own org's folder (`<org_id>/...`) in the `post-images` bucket. Test: `supabase/tests/rls.test.ts`
 - **F-019 Protected columns.** Users can't change `profiles.is_admin` or `orgs.status`. Test: `supabase/tests/rls.test.ts`
 - **F-020 Safe video embeds.** Only YouTube, Vimeo and Instagram links become embeds. Lookalike hosts (`youtube.com.evil.com`), other sites and non-http URLs are rejected. Test: `lib/embeds.test.ts`
 
 **2026-10-13**
-- **F-021 Footnoted impact stats.** On an org profile, each distinct source is numbered once in order of first use, every figure shows its footnote number, and the footnote links to the source with its "as of" date. Test: `lib/footnotes.test.ts`
+- **F-021 Footnoted impact stats.** On an org profile, each distinct source is numbered once in order of first use, every figure shows its footnote number, and the footnote links to the source with its "as of" date. Test: `lib/footnotes.test.ts`, `e2e/public.spec.ts`
 - **F-022 Visual identity.** Literata for stories and headlines, Schibsted Grotesk for interface text, ink/leaf/marigold palette, pill buttons. Posts on an org's own profile hide the repeated org name. Test: none (visual)
 - **F-023 LinkedIn-style home.** Three columns on desktop: your profile card (or a Join card when signed out), the feed, and "Nonprofits to follow". Suggestions are verified orgs you don't follow, alphabetical, never popularity-ranked. Phones show the feed only. Test: none
-- **F-024 Org page tabs.** Cover banner, overlapping logo, Follow (primary), Donate and Share, then Home, About and Posts tabs. `?tab=` accepts only those three; anything else shows Home. "Similar nonprofits" sidebar shares the org's first cause. Test: `lib/org-tabs.test.ts` (tab parsing only)
-- **F-025 Search nonprofits.** Header search finds verified orgs by name, up to 20, alphabetical. `%` and `_` in a search match literally. Test: `lib/search.test.ts` (escaping only)
+- **F-024 Org page tabs.** Cover banner, overlapping logo, Follow (primary), Donate and Share, then Home, About and Posts tabs. `?tab=` accepts only those three; anything else shows Home. "Similar nonprofits" sidebar shares the org's first cause. Test: `lib/org-tabs.test.ts`, `e2e/public.spec.ts`
+- **F-025 Search nonprofits.** Header search finds verified orgs by name, up to 20, alphabetical. `%` and `_` in a search match literally. Test: `lib/search.test.ts`, `e2e/public.spec.ts`
 - **F-026 Post action bar.** Every post card has "Moved me" (private, signed-out users go to sign-in), Share and Open. Long posts clamp to 4 lines with "see more". Supersedes F-022's hidden org name on profiles: posts always show their org. Test: none
-- **F-027 Photo posts.** A post can carry up to 4 photos, shown LinkedIn-style (1 full width, 2 side by side, 3 as one large plus two, 4 as a grid). Every photo has alt text; credits, when present, show under the photos. The database rejects a 5th photo, missing or empty alt text, and credits that don't match the photos. Test: `supabase/tests/rls.test.ts` (database rules)
-- **F-028 Photo upload in the composer.** Staff add photos (JPG, PNG, WebP, under 5 MB), which upload to their org's folder right away. Each needs a description, and photos need the consent box. The server re-checks every path is in that org's folder. Test: `lib/post-images.test.ts` (server validation)
+- **F-027 Photo posts.** A post can carry up to 4 photos, shown LinkedIn-style (1 full width, 2 side by side, 3 as one large plus two, 4 as a grid). Every photo has alt text; credits, when present, show under the photos. The database rejects a 5th photo, missing or empty alt text, and credits that don't match the photos. Test: `supabase/tests/rls.test.ts`, `e2e/public.spec.ts`
+- **F-028 Photo upload in the composer.** Staff add photos (JPG, PNG, WebP, under 5 MB), which upload to their org's folder right away. Each needs a description, and photos need the consent box. The server re-checks every path is in that org's folder. Test: `lib/post-images.test.ts`, `e2e/signed-in.spec.ts`
 - **F-029 Demo media.** Seed orgs have 11 openly licensed photos from Wikimedia Commons showing volunteers at work (pantry restocking, packing grocery boxes, sorting a food drive, roof repair, school setup), never the people being served. Credits in `supabase/seed-images/CREDITS.md` and on each post. Loaded by `npx supabase seed buckets --local`. Test: none
+- **F-030 Shared videos.** Wikimedia Commons video links (`.webm`, `.ogv`) embed through Commons' own player, alongside YouTube, Vimeo and Instagram. A video can carry a credit line ("Video: ..."); the database rejects a credit without a video. Demo: Harbor Table shares a public-domain USDA food bank video, credited, not presented as its own footage. Test: `lib/embeds.test.ts`, `supabase/tests/rls.test.ts`, `e2e/public.spec.ts`
+- **F-031 Upload cleanup.** Removing a photo in the composer deletes it from storage at once. `npm run cleanup:uploads` deletes photos older than a day that no post uses (via `orphan_post_images()`, callable only by the service role; the script uses `SUPABASE_SECRET_KEY`, never the web app). Test: `supabase/tests/rls.test.ts` (listing and permissions)
 
 ### Fixes
 
@@ -108,4 +110,6 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 
 **2026-10-13**
 - **B-007 Outline buttons lost their border outside `<Button>`.** Links styled with `buttonVariants({ variant: "outline" })` kept `border-transparent`. Variant classes are now merged, so the outline shows. Test: `components/ui/button.test.ts`
-- **B-008 Forms lost what you typed after an error.** React 19 resets a form after every action, so a claim rejected for its email came back empty. Server actions now return the submitted values with the error, and the login, claim, composer and profile forms refill from them. Test: `lib/form-values.test.ts` (value capture only)
+- **B-008 Forms lost what you typed after an error.** React 19 resets a form after every action, so a claim rejected for its email came back empty. Server actions now return the submitted values with the error, and the login, claim, composer and profile forms refill from them. Test: `lib/form-values.test.ts`, `e2e/signed-in.spec.ts`
+- **B-009 Org tab labels were lowercase for screen readers.** Tabs showed "Home / About / Posts" only through CSS capitalization; the text was "home / about / posts". Labels are now real text. Test: `e2e/public.spec.ts`
+- **B-010 Feed jumped as photos loaded.** Lazy-loaded single photos had no reserved height, so posts shifted as images arrived (and photos below the fold had zero height). Single photos now sit in a fixed 4:3 frame like galleries. Test: `e2e/public.spec.ts`

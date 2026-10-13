@@ -156,7 +156,7 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
   let embed_url: string | null = null
   if (parsed.data.embed) {
     const embed = toEmbed(parsed.data.embed)
-    if (!embed) return fail(form, "Video link must be YouTube, Vimeo, or Instagram.")
+    if (!embed) return fail(form, "Video link must be YouTube, Vimeo, Instagram or Wikimedia Commons.")
     embed_url = embed.src
   }
 

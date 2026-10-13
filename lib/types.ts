@@ -24,6 +24,7 @@ export type Post = {
   kind: PostKind
   body: string
   embed_url: string | null
+  embed_credit: string | null
   image_paths: string[]
   image_alts: string[]
   image_credits: string[]

@@ -76,3 +76,11 @@ insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, b
   ('00000000-0000-4000-a000-000000000003', 'update', 'Take-home book sets are packed for the fall: each student picks three books to keep.',
    array['00000000-0000-4000-a000-000000000003/packing-book-sets.jpg', '00000000-0000-4000-a000-000000000003/volunteer-shirt.jpg']::text[], array['Smiling volunteers packing supplies at a school table', 'The back of a volunteer''s shirt reading: If you think my hands are full, you should see my heart']::text[], array['Nazareth College from Rochester, NY, USA, CC BY 2.0, via Wikimedia Commons', 'Nazareth College from Rochester, NY, USA, CC BY 2.0, via Wikimedia Commons']::text[], true,
    now() - interval '15 days');
+
+-- A shared video (credited; not presented as Harbor Table's own footage).
+insert into posts (org_id, kind, body, embed_url, embed_credit, created_at) values
+  ('00000000-0000-4000-a000-000000000001', 'update',
+   'How a big-city food bank moves food from dock to table. Our new volunteers watched this before Saturday''s training. Worth 90 seconds.',
+   'https://commons.wikimedia.org/wiki/File%3ASan_Antonio%2C_TX%2C_Food_Bank_(20111031-FNS-LSC-9001).webm?embedplayer=yes',
+   'U.S. Department of Agriculture, public domain, via Wikimedia Commons',
+   now() - interval '3 days');

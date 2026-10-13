@@ -11,6 +11,10 @@ describe("toEmbed", () => {
     ["https://player.vimeo.com/video/76979871", "https://player.vimeo.com/video/76979871"],
     ["https://www.instagram.com/p/C1a2B3c4D5e/", "https://www.instagram.com/p/C1a2B3c4D5e/embed"],
     ["https://www.instagram.com/reel/C1a2B3c4D5e/", "https://www.instagram.com/reel/C1a2B3c4D5e/embed"],
+    [
+      "https://commons.wikimedia.org/wiki/File:San_Antonio,_TX,_Food_Bank_(20111031-FNS-LSC-9001).webm",
+      "https://commons.wikimedia.org/wiki/File%3ASan_Antonio%2C_TX%2C_Food_Bank_(20111031-FNS-LSC-9001).webm?embedplayer=yes",
+    ],
   ])("%s", (input, src) => {
     expect(toEmbed(input)?.src).toBe(src)
   })
@@ -22,6 +26,9 @@ describe("toEmbed", () => {
     "https://youtube.com.evil.com/watch?v=dQw4w9WgXcQ",
     "https://www.youtube.com/watch?v=short",
     "https://vimeo.com/channels/staffpicks",
+    "https://commons.wikimedia.org/wiki/File:Some_photo.jpg",
+    "https://commons.wikimedia.org/wiki/Special:Random",
+    "https://commons.wikimedia.org.evil.com/wiki/File:x.webm",
   ])("rejects %s", (input) => {
     expect(toEmbed(input)).toBeNull()
   })
