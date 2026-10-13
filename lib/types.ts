@@ -25,6 +25,10 @@ export type Post = {
   body: string
   embed_url: string | null
   embed_credit: string | null
+  video_path: string | null
+  video_poster_path: string | null
+  video_alt: string | null
+  video_credit: string | null
   image_paths: string[]
   image_alts: string[]
   image_credits: string[]

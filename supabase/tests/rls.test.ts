@@ -130,6 +130,17 @@ describe("posts", () => {
     expect(ok.error).toBeUndefined()
   })
 
+  it("F-032: a video needs a description, can't share a post with an embed, and extras need a video", async () => {
+    const post = (cols: string, vals: string) =>
+      t.as(STAFF, `insert into posts (org_id, author_id, body, ${cols}) values ('${ORG_1}', '${STAFF}', 'video', ${vals})`)
+
+    expect((await post("video_path", `'${ORG_1}/a.webm'`)).error).toMatch(/video_needs_alt/)
+    expect((await post("video_path, video_alt", `'${ORG_1}/a.webm', ''`)).error).toMatch(/video_needs_alt/)
+    expect((await post("video_path, video_alt, embed_url", `'${ORG_1}/a.webm', 'Crew at work', 'https://player.vimeo.com/video/1'`)).error).toMatch(/one_video_per_post/)
+    expect((await post("video_credit", `'Someone, CC BY'`)).error).toMatch(/video_extras_need_video/)
+    expect((await post("video_path, video_alt, video_poster_path, video_credit", `'${ORG_1}/a.webm', 'Crew at work', '${ORG_1}/a.jpg', 'Someone, CC BY'`)).error).toBeUndefined()
+  })
+
   it("B-003: staff can't move a post to another org", async () => {
     const [post] = await t.owner(`insert into posts (org_id, author_id, body) values ('${ORG_1}', '${STAFF}', 'stay here') returning id`)
     const moved = await t.as(STAFF, `update posts set org_id = '${ORG_2}' where id = '${post.id}'`)
@@ -199,6 +210,14 @@ describe("storage", () => {
 
     const donor = await t.as(DONOR, `insert into storage.objects (bucket_id, name) values ('post-images', '${ORG_1}/photo.jpg')`)
     expect(donor.error).toMatch(/row-level security/)
+  })
+})
+
+describe("video storage", () => {
+  it("F-032: staff upload videos only into their own org's folder", async () => {
+    expect((await t.as(STAFF, `insert into storage.objects (bucket_id, name) values ('post-videos', '${ORG_1}/clip.webm')`)).error).toBeUndefined()
+    expect((await t.as(STAFF, `insert into storage.objects (bucket_id, name) values ('post-videos', '${ORG_2}/clip.webm')`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `insert into storage.objects (bucket_id, name) values ('post-videos', '${ORG_1}/clip.webm')`)).error).toMatch(/row-level security/)
   })
 })
 

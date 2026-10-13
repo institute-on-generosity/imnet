@@ -15,15 +15,35 @@ test("F-001 / F-027: Explore shows posts newest first, with photos, alt text and
 })
 
 test("F-001: cause filter shows only orgs in that cause", async ({ page }) => {
+  await page.goto("/?cause=environment")
+  await expect(page.getByText("re-cut two miles of eroded trail").first()).toBeVisible()
+  await expect(page.getByText("42 second graders")).toHaveCount(0)
   await page.goto("/?cause=education")
   await expect(page.getByText("42 second graders").first()).toBeVisible()
   await expect(page.getByText("grocery boxes went to 212 households")).toHaveCount(0)
 })
 
-test("F-030: a shared video embeds with its credit", async ({ page }) => {
-  await page.goto("/")
-  await expect(page.locator('iframe[src*="commons.wikimedia.org"]')).toHaveCount(1)
-  await expect(page.getByText("Video: U.S. Department of Agriculture, public domain, via Wikimedia Commons")).toBeVisible()
+test("F-032: org videos autoplay muted on screen and pause when scrolled away", async ({ page }) => {
+  await page.goto("/o/greenway-stewards")
+  const video = page.getByLabel("Volunteers with hand tools re-cutting a dirt trail across a dry hillside")
+  await video.scrollIntoViewIfNeeded()
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => !v.paused && v.muted && v.currentTime > 0), { timeout: 10_000 }).toBe(true)
+  await expect(page.getByText("Video: BLM Oregon & Washington, public domain, via Wikimedia Commons").first()).toBeVisible()
+
+  await page.mouse.wheel(0, 4000)
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true)
+})
+
+test.describe("with reduced motion", () => {
+  test.use({ reducedMotion: "reduce" })
+  test("F-032: videos don't autoplay when the device asks to reduce motion", async ({ page }) => {
+    await page.goto("/o/greenway-stewards")
+    const video = page.getByLabel("Volunteers with hand tools re-cutting a dirt trail across a dry hillside")
+    await video.scrollIntoViewIfNeeded()
+    await page.waitForTimeout(1500)
+    expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true)
+  })
 })
 
 test("F-003 / F-024 / F-021: org profile tabs and footnoted impact stats", async ({ page }) => {

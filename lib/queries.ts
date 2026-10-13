@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import type { Cause, ImpactStat, Org, Post } from "@/lib/types"
 
 const PAGE_SIZE = 20
-const POST_FIELDS = "id, org_id, kind, body, embed_url, embed_credit, image_paths, image_alts, image_credits, created_at"
+const POST_FIELDS = "id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at"
 
 // Chronological, no engagement ranking (design principle #4).
 export async function getFeed(opts: { cause?: string; orgIds?: string[] } = {}): Promise<Post[]> {
@@ -74,6 +74,10 @@ export async function getFollowedOrgIds(userId: string): Promise<string[]> {
   const supabase = await createClient()
   const { data } = await supabase.from("follows").select("org_id").eq("user_id", userId)
   return (data ?? []).map((f) => f.org_id)
+}
+
+export function postVideoUrl(path: string) {
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-videos/${path}`
 }
 
 export function postImageUrl(path: string) {

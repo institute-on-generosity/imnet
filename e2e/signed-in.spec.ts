@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type Page } from "@playwright/test"
 import { HARBOR, SEED_PHOTO, signIn, sql, uniq } from "./helpers"
 
 // One donor's journey: sign up, follow, react, claim an org, get approved, post with a photo.
@@ -9,16 +9,21 @@ const email = `dana.${id}@example.com`
 const domain = `kitchen${id}.example.org`
 const slug = `test-kitchen-${id}`
 let userId = ""
+// One signed-in page for the whole journey: sign in once, like a real visit.
+let page: Page
+
+test.beforeAll(async ({ browser }) => {
+  page = await (await browser.newContext()).newPage()
+})
 const altText = `Volunteers setting tables for dinner ${id}`
 
-test("F-007: magic-link sign-in creates a profile", async ({ page }) => {
+test("F-007: magic-link sign-in creates a profile", async () => {
   userId = await signIn(page, email)
   const [profile] = await sql`select handle from profiles where id = ${userId}`
   expect(profile.handle).toMatch(/^[a-z0-9_]{3,30}$/)
 })
 
-test("F-012 / F-002: follow an org; Following shows only its posts", async ({ page }) => {
-  await signIn(page, email)
+test("F-012 / F-002: follow an org; Following shows only its posts", async () => {
   await page.goto("/o/harbor-table")
   await page.locator("main").getByRole("button", { name: "Follow" }).first().click()
   await expect(page.locator("main").getByRole("button", { name: "Following" }).first()).toBeVisible()
@@ -29,8 +34,7 @@ test("F-012 / F-002: follow an org; Following shows only its posts", async ({ pa
   await expect(page.getByText("Okafor family")).toHaveCount(0)
 })
 
-test("F-013: 'Moved me' is saved privately, with no public count", async ({ page }) => {
-  await signIn(page, email)
+test("F-013: 'Moved me' is saved privately, with no public count", async () => {
   const [post] = await sql`select id from posts where org_id = ${HARBOR} order by created_at desc limit 1`
   await page.goto(`/p/${post.id}`)
   await page.getByRole("button", { name: "Moved me" }).click()
@@ -39,8 +43,7 @@ test("F-013: 'Moved me' is saved privately, with no public count", async ({ page
   await expect(page.locator("main")).not.toContainText(/\d+ (people|moved)/i)
 })
 
-test("F-008 / B-008: claim checks the work email and keeps what you typed", async ({ page }) => {
-  await signIn(page, email)
+test("F-008 / B-008: claim checks the work email and keeps what you typed", async () => {
   await page.goto("/dashboard")
   await page.getByLabel("Organization name").fill("Test Kitchen Collective")
   await page.getByLabel("EIN").fill(`9${id.slice(-1)}-${id.slice(-7)}`)
@@ -57,9 +60,8 @@ test("F-008 / B-008: claim checks the work email and keeps what you typed", asyn
   expect(claim.status).toBe("pending")
 })
 
-test("F-009 / F-017: an admin approves the claim", async ({ page }) => {
+test("F-009 / F-017: an admin approves the claim", async () => {
   await sql`update profiles set is_admin = true where id = ${userId}`
-  await signIn(page, email)
   await page.goto("/admin")
   const card = page.locator("main section > div, main [data-slot=card]").filter({ hasText: "Test Kitchen Collective" }).first()
   await card.getByPlaceholder("profile-slug").fill(slug)
@@ -69,8 +71,7 @@ test("F-009 / F-017: an admin approves the claim", async ({ page }) => {
   expect(member.n).toBe(1)
 })
 
-test("F-028 / F-010: staff post with a photo (description and consent required) and a video link", async ({ page }) => {
-  await signIn(page, email)
+test("F-028 / F-010: staff post with a photo (description and consent required) and a video link", async () => {
   const [org] = await sql`select id from orgs where slug = ${slug}`
   await page.goto(`/dashboard/${org.id}`)
   await page.getByLabel("What happened?").fill("Our first community dinner served 60 neighbors tonight.")
@@ -100,8 +101,7 @@ test("F-028 / F-010: staff post with a photo (description and consent required) 
   await expect(page.getByAltText(altText)).toBeVisible()
 })
 
-test("F-015: staff can't open another org's dashboard", async ({ page }) => {
-  await signIn(page, email)
+test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)
 })

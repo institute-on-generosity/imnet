@@ -28,6 +28,11 @@ insert into orgs (id, slug, name, ein, website, mission, what_gifts_fund, status
    'https://example.org/riverbend',
    'One-on-one reading tutors for early readers in rural schools.',
    '$40 buys a take-home book set. $300 trains one volunteer tutor.',
+   'verified'),
+  ('00000000-0000-4000-a000-000000000004', 'greenway-stewards', 'Greenway Stewards (Demo)', '00-0000004',
+   'https://example.org/greenway',
+   'Volunteers restoring trails, rivers and open land in our county, one Saturday at a time.',
+   '$30 buys gloves and hand tools for one volunteer. $250 covers native plants for 100 feet of riverbank.',
    'verified')
 on conflict do nothing;
 
@@ -36,7 +41,8 @@ insert into org_causes (org_id, cause_slug) values
   ('00000000-0000-4000-a000-000000000002', 'housing'),
   ('00000000-0000-4000-a000-000000000002', 'youth'),
   ('00000000-0000-4000-a000-000000000003', 'education'),
-  ('00000000-0000-4000-a000-000000000003', 'youth')
+  ('00000000-0000-4000-a000-000000000003', 'youth'),
+  ('00000000-0000-4000-a000-000000000004', 'environment')
 on conflict do nothing;
 
 insert into impact_stats (org_id, label, value, source_url, as_of, sort) values
@@ -45,7 +51,9 @@ insert into impact_stats (org_id, label, value, source_url, as_of, sort) values
   ('00000000-0000-4000-a000-000000000002', 'Families housed', '62', 'https://example.org/open-door/outcomes', '2026-06-30', 0),
   ('00000000-0000-4000-a000-000000000002', 'Still housed after 1 year', '91%', 'https://example.org/open-door/outcomes', '2026-06-30', 1),
   ('00000000-0000-4000-a000-000000000003', 'Students tutored', '310', 'https://example.org/riverbend/report', '2026-06-01', 0),
-  ('00000000-0000-4000-a000-000000000003', 'Reading at grade level (from 38%)', '71%', 'https://example.org/riverbend/report', '2026-06-01', 1);
+  ('00000000-0000-4000-a000-000000000003', 'Reading at grade level (from 38%)', '71%', 'https://example.org/riverbend/report', '2026-06-01', 1),
+  ('00000000-0000-4000-a000-000000000004', 'Volunteer hours', '3,400', 'https://example.org/greenway/2026-report', '2026-09-01', 0),
+  ('00000000-0000-4000-a000-000000000004', 'Miles of trail restored', '12', 'https://example.org/greenway/2026-report', '2026-09-01', 1);
 
 -- Photos live in supabase/seed-images/post-images (loaded by `supabase seed buckets`); credits in seed-images/CREDITS.md.
 insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, beneficiary_consent, created_at) values
@@ -77,10 +85,20 @@ insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, b
    array['00000000-0000-4000-a000-000000000003/packing-book-sets.jpg', '00000000-0000-4000-a000-000000000003/volunteer-shirt.jpg']::text[], array['Smiling volunteers packing supplies at a school table', 'The back of a volunteer''s shirt reading: If you think my hands are full, you should see my heart']::text[], array['Nazareth College from Rochester, NY, USA, CC BY 2.0, via Wikimedia Commons', 'Nazareth College from Rochester, NY, USA, CC BY 2.0, via Wikimedia Commons']::text[], true,
    now() - interval '15 days');
 
--- A shared video (credited; not presented as Harbor Table's own footage).
-insert into posts (org_id, kind, body, embed_url, embed_credit, created_at) values
+-- Native video posts: files in supabase/seed-images/post-videos (loaded by `supabase seed buckets`).
+insert into posts (org_id, kind, body, video_path, video_poster_path, video_alt, video_credit, created_at) values
   ('00000000-0000-4000-a000-000000000001', 'update',
-   'How a big-city food bank moves food from dock to table. Our new volunteers watched this before Saturday''s training. Worth 90 seconds.',
-   'https://commons.wikimedia.org/wiki/File%3ASan_Antonio%2C_TX%2C_Food_Bank_(20111031-FNS-LSC-9001).webm?embedplayer=yes',
-   'U.S. Department of Agriculture, public domain, via Wikimedia Commons',
-   now() - interval '3 days');
+   'Saturday in the pantry garden: volunteers pulled the last of the summer squash and beans. About 140 pounds goes straight onto Tuesday''s pantry shelves.',
+   '00000000-0000-4000-a000-000000000001/garden-harvest.webm', '00000000-0000-4000-a000-000000000001/garden-harvest.jpg',
+   'Volunteers weeding and harvesting in a community garden', 'USDA, public domain, via Wikimedia Commons',
+   now() - interval '3 days'),
+  ('00000000-0000-4000-a000-000000000004', 'impact_story',
+   'Public Lands Day: 64 volunteers re-cut two miles of eroded trail in a single morning. Next up, native seeding before the fall rains.',
+   '00000000-0000-4000-a000-000000000004/trail-crew.webm', '00000000-0000-4000-a000-000000000004/trail-crew.jpg',
+   'Volunteers with hand tools re-cutting a dirt trail across a dry hillside', 'BLM Oregon & Washington, public domain, via Wikimedia Commons',
+   now() - interval '2 days 6 hours'),
+  ('00000000-0000-4000-a000-000000000004', 'update',
+   'Fence removal crew pulled 900 feet of old barbed wire this weekend, so deer and elk can move through the valley again.',
+   '00000000-0000-4000-a000-000000000004/fence-removal.webm', '00000000-0000-4000-a000-000000000004/fence-removal.jpg',
+   'A volunteer coiling old wire fencing in an open field while others work behind', 'BLM Oregon & Washington, public domain, via Wikimedia Commons',
+   now() - interval '8 days');

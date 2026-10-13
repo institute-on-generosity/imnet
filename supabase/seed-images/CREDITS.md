@@ -1,6 +1,6 @@
 # Seed image credits
 
-Demo photos for the fictional seed orgs, all openly licensed from Wikimedia Commons. They show volunteers at work and places, not the people being served.
+Demo photos and videos for the fictional seed orgs, all openly licensed from Wikimedia Commons. They show volunteers at work and places, not the people being served.
 
 | File | Author | License | Source |
 |---|---|---|---|
@@ -17,3 +17,14 @@ Demo photos for the fictional seed orgs, all openly licensed from Wikimedia Comm
 | `volunteer-shirt.jpg` | Nazareth College from Rochester, NY, USA | CC BY 2.0 | [Day of Service 2015 (20624559613).jpg](https://commons.wikimedia.org/wiki/File:Day_of_Service_2015_(20624559613).jpg) |
 
 CC BY photos require attribution: the credit is stored on each post (`posts.image_credits`) and shown under the photo.
+
+## Videos
+
+| File | Author | License | Source |
+|---|---|---|---|
+| `garden-harvest.webm` | USDA | Public domain | [People's Garden Volunteers (20220922-FPAC-LSC-0044)](https://commons.wikimedia.org/wiki/File:People%27s_Garden_Volunteers_(20220922-FPAC-LSC-0044).webm) |
+| `trail-crew.webm` | BLM Oregon & Washington | Public domain | [2015 National Public Lands Day at Fishtrap Recreation Area, Washington](https://commons.wikimedia.org/wiki/File:2015_National_Public_Lands_Day_at_Fishtrap_Recreation_Area,_Washington_(21243639374).webm) |
+| `fence-removal.webm` | BLM Oregon & Washington | Public domain | [National Public Lands Day 2017 at Devils Garden](https://commons.wikimedia.org/wiki/File:National_Public_Lands_Day_2017_at_Devils_Garden_(36808901483).webm) |
+
+Videos are Commons' 480p VP9 versions. Poster images (`.jpg`) are frames from each video.
+
