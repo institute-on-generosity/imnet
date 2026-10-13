@@ -7,7 +7,8 @@ const POST_FIELDS = `id, org_id, kind, body, embed_url, embed_credit, video_path
   report_grant:grants!posts_reports_grant_id_fkey(id, amount_usd, purpose, foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type))`
 
 // Chronological, no engagement ranking (design principle #4).
-export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType?: OrgType } = {}): Promise<Post[]> {
+// reportGrantIds: also include grant reports on these grants (portfolio of followed foundations).
+export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType?: OrgType; reportGrantIds?: string[] } = {}): Promise<Post[]> {
   const supabase = await createClient()
   const orgJoin = opts.cause
     ? "org:orgs!inner(id, slug, name, logo_url, org_type, org_causes!inner(cause_slug))"
@@ -21,7 +22,10 @@ export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType
     .limit(PAGE_SIZE)
 
   if (opts.cause) query = query.eq("org.org_causes.cause_slug", opts.cause)
-  if (opts.orgIds) query = query.in("org_id", opts.orgIds)
+  if (opts.orgIds && opts.reportGrantIds?.length) {
+    const orgs = opts.orgIds.length ? `org_id.in.(${opts.orgIds.join(",")}),` : ""
+    query = query.or(`${orgs}reports_grant_id.in.(${opts.reportGrantIds.join(",")})`)
+  } else if (opts.orgIds) query = query.in("org_id", opts.orgIds)
   if (opts.orgType) query = query.eq("org.org_type", opts.orgType)
 
   const { data, error } = await query
@@ -234,5 +238,36 @@ export async function getReportableGrants(orgId: string): Promise<Grant[]> {
     .not("confirmed_at", "is", null)
     .order("awarded_on", { ascending: false })
   return (data ?? []) as unknown as Grant[]
+}
+
+// Confirmed grants given by these foundations (ids only), for portfolio feeds.
+export async function getConfirmedGrantIds(foundationIds: string[]): Promise<string[]> {
+  if (foundationIds.length === 0) return []
+  const supabase = await createClient()
+  const { data } = await supabase.from("grants").select("id").in("foundation_id", foundationIds).not("confirmed_at", "is", null)
+  return (data ?? []).map((g) => g.id)
+}
+
+// A foundation's portfolio: grant reports from the nonprofits it funded, newest first.
+export async function getPortfolioPosts(foundationId: string): Promise<Post[]> {
+  const grantIds = await getConfirmedGrantIds([foundationId])
+  if (grantIds.length === 0) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("posts")
+    .select(`${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type)`)
+    .eq("published", true)
+    .in("reports_grant_id", grantIds)
+    .order("created_at", { ascending: false })
+    .limit(PAGE_SIZE)
+  return (data ?? []) as unknown as Post[]
+}
+
+// The viewer's follow of one org: following at all, and shown publicly as support.
+export async function getFollow(userId: string | null, orgId: string) {
+  if (!userId) return { following: false, supporter: false }
+  const supabase = await createClient()
+  const { data } = await supabase.from("follows").select("supporter").match({ user_id: userId, org_id: orgId }).maybeSingle()
+  return { following: !!data, supporter: !!data?.supporter }
 }
 

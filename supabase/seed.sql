@@ -156,3 +156,16 @@ select '00000000-0000-4000-a000-000000000001', 'impact_story',
   from grants g
  where g.foundation_id = '00000000-0000-4000-a000-000000000005'
    and g.grantee_id = '00000000-0000-4000-a000-000000000001';
+
+-- A demo donor (no password; can't sign in) who gives through Lakeshore and supports Harbor Table.
+insert into auth.users (id, email, aud, role)
+values ('00000000-0000-4000-b000-000000000001', 'dana.demo@example.com', 'authenticated', 'authenticated');
+update profiles set handle = 'dana_demo', display_name = 'Dana Rivera (Demo)',
+       bio = 'Monthly giver to my community foundation. Learning where it all goes.'
+ where id = '00000000-0000-4000-b000-000000000001';
+insert into follows (user_id, org_id, supporter) values
+  ('00000000-0000-4000-b000-000000000001', '00000000-0000-4000-a000-000000000005', true),
+  ('00000000-0000-4000-b000-000000000001', '00000000-0000-4000-a000-000000000001', true);
+insert into profile_causes (user_id, cause_slug) values
+  ('00000000-0000-4000-b000-000000000001', 'hunger'),
+  ('00000000-0000-4000-b000-000000000001', 'education');

@@ -32,7 +32,9 @@ Domain language for imnet. Use these terms in code, docs and UI. Table names in 
 
 ## Network
 - **Follow**: a donor subscribes to an org's posts (`follows`). Private.
-- **Supporter**: a follow the donor chose to show on their public profile (`follows.supporter`). Self-declared, not verified giving.
+- **Supporter**: a follow the donor chose to show on their public profile (`follows.supporter`). Self-declared, not verified giving. For a foundation, worded "I give through this fund".
+- **Portfolio**: a foundation's grantees' grant reports. Following a foundation brings its portfolio into your Following feed, labeled "From the portfolio of <foundation>, which you follow".
+- **What my giving became**: on a donor's profile, the confirmed grants (and latest reports) of each fund they say they give through. Pooled money: the fund's record, not a trace of one gift.
 - **Moved**: a private "this moved me" on a post (`moved`). The org sees only a total. No public counts.
 - **Share**: sending a post or profile link elsewhere. Logged as an event.
 - **Report**: a donor flags a post for admin review (`reports`).
@@ -106,6 +108,8 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-034 Grants link foundations to nonprofits.** A foundation's staff can tag up to 10 nonprofits on a post, each with an optional whole-dollar amount and purpose. Each grant stays private (visible only to both orgs' staff) until the nonprofit's staff confirm it from their dashboard ("Grants to confirm": Confirm or Not ours). Confirmed grants show on the post as links to the grantee. Only foundations give, only nonprofits receive; the funder can never confirm its own grant; changing a confirmed grant's amount, purpose or grantee un-confirms it. Test: `supabase/tests/rls.test.ts`, `lib/grants.test.ts`, `e2e/signed-in.spec.ts`, `e2e/public.spec.ts`
 - **F-035 Funded by / Grantees.** Nonprofit profiles list confirmed grants by foundation ("Funded by"); foundation profiles list confirmed grantees with a computed total ("$43,000 to 2 nonprofits, each confirmed by the grantee"). Test: `lib/grants.test.ts`, `e2e/public.spec.ts`
 - **F-036 Grant reports.** A nonprofit can mark a post as its report on a confirmed grant it received (composer: "This post reports on a grant"). The post shows a "Grant report for <foundation>" banner linking to the foundation; the foundation's Grantees list shows each grantee's latest report; the announcement post marks grants with "Report posted". The nonprofit's dashboard lists confirmed grants without a report ("Share how your grants are going") with a one-click "Write a report". The database only accepts reports on confirmed grants the posting org received. Test: `supabase/tests/rls.test.ts`, `e2e/public.spec.ts`, `e2e/signed-in.spec.ts`
+- **F-037 Foundation portfolio.** Foundations have a Portfolio tab: grant reports from the nonprofits they fund. Following a foundation adds its portfolio to your Following feed; posts you see only because of that carry a "From the portfolio of <foundation>, which you follow" line. Nonprofits have no Portfolio tab (`?tab=portfolio` shows Home). Test: `lib/portfolio.test.ts`, `lib/org-tabs.test.ts`, `e2e/public.spec.ts`, `e2e/signed-in.spec.ts`
+- **F-038 What my giving became.** On an org you follow, a toggle shows it on your public profile ("I give through this fund" for foundations, "I support this nonprofit" otherwise; self-reported). A donor's profile then lists, per fund, its confirmed grants and each grantee's latest report, with a note that funds are pooled. Visitors see it in the third person. Demo donor: `/u/dana_demo`. Test: `e2e/signed-in.spec.ts`
 
 ### Fixes
 

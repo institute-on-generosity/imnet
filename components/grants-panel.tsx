@@ -6,10 +6,10 @@ import { OrgTypeBadge } from "./org-type-badge"
 import { Panel } from "./shell"
 
 const year = (d: string) => new Date(`${d}T00:00:00`).getFullYear()
-const latest = (reports: GrantReport[]) => [...reports].sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+export const latest = (reports: GrantReport[]) => [...reports].sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
 
 // The grantee's most recent update on this grant: what the money became.
-function LatestReport({ report }: { report: GrantReport }) {
+export function LatestReport({ report }: { report: GrantReport }) {
   return (
     <Link href={`/p/${report.id}`} className="mt-1.5 block rounded-md border-l-2 border-leaf bg-leaf-soft/50 px-2.5 py-1.5 text-sm hover:bg-leaf-soft">
       <span className="font-medium text-leaf">Latest report: </span>

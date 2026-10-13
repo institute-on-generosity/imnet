@@ -3,9 +3,11 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { OrgMark } from "@/components/org-mark"
 import { OrgTypeBadge } from "@/components/org-type-badge"
-import type { OrgType } from "@/lib/types"
+import { GivingBecame } from "@/components/giving-became"
+import { getOrgGrants } from "@/lib/queries"
+import type { OrgSummary } from "@/lib/types"
 import { Panel, TwoColumn } from "@/components/shell"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getUserId } from "@/lib/supabase/server"
 
 async function getProfile(handle: string) {
   const supabase = await createClient()
@@ -16,12 +18,12 @@ async function getProfile(handle: string) {
     .maybeSingle()
   if (!profile) return null
   const [{ data: supports }, { data: causes }] = await Promise.all([
-    supabase.from("follows").select("org:orgs(slug, name, org_type)").eq("user_id", profile.id).eq("supporter", true),
+    supabase.from("follows").select("org:orgs(id, slug, name, logo_url, org_type)").eq("user_id", profile.id).eq("supporter", true),
     supabase.from("profile_causes").select("cause:causes(slug, name)").eq("user_id", profile.id),
   ])
   return {
     profile,
-    supports: ((supports ?? []) as unknown as { org: { slug: string; name: string; org_type: OrgType } | null }[])
+    supports: ((supports ?? []) as unknown as { org: OrgSummary | null }[])
       .flatMap((s) => (s.org ? [s.org] : [])),
     causes: ((causes ?? []) as unknown as { cause: { slug: string; name: string } }[]).map((c) => c.cause),
   }
@@ -39,6 +41,10 @@ export default async function ProfilePage({ params }: PageProps<"/u/[handle]">) 
   if (!data) notFound()
   const { profile, supports, causes } = data
   const name = profile.display_name ?? `@${profile.handle}`
+  const isOwn = (await getUserId()) === profile.id
+  const funds = await Promise.all(
+    supports.filter((o) => o.org_type === "foundation").map(async (foundation) => ({ foundation, grants: await getOrgGrants(foundation) })),
+  )
 
   return (
     <TwoColumn>
@@ -55,7 +61,7 @@ export default async function ProfilePage({ params }: PageProps<"/u/[handle]">) 
       </Panel>
 
       <Panel className="p-4 sm:p-6">
-        <h2 className="font-sans text-lg font-semibold tracking-normal">Causes I care about</h2>
+        <h2 className="font-sans text-lg font-semibold tracking-normal">{isOwn ? "Causes I care about" : "Causes they care about"}</h2>
         {causes.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">None added yet.</p>
         ) : (
@@ -67,8 +73,11 @@ export default async function ProfilePage({ params }: PageProps<"/u/[handle]">) 
         )}
       </Panel>
 
+      <GivingBecame funds={funds} isOwn={isOwn} />
+
       <Panel>
-        <h2 className="px-4 pt-4 font-sans text-lg font-semibold tracking-normal sm:px-6">Nonprofits I support</h2>
+        <h2 className="px-4 pt-4 font-sans text-lg font-semibold tracking-normal sm:px-6">{isOwn ? "Organizations I support" : "Organizations they support"}</h2>
+        <p className="px-4 text-xs text-muted-foreground sm:px-6">Self-reported</p>
         {supports.length === 0 ? (
           <p className="px-4 pt-2 pb-4 text-sm text-muted-foreground sm:px-6">Nothing shared yet.</p>
         ) : (
@@ -76,7 +85,7 @@ export default async function ProfilePage({ params }: PageProps<"/u/[handle]">) 
             {supports.map((o) => (
               <li key={o.slug}>
                 <Link href={`/o/${o.slug}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 sm:px-6">
-                  <OrgMark org={{ name: o.name, logo_url: null, org_type: o.org_type }} />
+                  <OrgMark org={o} />
                   <span className="font-medium">{o.name}</span>
                   <OrgTypeBadge type={o.org_type} />
                 </Link>

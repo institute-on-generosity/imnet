@@ -163,6 +163,46 @@ test("F-036: the dashboard nudges a report on the confirmed grant; the report re
   await expect(page.getByRole("link", { name: new RegExp(`Latest report: Dinner supplies arrived.*Report ${id}`) })).toBeVisible()
 })
 
+test("F-037: following a foundation brings its grantees' reports into Following, with context", async () => {
+  const FOUNDATION = "00000000-0000-4000-a000-000000000005"
+  await page.goto("/o/lakeshore-community-foundation")
+  await page.locator("main").getByRole("button", { name: "Follow" }).first().click()
+  await expect(page.locator("main").getByRole("button", { name: "Following" }).first()).toBeVisible()
+  // The button updates optimistically; wait for the follow to be saved before navigating.
+  await expect.poll(async () => (await sql`select count(*)::int n from follows where user_id = ${userId} and org_id = ${FOUNDATION}`)[0].n).toBe(1)
+
+  await page.goto("/following")
+  // This user doesn't follow their own Test Kitchen org, so its report appears via Lakeshore's portfolio.
+  const report = page.locator("section").filter({ hasText: `Report ${id}` })
+  await expect(report.getByText("From the portfolio of")).toBeVisible()
+  await expect(report.getByRole("link", { name: "Lakeshore Community Foundation (Demo)" }).first()).toBeVisible()
+  // Harbor Table is followed directly, so its report has no portfolio line.
+  const harbor = page.locator("section").filter({ hasText: "The new walk-in freezer is in." })
+  await expect(harbor.getByText("From the portfolio of")).toHaveCount(0)
+})
+
+test("F-038: 'I give through this fund' shows what that giving became on the donor's profile", async () => {
+  const [{ handle }] = await sql`select handle from profiles where id = ${userId}`
+  await page.goto(`/u/${handle}`)
+  await expect(page.getByRole("heading", { name: "What my giving became" })).toHaveCount(0)
+
+  await page.goto("/o/lakeshore-community-foundation")
+  await page.getByRole("button", { name: /I give through this fund: show on my profile/ }).click()
+  await expect(page.getByRole("button", { name: /I give through this fund \(on your profile\)/ })).toBeVisible()
+  await expect.poll(async () => (await sql`select bool_or(supporter) s from follows where user_id = ${userId}`)[0].s).toBe(true)
+
+  await page.goto(`/u/${handle}`)
+  await expect(page.getByRole("heading", { name: "What my giving became" })).toBeVisible()
+  const fund = page.getByRole("region", { name: "Grants from Lakeshore Community Foundation (Demo)" })
+  await expect(fund.getByRole("link", { name: /Latest report: The new walk-in freezer is in/ })).toBeVisible()
+
+  // Visitors see it too, worded for someone else.
+  const anon = await page.context().browser()!.newPage()
+  await anon.goto(`/u/${handle}`)
+  await expect(anon.getByRole("heading", { name: "What their giving became" })).toBeVisible()
+  await anon.close()
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

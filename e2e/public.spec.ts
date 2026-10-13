@@ -98,6 +98,18 @@ test("F-036: a nonprofit's grant report links to the foundation and shows on its
   await expect(page).toHaveURL(/\/o\/lakeshore-community-foundation$/)
 })
 
+test("F-037: a foundation's Portfolio tab shows its grantees' reports; nonprofits have no Portfolio", async ({ page }) => {
+  await page.goto("/o/lakeshore-community-foundation")
+  await page.getByRole("link", { name: "Portfolio", exact: true }).click()
+  await expect(page).toHaveURL(/tab=portfolio/)
+  await expect(page.getByText("The new walk-in freezer is in.")).toBeVisible()
+
+  await page.goto("/o/harbor-table")
+  await expect(page.getByRole("link", { name: "Portfolio", exact: true })).toHaveCount(0)
+  await page.goto("/o/harbor-table?tab=portfolio")
+  await expect(page.getByRole("heading", { name: "Recent posts" })).toBeVisible()
+})
+
 test("F-003 / F-024 / F-021: org profile tabs and footnoted impact stats", async ({ page }) => {
   await page.goto("/o/open-door-homes")
   await expect(page.getByRole("heading", { name: "Open Door Homes (Demo)" })).toBeVisible()

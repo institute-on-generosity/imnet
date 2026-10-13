@@ -8,10 +8,11 @@ import { ShareButton } from "@/components/share-button"
 import { Panel, TwoColumn } from "@/components/shell"
 import { GrantsPanel } from "@/components/grants-panel"
 import { SuggestedOrgs } from "@/components/side-cards"
+import { SupporterToggle } from "@/components/supporter-toggle"
 import { TrackView } from "@/components/track-view"
 import { buttonVariants } from "@/components/ui/button"
 import { footnotes } from "@/lib/footnotes"
-import { ORG_TAB_LABEL, ORG_TABS, type OrgTab } from "@/lib/org-tabs"
+import { ORG_TAB_LABEL, tabsFor, type OrgTab } from "@/lib/org-tabs"
 import type { OrgSummaryWithMission } from "@/lib/queries"
 import type { Cause, Grant, ImpactStat, Org, Post } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -27,14 +28,15 @@ type Props = {
   posts: Post[]
   similar: OrgSummaryWithMission[]
   signedIn: boolean
-  following: boolean
+  follow: { following: boolean; supporter: boolean }
+  portfolio: Post[]
   movedIds?: Set<string>
   grants: Grant[]
   grantsByPost: Map<string, Grant[]>
   tab: OrgTab
 }
 
-export function OrgProfile({ org, stats, causes, followers, posts, similar, signedIn, following, movedIds, grants, grantsByPost, tab }: Props) {
+export function OrgProfile({ org, stats, causes, followers, posts, portfolio, similar, signedIn, follow, movedIds, grants, grantsByPost, tab }: Props) {
   const base = `/o/${org.slug}`
   return (
     <TwoColumn right={<SuggestedOrgs title="Similar organizations" orgs={similar} signedIn={signedIn} />}>
@@ -63,16 +65,21 @@ export function OrgProfile({ org, stats, causes, followers, posts, similar, sign
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {signedIn ? (
-              <FollowButton orgId={org.id} slug={org.slug} following={following} />
+              <FollowButton orgId={org.id} slug={org.slug} following={follow.following} />
             ) : (
               <Link href="/login" className={buttonVariants()}>Follow</Link>
             )}
             {org.everyorg_slug && <DonateButton orgId={org.id} everyorgSlug={org.everyorg_slug} />}
             <ShareButton path={base} title={org.name} orgId={org.id} variant="pill" />
           </div>
+          {signedIn && follow.following && (
+            <div className="mt-2">
+              <SupporterToggle orgId={org.id} orgType={org.org_type} supporter={follow.supporter} />
+            </div>
+          )}
         </div>
         <nav aria-label={`${org.name} sections`} className="flex border-t px-2 sm:px-4">
-          {ORG_TABS.map((t) => (
+          {tabsFor(org.org_type).map((t) => (
             <Link
               key={t}
               href={t === "home" ? base : `${base}?tab=${t}`}
@@ -151,6 +158,16 @@ export function OrgProfile({ org, stats, causes, followers, posts, similar, sign
       )}
 
       {tab === "posts" && <Feed posts={posts} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} grantsByPost={grantsByPost} />}
+
+      {tab === "portfolio" && (
+        <>
+          <Panel className="p-4 sm:p-6">
+            <h2 className="font-sans text-lg font-semibold tracking-normal">Portfolio</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Grant reports from the nonprofits {org.name} funds: what each grant made possible, in the grantee&apos;s own words.</p>
+          </Panel>
+          <Feed posts={portfolio} empty="No grant reports yet. They appear here when grantees post them." movedIds={movedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
+        </>
+      )}
     </TwoColumn>
   )
 }

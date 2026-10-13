@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import type { Grant, Post } from "@/lib/types"
+import type { Grant, OrgSummary, Post } from "@/lib/types"
 import { ExpandableText } from "./expandable-text"
 import { GrantChips } from "./grant-chips"
 import { GrantReportBanner } from "./grant-report-banner"
@@ -20,12 +20,19 @@ const relative = (iso: string) => {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
 
-type CardProps = { post: Post; full?: boolean; moved?: boolean; signedIn?: boolean; grants?: Grant[] }
+// context: the followed foundation this post appears for (portfolio), shown above the header.
+type CardProps = { post: Post; full?: boolean; moved?: boolean; signedIn?: boolean; grants?: Grant[]; context?: OrgSummary }
 
 // A LinkedIn-style post: author header, text with "see more", media, then an action bar.
-export function PostCard({ post, full = false, moved = false, signedIn = false, grants = [] }: CardProps) {
+export function PostCard({ post, full = false, moved = false, signedIn = false, grants = [], context }: CardProps) {
   return (
     <Panel>
+      {context && (
+        <p className="border-b px-4 py-2 text-xs text-muted-foreground">
+          From the portfolio of{" "}
+          <Link href={`/o/${context.slug}`} className="font-medium text-foreground hover:underline">{context.name}</Link>, which you follow
+        </p>
+      )}
       <header className="flex items-start gap-3 px-4 pt-4">
         <Link href={`/o/${post.org.slug}`} tabIndex={-1} aria-hidden><OrgMark org={post.org} size="md" /></Link>
         <div className="min-w-0 flex-1 leading-tight">
@@ -66,14 +73,14 @@ export function PostCard({ post, full = false, moved = false, signedIn = false, 
   )
 }
 
-type FeedProps = { posts: Post[]; empty: React.ReactNode; movedIds?: Set<string>; signedIn?: boolean; grantsByPost?: Map<string, Grant[]> }
+type FeedProps = { posts: Post[]; empty: React.ReactNode; movedIds?: Set<string>; signedIn?: boolean; grantsByPost?: Map<string, Grant[]>; context?: Map<string, OrgSummary> }
 
-export function Feed({ posts, empty, movedIds, signedIn = false, grantsByPost }: FeedProps) {
+export function Feed({ posts, empty, movedIds, signedIn = false, grantsByPost, context }: FeedProps) {
   if (posts.length === 0) return <Panel className="p-6 text-muted-foreground">{empty}</Panel>
   return (
     <div className="space-y-3">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} moved={movedIds?.has(post.id)} signedIn={signedIn} grants={grantsByPost?.get(post.id)} />
+        <PostCard key={post.id} post={post} moved={movedIds?.has(post.id)} signedIn={signedIn} grants={grantsByPost?.get(post.id)} context={context?.get(post.id)} />
       ))}
     </div>
   )

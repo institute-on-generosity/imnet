@@ -2,7 +2,9 @@ import { CauseFilter, OrgTypeFilter } from "@/components/cause-filter"
 import { Feed } from "@/components/post-card"
 import { Panel, ThreeColumn } from "@/components/shell"
 import { JoinCard, SuggestedOrgs, ViewerCard } from "@/components/side-cards"
-import { getCauses, getFeed, getFollowedOrgIds, getGrantsForPosts, getMovedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
+import { portfolioContext } from "@/lib/portfolio"
+import { getCauses, getConfirmedGrantIds, getFeed, getFollowedOrgIds, getGrantsForPosts, getMovedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
+import { createClient } from "@/lib/supabase/server"
 import { getUserId } from "@/lib/supabase/server"
 import type { OrgType } from "@/lib/types"
 
@@ -10,14 +12,17 @@ import type { OrgType } from "@/lib/types"
 export async function HomeFeed({ cause, orgType, followingOnly, basePath }: { cause?: string; orgType?: OrgType; followingOnly?: boolean; basePath: string }) {
   const userId = await getUserId()
   const orgIds = followingOnly && userId ? await getFollowedOrgIds(userId) : undefined
+  // Following a foundation also brings in its grantees' grant reports (its portfolio).
+  const reportGrantIds = orgIds?.length ? await getConfirmedGrantIds(await foundationsAmong(orgIds)) : []
   const [viewer, causes, posts, suggested] = await Promise.all([
     getViewer(userId),
     getCauses(),
-    orgIds && orgIds.length === 0 ? Promise.resolve([]) : getFeed({ cause, orgIds, orgType }),
+    orgIds && orgIds.length === 0 ? Promise.resolve([]) : getFeed({ cause, orgIds, orgType, reportGrantIds }),
     getSuggestedOrgs({ userId, cause }),
   ])
   const ids = posts.map((p) => p.id)
   const [movedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getGrantsForPosts(ids)])
+  const context = followingOnly ? portfolioContext(posts, new Set(orgIds)) : undefined
 
   const empty = followingOnly
     ? orgIds?.length
@@ -46,7 +51,14 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath }: { ca
         </div>
         <CauseFilter causes={causes} active={cause} type={orgType} basePath={basePath} />
       </Panel>
-      <Feed posts={posts} empty={empty} movedIds={movedIds} signedIn={!!userId} grantsByPost={grantsByPost} />
+      <Feed posts={posts} empty={empty} movedIds={movedIds} signedIn={!!userId} grantsByPost={grantsByPost} context={context} />
     </ThreeColumn>
   )
 }
+
+async function foundationsAmong(orgIds: string[]) {
+  const supabase = await createClient()
+  const { data } = await supabase.from("orgs").select("id").in("id", orgIds).eq("org_type", "foundation")
+  return (data ?? []).map((o) => o.id)
+}
+
