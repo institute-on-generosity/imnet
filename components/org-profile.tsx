@@ -2,6 +2,7 @@ import Link from "next/link"
 import { DonateButton } from "@/components/donate-button"
 import { FollowButton } from "@/components/follow-button"
 import { OrgMark } from "@/components/org-mark"
+import { OlderPosts } from "@/components/older-posts"
 import { OrgTypeBadge } from "@/components/org-type-badge"
 import { Feed } from "@/components/post-card"
 import { ShareButton } from "@/components/share-button"
@@ -27,6 +28,7 @@ type Props = {
   causes: Cause[]
   followers: number
   posts: Post[]
+  postsPaging: { next: string | null; isFirstPage: boolean }
   similar: OrgSummaryWithMission[]
   signedIn: boolean
   follow: { following: boolean; supporter: boolean }
@@ -37,7 +39,7 @@ type Props = {
   tab: OrgTab
 }
 
-export function OrgProfile({ org, stats, causes, followers, posts, portfolio, similar, signedIn, follow, movedIds, grants, grantsByPost, tab }: Props) {
+export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, grants, grantsByPost, tab }: Props) {
   const base = `/o/${org.slug}`
   return (
     <TwoColumn right={<SuggestedOrgs title="Similar organizations" orgs={similar} signedIn={signedIn} />}>
@@ -159,7 +161,16 @@ export function OrgProfile({ org, stats, causes, followers, posts, portfolio, si
         </>
       )}
 
-      {tab === "posts" && <Feed posts={posts} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} grantsByPost={grantsByPost} />}
+      {tab === "posts" && (
+        <>
+          <Feed posts={posts} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
+          <OlderPosts
+            olderHref={postsPaging.next ? `${base}?tab=posts&before=${postsPaging.next}` : null}
+            newestHref={`${base}?tab=posts`}
+            isFirstPage={postsPaging.isFirstPage}
+          />
+        </>
+      )}
 
       {tab === "portfolio" && (
         <>

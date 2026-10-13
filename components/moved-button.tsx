@@ -3,7 +3,7 @@
 import { HandHeart } from "lucide-react"
 import Link from "next/link"
 import { useOptimistic, useTransition } from "react"
-import { toggleMoved } from "@/app/actions"
+import { sendSignal } from "@/lib/send-signal"
 import { cn } from "@/lib/utils"
 
 const ACTION = "inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors"
@@ -30,7 +30,7 @@ export function MovedButton({ postId, moved, signedIn = true }: { postId: string
       onClick={() =>
         startTransition(async () => {
           setOptimistic(!optimistic)
-          await toggleMoved(postId, optimistic)
+          await sendSignal({ kind: "moved", id: postId, on: !optimistic }).catch(() => {})
         })
       }
       className={cn(ACTION, optimistic ? "bg-marigold-soft text-foreground" : "text-muted-foreground hover:bg-muted")}

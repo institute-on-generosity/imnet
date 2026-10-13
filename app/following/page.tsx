@@ -7,6 +7,6 @@ export const metadata = { title: "Following" }
 
 export default async function FollowingPage({ searchParams }: PageProps<"/following">) {
   if (!(await getUserId())) redirect("/login")
-  const { cause, type } = await searchParams
-  return <HomeFeed cause={typeof cause === "string" ? cause : undefined} orgType={parseOrgType(type)} followingOnly basePath="/following" />
+  const { cause, type, before } = await searchParams
+  return <HomeFeed cause={typeof cause === "string" ? cause : undefined} orgType={parseOrgType(type)} before={typeof before === "string" ? before : undefined} followingOnly basePath="/following" />
 }

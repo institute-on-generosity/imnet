@@ -1,4 +1,5 @@
 import { cache } from "react"
+import { type Cursor, encodeCursor, olderThan } from "@/lib/cursor"
 import { escapeLike } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
 import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
@@ -7,9 +8,11 @@ const PAGE_SIZE = 20
 const POST_FIELDS = `id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at, call_deadline, call_apply_url, call_max_award, call_causes,
   report_grant:grants!posts_reports_grant_id_fkey(id, amount_usd, purpose, foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type))`
 
-// Chronological, no engagement ranking (design principle #4).
+type FeedOpts = { cause?: string; orgIds?: string[]; orgType?: OrgType; reportGrantIds?: string[]; before?: Cursor }
+
+// Chronological, no engagement ranking (design principle #4). One page plus a cursor for the next.
 // reportGrantIds: also include grant reports on these grants (portfolio of followed foundations).
-export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType?: OrgType; reportGrantIds?: string[] } = {}): Promise<Post[]> {
+export async function getFeedPage(opts: FeedOpts = {}): Promise<{ posts: Post[]; next: string | null }> {
   const supabase = await createClient()
   const orgJoin = opts.cause
     ? "org:orgs!inner(id, slug, name, logo_url, org_type, org_causes!inner(cause_slug))"
@@ -20,7 +23,8 @@ export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType
     .select(`${POST_FIELDS}, ${orgJoin}`)
     .eq("published", true)
     .order("created_at", { ascending: false })
-    .limit(PAGE_SIZE)
+    .order("id", { ascending: false })
+    .limit(PAGE_SIZE + 1)
 
   if (opts.cause) query = query.eq("org.org_causes.cause_slug", opts.cause)
   if (opts.orgIds && opts.reportGrantIds?.length) {
@@ -28,10 +32,18 @@ export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType
     query = query.or(`${orgs}reports_grant_id.in.(${opts.reportGrantIds.join(",")})`)
   } else if (opts.orgIds) query = query.in("org_id", opts.orgIds)
   if (opts.orgType) query = query.eq("org.org_type", opts.orgType)
+  if (opts.before) query = query.or(olderThan(opts.before))
 
   const { data, error } = await query
   if (error) throw error
-  return (data ?? []) as unknown as Post[]
+  const rows = (data ?? []) as unknown as Post[]
+  const posts = rows.slice(0, PAGE_SIZE)
+  const last = posts.at(-1)
+  return { posts, next: rows.length > PAGE_SIZE && last ? encodeCursor({ createdAt: last.created_at, id: last.id }) : null }
+}
+
+export async function getFeed(opts: FeedOpts = {}): Promise<Post[]> {
+  return (await getFeedPage(opts)).posts
 }
 
 // Cached per request: many components need cause names.

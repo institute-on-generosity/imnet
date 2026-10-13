@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { OrgProfile } from "@/components/org-profile"
+import { decodeCursor } from "@/lib/cursor"
 import { parseOrgTab } from "@/lib/org-tabs"
-import { getFeed, getFollow, getGrantsForPosts, getMovedPostIds, getOrgBySlug, getOrgGrants, getPortfolioPosts, getSuggestedOrgs } from "@/lib/queries"
+import { getFeedPage, getFollow, getGrantsForPosts, getMovedPostIds, getOrgBySlug, getOrgGrants, getPortfolioPosts, getSuggestedOrgs } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 
 export async function generateMetadata({ params }: PageProps<"/o/[slug]">): Promise<Metadata> {
@@ -17,19 +18,21 @@ export async function generateMetadata({ params }: PageProps<"/o/[slug]">): Prom
 }
 
 export default async function OrgPage({ params, searchParams }: PageProps<"/o/[slug]">) {
-  const [{ slug }, { tab }] = await Promise.all([params, searchParams])
+  const [{ slug }, { tab, before }] = await Promise.all([params, searchParams])
   const data = await getOrgBySlug(slug)
   if (!data) notFound()
   const activeTab = parseOrgTab(tab, data.org.org_type)
+  const cursor = activeTab === "posts" ? decodeCursor(before) : null
 
   const userId = await getUserId()
-  const [posts, follow, similar, grants, portfolio] = await Promise.all([
-    getFeed({ orgIds: [data.org.id] }),
+  const [page, follow, similar, grants, portfolio] = await Promise.all([
+    getFeedPage({ orgIds: [data.org.id], before: cursor ?? undefined }),
     getFollow(userId, data.org.id),
     getSuggestedOrgs({ userId, cause: data.causes[0]?.slug, excludeId: data.org.id, limit: 4 }),
     getOrgGrants(data.org),
     activeTab === "portfolio" ? getPortfolioPosts(data.org.id) : Promise.resolve([]),
   ])
+  const { posts, next } = page
   const ids = [...posts, ...portfolio].map((p) => p.id)
   const [movedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getGrantsForPosts(ids)])
 
@@ -37,6 +40,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/o/[s
     <OrgProfile
       {...data}
       posts={posts}
+      postsPaging={{ next, isFirstPage: !cursor }}
       portfolio={portfolio}
       similar={similar}
       signedIn={!!userId}

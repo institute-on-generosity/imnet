@@ -228,6 +228,22 @@ test("F-039: a foundation posts an open call; matching nonprofits see it on thei
   await expect(page.getByText(`Call ${id}`)).toBeVisible()
 })
 
+test("B-013: a follow is saved even if you leave the page right after clicking", async () => {
+  const [org] = await sql`select id from orgs where slug = 'riverbend-readers'`
+  await page.goto("/o/riverbend-readers")
+  await page.locator("main").getByRole("button", { name: "Follow" }).first().click()
+  // Leave immediately, with no wait for the save (this used to lose the follow).
+  await page.goto("/calls")
+  await expect.poll(async () => (await sql`select count(*)::int n from follows where user_id = ${userId} and org_id = ${org.id}`)[0].n).toBe(1)
+
+  // Same for "Moved me".
+  const [post] = await sql`select id from posts where org_id = ${org.id} order by created_at desc limit 1`
+  await page.goto(`/p/${post.id}`)
+  await page.getByRole("button", { name: "Moved me" }).click()
+  await page.goto("/calls")
+  await expect.poll(async () => (await sql`select count(*)::int n from moved where user_id = ${userId} and post_id = ${post.id}`)[0].n).toBe(1)
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

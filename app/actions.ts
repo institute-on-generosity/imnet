@@ -50,36 +50,6 @@ export async function signOut() {
 // ---------------------------------------------------------------------------
 // Donor actions
 // ---------------------------------------------------------------------------
-export async function toggleFollow(orgId: string, slug: string, following: boolean) {
-  const userId = await requireUser()
-  const supabase = await createClient()
-  if (following) {
-    await supabase.from("follows").delete().match({ user_id: userId, org_id: orgId })
-  } else {
-    await supabase.from("follows").insert({ user_id: userId, org_id: orgId })
-  }
-  revalidatePath(`/o/${slug}`)
-}
-
-export async function setSupporter(orgId: string, supporter: boolean) {
-  const userId = await requireUser()
-  const supabase = await createClient()
-  await supabase
-    .from("follows")
-    .upsert({ user_id: userId, org_id: orgId, supporter }, { onConflict: "user_id,org_id" })
-  revalidatePath("/", "layout")
-}
-
-export async function toggleMoved(postId: string, moved: boolean) {
-  const userId = await requireUser()
-  const supabase = await createClient()
-  if (moved) {
-    await supabase.from("moved").delete().match({ user_id: userId, post_id: postId })
-  } else {
-    await supabase.from("moved").insert({ user_id: userId, post_id: postId })
-  }
-}
-
 export async function logEvent(type: "view" | "share" | "donate_click", orgId: string, postId?: string) {
   const supabase = await createClient()
   const userId = await getUserId()

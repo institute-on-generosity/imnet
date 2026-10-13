@@ -6,6 +6,7 @@ describe("feed filters", () => {
     expect(feedHref("/", {})).toBe("/")
     expect(feedHref("/", { cause: "hunger" })).toBe("/?cause=hunger")
     expect(feedHref("/following", { cause: "hunger", type: "foundation" })).toBe("/following?cause=hunger&type=foundation")
+    expect(feedHref("/", { type: "nonprofit", before: "abc" })).toBe("/?type=nonprofit&before=abc")
   })
   it("F-033: only known org types filter the feed", () => {
     expect(parseOrgType("foundation")).toBe("foundation")

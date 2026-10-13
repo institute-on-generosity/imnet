@@ -1,25 +1,32 @@
 import { CauseFilter, OrgTypeFilter } from "@/components/cause-filter"
+import { OlderPosts } from "@/components/older-posts"
+import { decodeCursor } from "@/lib/cursor"
+import { feedHref } from "@/lib/feed-href"
 import { Feed } from "@/components/post-card"
 import { Panel, ThreeColumn } from "@/components/shell"
 import { JoinCard, SuggestedOrgs, ViewerCard } from "@/components/side-cards"
 import { portfolioContext } from "@/lib/portfolio"
-import { getCauses, getConfirmedGrantIds, getFeed, getFollowedOrgIds, getGrantsForPosts, getMovedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
+import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getGrantsForPosts, getMovedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
 import { createClient } from "@/lib/supabase/server"
 import { getUserId } from "@/lib/supabase/server"
 import type { OrgType } from "@/lib/types"
 
 // Shared by Home (all orgs) and Following (followed orgs only).
-export async function HomeFeed({ cause, orgType, followingOnly, basePath }: { cause?: string; orgType?: OrgType; followingOnly?: boolean; basePath: string }) {
+type Props = { cause?: string; orgType?: OrgType; followingOnly?: boolean; basePath: string; before?: string }
+
+export async function HomeFeed({ cause, orgType, followingOnly, basePath, before }: Props) {
+  const cursor = decodeCursor(before)
   const userId = await getUserId()
   const orgIds = followingOnly && userId ? await getFollowedOrgIds(userId) : undefined
   // Following a foundation also brings in its grantees' grant reports (its portfolio).
   const reportGrantIds = orgIds?.length ? await getConfirmedGrantIds(await foundationsAmong(orgIds)) : []
-  const [viewer, causes, posts, suggested] = await Promise.all([
+  const [viewer, causes, page, suggested] = await Promise.all([
     getViewer(userId),
     getCauses(),
-    orgIds && orgIds.length === 0 ? Promise.resolve([]) : getFeed({ cause, orgIds, orgType, reportGrantIds }),
+    orgIds && orgIds.length === 0 ? Promise.resolve({ posts: [], next: null }) : getFeedPage({ cause, orgIds, orgType, reportGrantIds, before: cursor ?? undefined }),
     getSuggestedOrgs({ userId, cause }),
   ])
+  const { posts, next } = page
   const ids = posts.map((p) => p.id)
   const [movedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getGrantsForPosts(ids)])
   const context = followingOnly ? portfolioContext(posts, new Set(orgIds)) : undefined
@@ -52,6 +59,11 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath }: { ca
         <CauseFilter causes={causes} active={cause} type={orgType} basePath={basePath} />
       </Panel>
       <Feed posts={posts} empty={empty} movedIds={movedIds} signedIn={!!userId} grantsByPost={grantsByPost} context={context} />
+      <OlderPosts
+        olderHref={next ? feedHref(basePath, { cause, type: orgType, before: next }) : null}
+        newestHref={feedHref(basePath, { cause, type: orgType })}
+        isFirstPage={!cursor}
+      />
     </ThreeColumn>
   )
 }

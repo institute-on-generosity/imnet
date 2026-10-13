@@ -1,8 +1,9 @@
 "use client"
 
 import { Check, Eye } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useOptimistic, useTransition } from "react"
-import { setSupporter } from "@/app/actions"
+import { sendSignal } from "@/lib/send-signal"
 import { Button } from "@/components/ui/button"
 import type { OrgType } from "@/lib/types"
 
@@ -10,6 +11,7 @@ import type { OrgType } from "@/lib/types"
 export function SupporterToggle({ orgId, orgType, supporter }: { orgId: string; orgType: OrgType; supporter: boolean }) {
   const [on, setOn] = useOptimistic(supporter)
   const [, start] = useTransition()
+  const router = useRouter()
   const label = orgType === "foundation" ? "I give through this fund" : "I support this nonprofit"
 
   return (
@@ -20,7 +22,8 @@ export function SupporterToggle({ orgId, orgType, supporter }: { orgId: string; 
       onClick={() =>
         start(async () => {
           setOn(!on)
-          await setSupporter(orgId, !on)
+          await sendSignal({ kind: "supporter", id: orgId, on: !on }).catch(() => {})
+          router.refresh()
         })
       }
     >

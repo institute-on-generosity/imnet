@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import "./helpers"
+import { sql, uniq } from "./helpers"
 
 
 test("F-001 / F-027: Explore shows posts newest first, with photos, alt text and credits", async ({ page }) => {
@@ -136,6 +136,46 @@ test("F-040: a nonprofit funded by two foundations shows as co-funded", async ({
   await expect(page.getByRole("link", { name: /Co-funded by Lakeshore Community Foundation \(Demo\) and Riverside Family Foundation \(Demo\)/ })).toBeVisible()
   await page.goto("/o/riverbend-readers")
   await expect(page.getByRole("link", { name: /Backed by Lakeshore Community Foundation/ })).toBeVisible()
+})
+
+test("F-041: feeds page with 'Show older posts'; every post appears exactly once, even with tied timestamps", async ({ page }) => {
+  const id = uniq()
+  const slug = `paging-${id}`
+  const [org] = await sql`insert into orgs (slug, name, status) values (${slug}, ${`Paging Org ${id}`}, 'verified') returning id`
+  try {
+    // 23 posts, one per hour; posts #20 and #21 share a timestamp, right at the page boundary.
+    // One fixed base time: separate statements would each get a different now() and never tie.
+    const [{ base }] = await sql`select now() as base`
+    for (let i = 1; i <= 23; i++) {
+      const hoursAgo = i <= 20 ? i : i - 1
+      await sql`insert into posts (org_id, body, created_at) values (${org.id}, ${`Paging post ${i} of ${id}`}, ${base}::timestamptz - make_interval(hours => ${hoursAgo}))`
+    }
+    const [{ ties }] = await sql`select count(*)::int - count(distinct created_at)::int as ties from posts where org_id = ${org.id}`
+    expect(ties).toBe(1)
+    const bodiesOnPage = async () => (await page.locator("main section p").allInnerTexts()).filter((t) => t.includes(`of ${id}`))
+
+    await page.goto(`/o/${slug}?tab=posts`)
+    const first = await bodiesOnPage()
+    expect(first).toHaveLength(20)
+    await page.getByRole("link", { name: "Show older posts" }).click()
+    await expect(page).toHaveURL(/before=/)
+    await expect(page.getByText("You're all caught up.")).toBeVisible()
+    const second = await bodiesOnPage()
+    expect(second).toHaveLength(3)
+    await expect(page.getByText("You're all caught up.")).toBeVisible()
+    expect(new Set([...first, ...second]).size).toBe(23)
+
+    await page.getByRole("link", { name: "Back to newest" }).click()
+    await expect(page).not.toHaveURL(/before=/)
+    await expect(page.getByRole("link", { name: "Show older posts" })).toBeVisible()
+    expect(await bodiesOnPage()).toEqual(first)
+
+    // A tampered cursor is ignored (first page), not an error.
+    await page.goto(`/o/${slug}?tab=posts&before=${encodeURIComponent("bad),or(true")}`)
+    expect(await bodiesOnPage()).toHaveLength(20)
+  } finally {
+    await sql`delete from orgs where id = ${org.id}`
+  }
 })
 
 test("F-003 / F-024 / F-021: org profile tabs and footnoted impact stats", async ({ page }) => {

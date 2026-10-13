@@ -1,14 +1,16 @@
 "use client"
 
 import { Check, Plus } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useOptimistic, useTransition } from "react"
-import { toggleFollow } from "@/app/actions"
+import { sendSignal } from "@/lib/send-signal"
 import { Button } from "@/components/ui/button"
 
 // compact: the "+ Follow" pill used in sidebars and lists.
-export function FollowButton({ orgId, slug, following, compact = false }: { orgId: string; slug: string; following: boolean; compact?: boolean }) {
+export function FollowButton({ orgId, following, compact = false }: { orgId: string; slug?: string; following: boolean; compact?: boolean }) {
   const [optimistic, setOptimistic] = useOptimistic(following)
   const [, startTransition] = useTransition()
+  const router = useRouter()
   const Icon = optimistic ? Check : Plus
 
   return (
@@ -19,7 +21,8 @@ export function FollowButton({ orgId, slug, following, compact = false }: { orgI
       onClick={() =>
         startTransition(async () => {
           setOptimistic(!optimistic)
-          await toggleFollow(orgId, slug, optimistic)
+          await sendSignal({ kind: "follow", id: orgId, on: !optimistic }).catch(() => {})
+          router.refresh()
         })
       }
     >
