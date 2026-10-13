@@ -94,7 +94,7 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-026 Post action bar.** Every post card has "Moved me" (private, signed-out users go to sign-in), Share and Open. Long posts clamp to 4 lines with "see more". Supersedes F-022's hidden org name on profiles: posts always show their org. Test: none
 - **F-027 Photo posts.** A post can carry up to 4 photos, shown LinkedIn-style (1 full width, 2 side by side, 3 as one large plus two, 4 as a grid). Every photo has alt text; credits, when present, show under the photos. The database rejects a 5th photo, missing or empty alt text, and credits that don't match the photos. Test: `supabase/tests/rls.test.ts` (database rules)
 - **F-028 Photo upload in the composer.** Staff add photos (JPG, PNG, WebP, under 5 MB), which upload to their org's folder right away. Each needs a description, and photos need the consent box. The server re-checks every path is in that org's folder. Test: `lib/post-images.test.ts` (server validation)
-- **F-029 Demo media.** Seed orgs have 7 openly licensed photos from Wikimedia Commons (objects, hands, places, workers; no beneficiaries), with credits in `supabase/seed-images/CREDITS.md` and on each post. Loaded by `npx supabase seed buckets --local`. Test: none
+- **F-029 Demo media.** Seed orgs have 11 openly licensed photos from Wikimedia Commons showing volunteers at work (pantry restocking, packing grocery boxes, sorting a food drive, roof repair, school setup), never the people being served. Credits in `supabase/seed-images/CREDITS.md` and on each post. Loaded by `npx supabase seed buckets --local`. Test: none
 
 ### Fixes
 

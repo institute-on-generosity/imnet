@@ -1,15 +1,19 @@
 # Seed image credits
 
-Demo photos for the fictional seed orgs. All are openly licensed from Wikimedia Commons. They show objects, hands, places and workers, not beneficiaries.
+Demo photos for the fictional seed orgs, all openly licensed from Wikimedia Commons. They show volunteers at work and places, not the people being served.
 
 | File | Author | License | Source |
 |---|---|---|---|
-| `food-assistance-greens.jpg` | USDAgov | Public domain | [The Emergency Food Assistance Program (TEFAP) (20250110-USDA-FNS-UNK-087).jpg](https://commons.wikimedia.org/wiki/File:The_Emergency_Food_Assistance_Program_(TEFAP)_(20250110-USDA-FNS-UNK-087).jpg) |
-| `food-assistance-applesauce.jpg` | USDAgov | Public domain | [The Emergency Food Assistance Program (TEFAP) (20250110-USDA-FNS-UNK-084).jpg](https://commons.wikimedia.org/wiki/File:The_Emergency_Food_Assistance_Program_(TEFAP)_(20250110-USDA-FNS-UNK-084).jpg) |
-| `red-peppers.jpg` | Shixart1985 | CC BY 2.0 | [Fresh red peppers in a wooden crate.jpg](https://commons.wikimedia.org/wiki/File:Fresh_red_peppers_in_a_wooden_crate.jpg) |
 | `keys-at-door.jpg` | Shixart1985 | CC BY 2.0 | [Hand holds house keys near door lock, symbolizing new beginnings and homeownership journey in a modern setting.jpg](https://commons.wikimedia.org/wiki/File:Hand_holds_house_keys_near_door_lock,_symbolizing_new_beginnings_and_homeownership_journey_in_a_modern_setting.jpg) |
-| `moving-box.jpg` | U.S. Army photo by Lisa Bishop | Public domain | [Stay safe during moving of household goods (6222155).jpg](https://commons.wikimedia.org/wiki/File:Stay_safe_during_moving_of_household_goods_(6222155).jpg) |
-| `picture-book-shelf.jpg` | Alequihdez | CC BY-SA 4.0 | [Miami Dade Main Library - Children's Room 05.jpg](https://commons.wikimedia.org/wiki/File:Miami_Dade_Main_Library_-_Children%27s_Room_05.jpg) |
-| `book-spines.jpg` | Carol VanHook | CC BY-SA 2.0 | [Day Dreaming (Explored) - Flickr - Carol (vanhookc).jpg](https://commons.wikimedia.org/wiki/File:Day_Dreaming_(Explored)_-_Flickr_-_Carol_(vanhookc).jpg) |
+| `pantry-restock.jpg` | USDAgov | Public domain | [20190425-PJK-AMS-0869 TONED.jpg](https://commons.wikimedia.org/wiki/File:20190425-PJK-AMS-0869_TONED.jpg) |
+| `pantry-team.jpg` | USDAgov | Public domain | [20190425-PJK-AMS-0917 TONED.jpg](https://commons.wikimedia.org/wiki/File:20190425-PJK-AMS-0917_TONED.jpg) |
+| `packing-boxes.jpg` | Chief Petty Officer Sarah Foster | Public domain | [Alameda Food Bank Thanksgiving volunteers 111119-G-FY356-019.jpg](https://commons.wikimedia.org/wiki/File:Alameda_Food_Bank_Thanksgiving_volunteers_111119-G-FY356-019.jpg) |
+| `bagging-groceries.jpg` | Chief Petty Officer Sarah Foster | Public domain | [Alameda Food Bank Thanksgiving volunteers 111119-G-FY356-025.jpg](https://commons.wikimedia.org/wiki/File:Alameda_Food_Bank_Thanksgiving_volunteers_111119-G-FY356-025.jpg) |
+| `sorting-cans.jpg` | Mark Wolfe | Public domain | [FEMA - 15222 - Photograph by Mark Wolfe taken on 09-11-2005 in Mississippi.jpg](https://commons.wikimedia.org/wiki/File:FEMA_-_15222_-_Photograph_by_Mark_Wolfe_taken_on_09-11-2005_in_Mississippi.jpg) |
+| `roof-repair.jpg` | Leif Skoogfors | Public domain | [FEMA - 14169 - Photograph by Leif Skoogfors taken on 07-21-2005 in Florida.jpg](https://commons.wikimedia.org/wiki/File:FEMA_-_14169_-_Photograph_by_Leif_Skoogfors_taken_on_07-21-2005_in_Florida.jpg) |
+| `arriving-at-school.jpg` | Nazareth College from Rochester, NY, USA | CC BY 2.0 | [Day of Service 2015 (20622990714).jpg](https://commons.wikimedia.org/wiki/File:Day_of_Service_2015_(20622990714).jpg) |
+| `carrying-supplies.jpg` | Nazareth College from Rochester, NY, USA | CC BY 2.0 | [Day of Service 2015 (20624556473).jpg](https://commons.wikimedia.org/wiki/File:Day_of_Service_2015_(20624556473).jpg) |
+| `packing-book-sets.jpg` | Nazareth College from Rochester, NY, USA | CC BY 2.0 | [Day of Service 2015 (20622991194).jpg](https://commons.wikimedia.org/wiki/File:Day_of_Service_2015_(20622991194).jpg) |
+| `volunteer-shirt.jpg` | Nazareth College from Rochester, NY, USA | CC BY 2.0 | [Day of Service 2015 (20624559613).jpg](https://commons.wikimedia.org/wiki/File:Day_of_Service_2015_(20624559613).jpg) |
 
-CC BY and CC BY-SA photos require attribution: the credit is stored on each post (`posts.image_credits`) and shown under the photo.
+CC BY photos require attribution: the credit is stored on each post (`posts.image_credits`) and shown under the photo.
