@@ -15,4 +15,4 @@ LinkedIn for generosity. Phase I = the network. Phase II = AI media tools. See `
 - Every feature or bug fix adds a dated entry to the Ledger in `CONTEXT.md` (next F-/B- ID, testable behavior, test file or `none`) in the same commit. Name regression tests after the ID.
 
 ## Commands
-`npm run dev` · `npm run lint` · `npm run typecheck` · `npm test` · `npm run build` · `npm run db:push`
+`npx supabase start` (needs Docker) · `npm run dev` (port 3100) · `npm run lint` · `npm run typecheck` · `npm test` · `npm run build` · `npm run db:push`

@@ -59,6 +59,7 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **Behavior** is a testable statement: given X, expect Y.
 - **Test** is the test file, or `none`. Entries marked `none` are the test backlog.
 - Database rules are tested in `supabase/tests/` against a throwaway Postgres (PGlite), no Supabase project needed.
+- 2026-10-13: a one-off browser run against local Supabase passed for F-001, F-002, F-007, F-008, F-009, F-010, F-012, F-013, F-014, F-015 and B-008. It isn't in the repo yet, so those `none` entries still count as backlog.
 
 ### Features
 
@@ -104,3 +105,4 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 
 **2026-10-13**
 - **B-007 Outline buttons lost their border outside `<Button>`.** Links styled with `buttonVariants({ variant: "outline" })` kept `border-transparent`. Variant classes are now merged, so the outline shows. Test: `components/ui/button.test.ts`
+- **B-008 Forms lost what you typed after an error.** React 19 resets a form after every action, so a claim rejected for its email came back empty. Server actions now return the submitted values with the error, and the login, claim, composer and profile forms refill from them. Test: `lib/form-values.test.ts` (value capture only)

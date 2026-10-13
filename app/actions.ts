@@ -5,9 +5,15 @@ import { redirect } from "next/navigation"
 import { z } from "zod"
 import { draftProfileFromWebsite, fetchWebsiteText, suggestCauses } from "@/lib/ai/assists"
 import { toEmbed } from "@/lib/embeds"
+import { formValues } from "@/lib/form-values"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
-export type ActionState = { ok?: boolean; error?: string; message?: string } | null
+// values: what the user typed, sent back on error so forms can refill (React 19 resets forms after an action).
+export type ActionState = { ok?: boolean; error?: string; message?: string; values?: Record<string, string> } | null
+
+function fail(form: FormData, error: string): ActionState {
+  return { error, values: formValues(form) }
+}
 
 async function requireUser() {
   const userId = await getUserId()
@@ -20,13 +26,13 @@ async function requireUser() {
 // ---------------------------------------------------------------------------
 export async function sendMagicLink(_: ActionState, form: FormData): Promise<ActionState> {
   const email = z.email().safeParse(form.get("email"))
-  if (!email.success) return { error: "Enter a valid email." }
+  if (!email.success) return fail(form, "Enter a valid email.")
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithOtp({
     email: email.data,
     options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm` },
   })
-  if (error) return { error: error.message }
+  if (error) return fail(form, error.message)
   return { ok: true, message: "Check your email for a sign-in link." }
 }
 
@@ -95,18 +101,18 @@ const ClaimSchema = z.object({
 export async function submitClaim(_: ActionState, form: FormData): Promise<ActionState> {
   const userId = await requireUser()
   const parsed = ClaimSchema.safeParse(Object.fromEntries(form))
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  if (!parsed.success) return fail(form, parsed.error.issues[0].message)
 
   // Work email must be on the org's own domain (admin still reviews every claim).
   const siteHost = new URL(parsed.data.website).hostname.replace(/^www\./, "")
   const emailHost = parsed.data.work_email.split("@")[1].toLowerCase()
   if (emailHost !== siteHost && !emailHost.endsWith(`.${siteHost}`)) {
-    return { error: `Use an email on ${siteHost} so we can verify you work there.` }
+    return fail(form, `Use an email on ${siteHost} so we can verify you work there.`)
   }
 
   const supabase = await createClient()
   const { error } = await supabase.from("org_claims").insert({ ...parsed.data, user_id: userId })
-  if (error) return { error: error.message }
+  if (error) return fail(form, error.message)
   revalidatePath("/dashboard")
   return { ok: true, message: "Claim submitted. We'll review it shortly." }
 }
@@ -121,10 +127,10 @@ const OrgSchema = z.object({
 export async function updateOrg(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
   await requireUser()
   const parsed = OrgSchema.safeParse(Object.fromEntries(form))
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  if (!parsed.success) return fail(form, parsed.error.issues[0].message)
   const supabase = await createClient()
   const { data, error } = await supabase.from("orgs").update(parsed.data).eq("id", orgId).select("slug").single()
-  if (error) return { error: error.message }
+  if (error) return fail(form, error.message)
 
   const causes = form.getAll("causes").map(String)
   await supabase.from("org_causes").delete().eq("org_id", orgId)
@@ -144,12 +150,12 @@ const PostSchema = z.object({
 export async function createPost(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
   const userId = await requireUser()
   const parsed = PostSchema.safeParse(Object.fromEntries(form))
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  if (!parsed.success) return fail(form, parsed.error.issues[0].message)
 
   let embed_url: string | null = null
   if (parsed.data.embed) {
     const embed = toEmbed(parsed.data.embed)
-    if (!embed) return { error: "Video link must be YouTube, Vimeo, or Instagram." }
+    if (!embed) return fail(form, "Video link must be YouTube, Vimeo, or Instagram.")
     embed_url = embed.src
   }
 
@@ -162,7 +168,7 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
     embed_url,
     beneficiary_consent: form.get("beneficiary_consent") === "on",
   })
-  if (error) return { error: error.message }
+  if (error) return fail(form, error.message)
   revalidatePath("/")
   return { ok: true, message: "Posted." }
 }

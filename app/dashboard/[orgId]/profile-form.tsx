@@ -37,7 +37,7 @@ export function ProfileForm({ org, causes, selected }: { org: Org; causes: Cause
       </div>
       <div className="space-y-1">
         <Label htmlFor="name">Name</Label>
-        <Input id="name" name="name" defaultValue={org.name} required />
+        <Input id="name" name="name" defaultValue={state?.values?.name ?? org.name} required />
       </div>
       <div className="space-y-1">
         <Label htmlFor="mission">Mission</Label>
@@ -49,7 +49,7 @@ export function ProfileForm({ org, causes, selected }: { org: Org; causes: Cause
       </div>
       <div className="space-y-1">
         <Label htmlFor="everyorg_slug">Every.org slug (for the Donate button)</Label>
-        <Input id="everyorg_slug" name="everyorg_slug" defaultValue={org.everyorg_slug ?? ""} placeholder="your-org" />
+        <Input id="everyorg_slug" name="everyorg_slug" defaultValue={state?.values?.everyorg_slug ?? org.everyorg_slug ?? ""} placeholder="your-org" />
       </div>
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">Causes</legend>

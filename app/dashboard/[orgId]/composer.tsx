@@ -9,11 +9,12 @@ import { Textarea } from "@/components/ui/textarea"
 
 export function Composer({ orgId }: { orgId: string }) {
   const [state, action, pending] = useActionState(createPost.bind(null, orgId), null)
+  const v = state?.values
   return (
     <form action={action} className="space-y-3">
       <div className="space-y-1">
         <Label htmlFor="kind">Type</Label>
-        <select id="kind" name="kind" className="h-8 w-full rounded-lg border bg-background px-2 text-sm">
+        <select id="kind" name="kind" defaultValue={v?.kind ?? "impact_story"} key={v?.kind} className="h-8 w-full rounded-lg border bg-background px-2 text-sm">
           <option value="impact_story">Impact story</option>
           <option value="update">Update</option>
           <option value="ask">Ask</option>
@@ -21,14 +22,14 @@ export function Composer({ orgId }: { orgId: string }) {
       </div>
       <div className="space-y-1">
         <Label htmlFor="body">What happened?</Label>
-        <Textarea id="body" name="body" rows={5} required placeholder="Share progress, told with dignity. Use first names only with consent." />
+        <Textarea id="body" name="body" rows={5} required defaultValue={v?.body} placeholder="Share progress, told with dignity. Use first names only with consent." />
       </div>
       <div className="space-y-1">
         <Label htmlFor="embed">Video link (optional)</Label>
-        <Input id="embed" name="embed" placeholder="YouTube, Vimeo, or Instagram link" />
+        <Input id="embed" name="embed" defaultValue={v?.embed} placeholder="YouTube, Vimeo, or Instagram link" />
       </div>
       <label className="flex items-start gap-2 text-sm">
-        <input type="checkbox" name="beneficiary_consent" className="mt-1" />
+        <input type="checkbox" name="beneficiary_consent" className="mt-1" defaultChecked={v?.beneficiary_consent === "on"} />
         <span>Anyone identifiable in this post (name, face, story) has given consent to share it publicly.</span>
       </label>
       <Button type="submit" disabled={pending}>{pending ? "Posting..." : "Post"}</Button>
