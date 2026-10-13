@@ -1,0 +1,20 @@
+"use client"
+
+import { useActionState } from "react"
+import { sendMagicLink } from "@/app/actions"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+
+export function LoginForm() {
+  const [state, action, pending] = useActionState(sendMagicLink, null)
+  return (
+    <form action={action} className="space-y-3">
+      <Input type="email" name="email" placeholder="you@example.com" required defaultValue={state?.values?.email} />
+      <Button type="submit" disabled={pending} className="w-full">
+        {pending ? "Sending..." : "Email me a link"}
+      </Button>
+      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {state?.message && <p className="text-sm text-muted-foreground">{state.message}</p>}
+    </form>
+  )
+}

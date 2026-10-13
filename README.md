@@ -1,58 +1,66 @@
 # imnet: Impact Network
 
-An impact storytelling engine plus a shared network layer: "LinkedIn for nonprofits."
+A LinkedIn for generosity. Nonprofits get rich profiles built on real impact. Donors discover causes through stories, not tax IDs and star ratings, and share what their giving became.
 
-## The problem
+- **Vision and research:** [docs/vision/iteration-1.md](docs/vision/iteration-1.md)
+- **Domain terms:** [CONTEXT.md](CONTEXT.md)
+- **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Decisions:** [docs/decisions/](docs/decisions/)
 
-Most donors give and then hear nothing. The loop between giving and gratitude never closes, so giving stays transactional. The impact knowledge already exists inside nonprofits, but there's no network for it to flow through.
-
-**Flywheel:** giving → stories → emotion and trust → more giving.
-
-## What it does
-
-1. **Storytelling engine.** A nonprofit uploads materials it already has (program reports, outcome spreadsheets, case notes, photos). LLMs turn them into impact stories, each grounded in and cited back to those sources.
-2. **Network layer.** Every story becomes a durable public artifact. Nonprofits get profiles built on real accomplishments. Donors follow orgs, receive stories, share them, and browse real impact instead of star ratings and overhead ratios.
-
-## Users
-
-- **Small nonprofits:** real outcomes, no comms team. The engine saves staff time.
-- **Everyday donors:** want to see what their giving became and feel part of a community.
+## Phases
+- **Phase I: the network** (now). Verified nonprofit profiles, posts with video embeds, Explore and Following feeds, donor accounts and profiles, sharing, Every.org donate. Light AI assists.
+- **Phase II: the tools.** AI storytelling engine (text grounded in and cited to the org's own materials) and video engine (real photos and clips assembled into agency-quality video).
 
 ## Design principles (non-negotiable)
-
-1. **No fabrication.** Every story is built from and traceably linked to real source materials. Donors can always see what a story is based on.
-2. **Human approval.** AI drafts. Nonprofit staff review and approve every story before it's sent or published.
-3. **Beneficiary dignity and privacy.** De-identified by default, consent required, stories of progress and agency rather than pity.
+1. **No fabrication.** Every impact claim links to a real source.
+2. **Human approval.** AI drafts. Staff review everything before it's public.
+3. **Beneficiary dignity and privacy.** Consent required. Progress and agency, not pity.
 4. **Long-term meaning over short-term spikes.** No dark patterns, no engineered dopamine loops.
 
-## V1 scope (pilot: 3–5 nonprofits)
-
-- Nonprofit onboarding: upload source materials
-- Automatic PII redaction on ingest
-- Story generation: grounded LLM synthesis with citations to sources
-- **Collective** and **public** stories (individual per-gift stories deferred)
-- Review and approval workflow (single staff role per org)
-- Email delivery to donors (donor list via CSV import)
-- Public story page per nonprofit, with sharing
-- Analytics: staff time saved, opens, replies, shares, donate-link clicks, repeat giving (via gift CSV matching)
-
-## Stretch (after core works)
-
-- Individual per-gift stories
-- Generated images / short video
-- Donor profiles and follows
-- Cross-nonprofit discovery feed
-- CRM integrations
-
 ## Stack
+Next.js 16 · TypeScript · Tailwind + shadcn/ui · Supabase (Postgres, auth, storage, RLS) · Claude · Every.org · Vercel
 
-- **App:** Next.js (TypeScript), hosted on Vercel
-- **Data:** Supabase (Postgres, auth, storage, pgvector)
-- **LLM:** Claude (Anthropic API, citations)
-- **Email:** Resend
-- **Budget target:** free tiers, under $25/month during pilot
+## Getting started (local)
+Everything runs on your machine: Postgres, auth, storage and a mail inbox for sign-in links.
+
+1. Install and open [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+2. Start local Supabase (first run downloads images; applies `supabase/migrations` and `supabase/seed.sql`):
+   ```sh
+   npm install
+   npx supabase start
+   npx supabase seed buckets --local   # demo photos
+   ```
+3. Create `.env.local` from `.env.example`. Fill `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from `npx supabase status`. `ANTHROPIC_API_KEY` is optional (only "Draft from website" needs it).
+4. Run the app at **http://localhost:3100** (port 3100 so it doesn't clash with other projects on 3000):
+   ```sh
+   npm run dev
+   ```
+5. Sign in: enter any email, then open the link from the local inbox at **http://127.0.0.1:54324**.
+6. Make yourself admin (to approve org claims): open Studio at **http://127.0.0.1:54323** → SQL editor:
+   ```sql
+   update profiles set is_admin = true where handle = 'your_handle';
+   ```
+
+| Local service | URL |
+|---|---|
+| App | http://localhost:3100 |
+| Mail inbox (sign-in links) | http://127.0.0.1:54324 |
+| Studio (database UI) | http://127.0.0.1:54323 |
+| API | http://127.0.0.1:54321 |
+
+Reset the local database to the demo data: `npx supabase db reset && npx supabase seed buckets --local`. Stop everything: `npx supabase stop`.
+
+## Scripts
+| Command | Does |
+|---|---|
+| `npm run dev` | Dev server |
+| `npm run lint` / `typecheck` / `test` | Checks (same as CI) |
+| `npm run test:e2e` | Browser tests (Playwright) against local Supabase; starts the dev server if needed |
+| `npm run cleanup:uploads` | Delete photos uploaded but never posted (`-- --dry-run` to list). Needs `SUPABASE_SECRET_KEY` |
+| `npm run build` | Production build |
+| `npm run db:push` | Apply migrations + seed to a linked hosted project (later) |
+| `npm run db:types` | Generate `lib/database.types.ts` |
 
 ## Branches
-
-- `main`: production, deployed
-- `dev`: integration; feature branches merge here
+- `main`: production
+- `dev`: integration. Feature branches → `dev` → `main`.
