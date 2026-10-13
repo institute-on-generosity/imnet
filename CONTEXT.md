@@ -84,6 +84,10 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-019 Protected columns.** Users can't change `profiles.is_admin` or `orgs.status`. Test: `supabase/tests/rls.test.ts`
 - **F-020 Safe video embeds.** Only YouTube, Vimeo and Instagram links become embeds. Lookalike hosts (`youtube.com.evil.com`), other sites and non-http URLs are rejected. Test: `lib/embeds.test.ts`
 
+**2026-10-13**
+- **F-021 Footnoted impact stats.** On an org profile, each distinct source is numbered once in order of first use, every figure shows its footnote number, and the footnote links to the source with its "as of" date. Test: `lib/footnotes.test.ts`
+- **F-022 Visual identity.** Literata for stories and headlines, Schibsted Grotesk for interface text, ink/leaf/marigold palette, pill buttons. Posts on an org's own profile hide the repeated org name. Test: none (visual)
+
 ### Fixes
 
 **2026-09-30** (caught during the initial build)
@@ -93,3 +97,6 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **B-004 Build could crash without an Anthropic key.** The Claude client is now created on first use, so builds and pages work without `ANTHROPIC_API_KEY`. Test: CI build (implicit)
 - **B-005 Pages carrying auth cookies could be cached.** The proxy now passes Supabase's no-cache headers. Test: none
 - **B-006 AI cause suggestions weren't bounded.** Suggestions are now limited to 3 and to slugs in the `causes` table. Test: none
+
+**2026-10-13**
+- **B-007 Outline buttons lost their border outside `<Button>`.** Links styled with `buttonVariants({ variant: "outline" })` kept `border-transparent`. Variant classes are now merged, so the outline shows. Test: `components/ui/button.test.ts`

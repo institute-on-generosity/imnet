@@ -1,5 +1,5 @@
 import { CauseFilter } from "@/components/cause-filter"
-import { PostCard } from "@/components/post-card"
+import { Feed } from "@/components/post-card"
 import { getCauses, getFeed } from "@/lib/queries"
 
 export default async function ExplorePage({ searchParams }: PageProps<"/">) {
@@ -9,15 +9,12 @@ export default async function ExplorePage({ searchParams }: PageProps<"/">) {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Explore</h1>
-        <p className="text-muted-foreground">Real impact from nonprofits, newest first.</p>
+      <div className="space-y-2">
+        <h1 className="text-4xl font-semibold sm:text-5xl">What giving made possible</h1>
+        <p className="story text-muted-foreground">Stories from nonprofits, in their words, with the sources behind them.</p>
       </div>
       <CauseFilter causes={causes} active={active} basePath="/" />
-      <div className="space-y-4">
-        {posts.length === 0 && <p className="text-muted-foreground">No stories yet.</p>}
-        {posts.map((post) => <PostCard key={post.id} post={post} />)}
-      </div>
+      <Feed posts={posts} empty="No stories for this cause yet. Try another, or see all causes." />
     </div>
   )
 }

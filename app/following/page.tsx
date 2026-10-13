@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { CauseFilter } from "@/components/cause-filter"
-import { PostCard } from "@/components/post-card"
+import { Feed } from "@/components/post-card"
 import { getCauses, getFeed, getFollowedOrgIds } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 
@@ -21,14 +21,14 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Following</h1>
+      <h1 className="text-4xl font-semibold">Following</h1>
       <CauseFilter causes={causes} active={active} basePath="/following" />
       {orgIds.length === 0 ? (
         <p className="text-muted-foreground">
           You don&apos;t follow any nonprofits yet. <Link href="/" className="underline">Explore</Link> to find some.
         </p>
       ) : (
-        <div className="space-y-4">{posts.map((post) => <PostCard key={post.id} post={post} />)}</div>
+        <Feed posts={posts} empty="The nonprofits you follow haven't posted for this cause yet." />
       )}
     </div>
   )

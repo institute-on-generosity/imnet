@@ -32,10 +32,14 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <TrackView orgId={post.org_id} postId={post.id} />
-      <PostCard post={post} />
-      {userId && <MovedButton postId={post.id} moved={moved} />}
+      <PostCard post={post} full />
+      {userId && (
+        <div className="border-t pt-6">
+          <MovedButton postId={post.id} moved={moved} />
+        </div>
+      )}
     </div>
   )
 }
