@@ -87,6 +87,10 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 **2026-10-13**
 - **F-021 Footnoted impact stats.** On an org profile, each distinct source is numbered once in order of first use, every figure shows its footnote number, and the footnote links to the source with its "as of" date. Test: `lib/footnotes.test.ts`
 - **F-022 Visual identity.** Literata for stories and headlines, Schibsted Grotesk for interface text, ink/leaf/marigold palette, pill buttons. Posts on an org's own profile hide the repeated org name. Test: none (visual)
+- **F-023 LinkedIn-style home.** Three columns on desktop: your profile card (or a Join card when signed out), the feed, and "Nonprofits to follow". Suggestions are verified orgs you don't follow, alphabetical, never popularity-ranked. Phones show the feed only. Test: none
+- **F-024 Org page tabs.** Cover banner, overlapping logo, Follow (primary), Donate and Share, then Home, About and Posts tabs. `?tab=` accepts only those three; anything else shows Home. "Similar nonprofits" sidebar shares the org's first cause. Test: `lib/org-tabs.test.ts` (tab parsing only)
+- **F-025 Search nonprofits.** Header search finds verified orgs by name, up to 20, alphabetical. `%` and `_` in a search match literally. Test: `lib/search.test.ts` (escaping only)
+- **F-026 Post action bar.** Every post card has "Moved me" (private, signed-out users go to sign-in), Share and Open. Long posts clamp to 4 lines with "see more". Supersedes F-022's hidden org name on profiles: posts always show their org. Test: none
 
 ### Fixes
 

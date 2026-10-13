@@ -1,3 +1,4 @@
+import { escapeLike } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
 import type { Cause, ImpactStat, Org, Post } from "@/lib/types"
 
@@ -87,4 +88,75 @@ export async function getOrgEventCounts(orgId: string) {
   const counts: Record<string, number> = { view: 0, share: 0, donate_click: 0 }
   for (const e of data ?? []) counts[e.type] = (counts[e.type] ?? 0) + 1
   return counts
+}
+
+// ---------------------------------------------------------------------------
+// LinkedIn-style sidebars and search
+// ---------------------------------------------------------------------------
+export type Viewer = {
+  id: string
+  handle: string
+  display_name: string | null
+  following: number
+  causes: Cause[]
+}
+
+export async function getViewer(userId: string | null): Promise<Viewer | null> {
+  if (!userId) return null
+  const supabase = await createClient()
+  const [{ data: profile }, { count }, { data: causes }] = await Promise.all([
+    supabase.from("profiles").select("id, handle, display_name").eq("id", userId).single(),
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("user_id", userId),
+    supabase.from("profile_causes").select("cause:causes(slug, name)").eq("user_id", userId),
+  ])
+  if (!profile) return null
+  return {
+    ...profile,
+    following: count ?? 0,
+    causes: ((causes ?? []) as unknown as { cause: Cause }[]).map((c) => c.cause),
+  }
+}
+
+// Orgs to follow: verified, not already followed, optionally within one cause.
+// Alphabetical, not popularity-ranked (design principle #4).
+export async function getSuggestedOrgs(opts: { userId?: string | null; cause?: string; excludeId?: string; limit?: number } = {}) {
+  const supabase = await createClient()
+  const followed = opts.userId ? await getFollowedOrgIds(opts.userId) : []
+  const exclude = [...followed, ...(opts.excludeId ? [opts.excludeId] : [])]
+
+  let query = supabase
+    .from("orgs")
+    .select(opts.cause ? "id, slug, name, logo_url, mission, org_causes!inner(cause_slug)" : "id, slug, name, logo_url, mission")
+    .eq("status", "verified")
+    .order("name")
+    .limit(opts.limit ?? 5)
+  if (opts.cause) query = query.eq("org_causes.cause_slug", opts.cause)
+  if (exclude.length) query = query.not("id", "in", `(${exclude.join(",")})`)
+
+  const { data } = await query
+  return (data ?? []) as unknown as (OrgSummaryWithMission)[]
+}
+
+export type OrgSummaryWithMission = { id: string; slug: string; name: string; logo_url: string | null; mission: string | null }
+
+export async function getMovedPostIds(userId: string | null, postIds: string[]): Promise<Set<string>> {
+  if (!userId || postIds.length === 0) return new Set()
+  const supabase = await createClient()
+  const { data } = await supabase.from("moved").select("post_id").eq("user_id", userId).in("post_id", postIds)
+  return new Set((data ?? []).map((m) => m.post_id))
+}
+
+export async function searchOrgs(q: string): Promise<OrgSummaryWithMission[]> {
+  const term = q.trim().slice(0, 100)
+  if (!term) return []
+  const supabase = await createClient()
+  const escaped = escapeLike(term)
+  const { data } = await supabase
+    .from("orgs")
+    .select("id, slug, name, logo_url, mission")
+    .eq("status", "verified")
+    .ilike("name", `%${escaped}%`)
+    .order("name")
+    .limit(20)
+  return data ?? []
 }

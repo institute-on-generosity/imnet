@@ -1,10 +1,14 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { notFound } from "next/navigation"
-import { MovedButton } from "@/components/moved-button"
+import { PRIVATE_NOTE } from "@/components/moved-button"
+import { OrgMark } from "@/components/org-mark"
 import { PostCard } from "@/components/post-card"
+import { Panel, TwoColumn } from "@/components/shell"
 import { TrackView } from "@/components/track-view"
-import { getPost } from "@/lib/queries"
-import { createClient, getUserId } from "@/lib/supabase/server"
+import { buttonVariants } from "@/components/ui/button"
+import { getMovedPostIds, getPost } from "@/lib/queries"
+import { getUserId } from "@/lib/supabase/server"
 
 export async function generateMetadata({ params }: PageProps<"/p/[id]">): Promise<Metadata> {
   const { id } = await params
@@ -24,22 +28,25 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
   if (!post) notFound()
 
   const userId = await getUserId()
-  let moved = false
-  if (userId) {
-    const supabase = await createClient()
-    const { data } = await supabase.from("moved").select("post_id").match({ user_id: userId, post_id: id }).maybeSingle()
-    moved = !!data
-  }
+  const moved = (await getMovedPostIds(userId, [post.id])).has(post.id)
 
   return (
-    <div className="space-y-6">
+    <TwoColumn
+      right={
+        <Panel className="p-4">
+          <div className="flex items-center gap-3">
+            <OrgMark org={post.org} />
+            <Link href={`/o/${post.org.slug}`} className="font-semibold hover:underline">{post.org.name}</Link>
+          </div>
+          <Link href={`/o/${post.org.slug}`} className={buttonVariants({ variant: "outline", className: "mt-4 w-full" })}>
+            See their profile
+          </Link>
+        </Panel>
+      }
+    >
       <TrackView orgId={post.org_id} postId={post.id} />
-      <PostCard post={post} full />
-      {userId && (
-        <div className="border-t pt-6">
-          <MovedButton postId={post.id} moved={moved} />
-        </div>
-      )}
-    </div>
+      <PostCard post={post} full moved={moved} signedIn={!!userId} />
+      <p className="px-1 text-xs text-muted-foreground">&ldquo;Moved me&rdquo; is private. {PRIVATE_NOTE}.</p>
+    </TwoColumn>
   )
 }

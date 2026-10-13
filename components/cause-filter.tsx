@@ -10,7 +10,7 @@ export function CauseFilter({ causes, active, basePath }: { causes: Cause[]; act
       on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-foreground/30",
     )
   return (
-    <nav aria-label="Filter by cause" className="-mx-4 overflow-x-auto px-4 sm:-mx-6 sm:px-6">
+    <nav aria-label="Filter by cause" className="-mx-4 overflow-x-auto px-4">
       <div className="flex w-max gap-2 pb-1">
         <Link href={basePath} className={pill(!active)} aria-current={!active ? "page" : undefined}>All causes</Link>
         {causes.map((c) => (

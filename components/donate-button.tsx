@@ -11,7 +11,7 @@ export function DonateButton({ orgId, everyorgSlug }: { orgId: string; everyorgS
       href={`https://www.every.org/${everyorgSlug}#/donate`}
       target="_blank"
       rel="noopener noreferrer"
-      className={buttonVariants({ variant: "default" })}
+      className={buttonVariants({ variant: "outline" })}
       onClick={() => void logEvent("donate_click", orgId)}
     >
       Donate

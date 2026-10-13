@@ -18,7 +18,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${story.variable} ${ui.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <SiteHeader />
-        <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-8 pb-20 sm:px-6">{children}</main>
+        <main className="flex-1 pt-6 pb-20">{children}</main>
       </body>
     </html>
   )

@@ -20,7 +20,7 @@ export default async function AdminPage() {
   ])
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-3xl space-y-8 px-4 sm:px-6">
       <h1 className="text-2xl font-semibold">Admin</h1>
 
       <section className="space-y-3">

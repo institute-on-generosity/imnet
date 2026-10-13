@@ -18,7 +18,7 @@ export default async function DashboardPage() {
   const orgs = ((memberships ?? []) as unknown as { org: { id: string; slug: string; name: string; status: string } }[]).map((m) => m.org)
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-3xl space-y-8 px-4 sm:px-6">
       <h1 className="text-2xl font-semibold">For nonprofits</h1>
 
       {orgs.length > 0 && (
