@@ -6,7 +6,8 @@ LinkedIn for generosity. Phase I = the network. Phase II = AI media tools. See `
 
 ## Rules
 - Design principles in README are non-negotiable: no fabrication, human approval, beneficiary dignity, no dark patterns.
-- Access control lives in Postgres RLS (`supabase/migrations/`). New table → enable RLS + policies in the same migration.
+- Access control lives in Postgres RLS (`supabase/migrations/`). New table → enable RLS + policies in the same migration, plus tests in `supabase/tests/rls.test.ts`.
+- RLS tests that attempt forbidden actions use their own throwaway user/org, so a regression can't leak into other tests.
 - No service-role key in app code.
 - Mutations go in `app/actions.ts` as server actions; reads in `lib/queries.ts`.
 - AI output is always a draft a human saves. AI never writes to the DB directly.

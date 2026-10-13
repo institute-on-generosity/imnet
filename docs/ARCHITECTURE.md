@@ -41,6 +41,7 @@ proxy.ts                   Session refresh (Next 16 "middleware")
 supabase/
   migrations/              Schema + RLS
   seed.sql                 Synthetic demo data
+  tests/                   RLS tests on a throwaway Postgres (PGlite)
 ```
 
 ## Data model
