@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { OrgProfile } from "@/components/org-profile"
 import { parseOrgTab } from "@/lib/org-tabs"
-import { getFeed, getMovedPostIds, getOrgBySlug, getSuggestedOrgs } from "@/lib/queries"
-import { createClient, getUserId } from "@/lib/supabase/server"
+import { getFeed, getFollow, getGrantsForPosts, getMovedPostIds, getOrgBySlug, getOrgGrants, getPortfolioPosts, getSuggestedOrgs } from "@/lib/queries"
+import { getUserId } from "@/lib/supabase/server"
 
 export async function generateMetadata({ params }: PageProps<"/o/[slug]">): Promise<Metadata> {
   const { slug } = await params
@@ -20,27 +20,31 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/o/[s
   const [{ slug }, { tab }] = await Promise.all([params, searchParams])
   const data = await getOrgBySlug(slug)
   if (!data) notFound()
+  const activeTab = parseOrgTab(tab, data.org.org_type)
 
   const userId = await getUserId()
-  const supabase = await createClient()
-  const [posts, follow, similar] = await Promise.all([
+  const [posts, follow, similar, grants, portfolio] = await Promise.all([
     getFeed({ orgIds: [data.org.id] }),
-    userId
-      ? supabase.from("follows").select("org_id").match({ user_id: userId, org_id: data.org.id }).maybeSingle()
-      : Promise.resolve({ data: null }),
+    getFollow(userId, data.org.id),
     getSuggestedOrgs({ userId, cause: data.causes[0]?.slug, excludeId: data.org.id, limit: 4 }),
+    getOrgGrants(data.org),
+    activeTab === "portfolio" ? getPortfolioPosts(data.org.id) : Promise.resolve([]),
   ])
-  const movedIds = await getMovedPostIds(userId, posts.map((p) => p.id))
+  const ids = [...posts, ...portfolio].map((p) => p.id)
+  const [movedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getGrantsForPosts(ids)])
 
   return (
     <OrgProfile
       {...data}
       posts={posts}
+      portfolio={portfolio}
       similar={similar}
       signedIn={!!userId}
-      following={!!follow.data}
+      follow={follow}
       movedIds={movedIds}
-      tab={parseOrgTab(tab)}
+      grants={grants}
+      grantsByPost={grantsByPost}
+      tab={activeTab}
     />
   )
 }

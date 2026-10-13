@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { OrgMark } from "@/components/org-mark"
+import { OrgTypeBadge } from "@/components/org-type-badge"
 import { Panel, TwoColumn } from "@/components/shell"
 import { searchOrgs } from "@/lib/queries"
 
@@ -18,8 +19,8 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
             type="search"
             name="q"
             defaultValue={query}
-            placeholder="Search nonprofits by name"
-            aria-label="Search nonprofits"
+            placeholder="Search nonprofits and foundations by name"
+            aria-label="Search organizations"
             className="h-10 w-full rounded-md bg-muted px-3 outline-none focus:ring-2 focus:ring-ring"
           />
         </form>
@@ -27,7 +28,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
       {query && (
         <Panel>
           <h1 className="border-b px-4 py-3 font-sans text-base font-semibold tracking-normal">
-            {results.length ? `Nonprofits matching "${query}"` : `No nonprofits match "${query}". Try a shorter name.`}
+            {results.length ? `Organizations matching "${query}"` : `No organizations match "${query}". Try a shorter name.`}
           </h1>
           <ul className="divide-y">
             {results.map((org) => (
@@ -35,7 +36,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
                 <Link href={`/o/${org.slug}`} className="flex gap-3 px-4 py-3 hover:bg-muted/50">
                   <OrgMark org={org} />
                   <div className="min-w-0">
-                    <p className="font-semibold">{org.name}</p>
+                    <p className="flex items-center gap-2 font-semibold">{org.name} <OrgTypeBadge type={org.org_type} /></p>
                     {org.mission && <p className="line-clamp-2 text-sm text-muted-foreground">{org.mission}</p>}
                   </div>
                 </Link>

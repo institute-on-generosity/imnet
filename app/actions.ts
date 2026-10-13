@@ -7,6 +7,10 @@ import { draftProfileFromWebsite, fetchWebsiteText, suggestCauses } from "@/lib/
 import { toEmbed } from "@/lib/embeds"
 import { formValues } from "@/lib/form-values"
 import { validateImages } from "@/lib/post-images"
+import { parseGrantFields } from "@/lib/grants"
+import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
+import { todayISO } from "@/lib/open-calls"
+import { escapeLike } from "@/lib/search"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
 // values: what the user typed, sent back on error so forms can refill (React 19 resets forms after an action).
@@ -92,6 +96,7 @@ export async function reportPost(postId: string, reason: string) {
 // Nonprofit staff
 // ---------------------------------------------------------------------------
 const ClaimSchema = z.object({
+  org_type: z.enum(["nonprofit", "foundation"], { message: "Choose nonprofit or foundation." }),
   org_name: z.string().trim().min(2).max(200),
   ein: z.string().trim().regex(/^\d{2}-?\d{7}$/, "EIN looks like 12-3456789"),
   website: z.url({ protocol: /^https$/ }),
@@ -143,7 +148,7 @@ export async function updateOrg(orgId: string, _: ActionState, form: FormData): 
 }
 
 const PostSchema = z.object({
-  kind: z.enum(["update", "impact_story", "ask"]),
+  kind: z.enum(["update", "impact_story", "ask", "open_call"]),
   body: z.string().trim().min(1).max(5000),
   embed: z.string().optional(),
 })
@@ -165,6 +170,31 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
   const consent = form.get("beneficiary_consent") === "on"
   if (images.paths.length > 0 && !consent) return fail(form, "Confirm consent before posting photos.")
 
+  const grantFields = parseGrantFields(
+    form.getAll("grantee_ids").map(String),
+    form.getAll("grant_amounts").map(String),
+    form.getAll("grant_purposes").map(String),
+  )
+  if ("error" in grantFields) return fail(form, grantFields.error)
+
+  let call: CallFields | Record<string, never> = {}
+  if (parsed.data.kind === "open_call") {
+    const parsedCall = parseCallFields(
+      {
+        deadline: String(form.get("call_deadline") ?? ""),
+        applyUrl: String(form.get("call_apply_url") ?? ""),
+        maxAward: String(form.get("call_max_award") ?? ""),
+        causes: form.getAll("call_causes").map(String),
+      },
+      todayISO(),
+    )
+    if ("error" in parsedCall) return fail(form, parsedCall.error)
+    call = parsedCall.fields
+  }
+
+  const reportsGrant = String(form.get("reports_grant_id") ?? "")
+  if (reportsGrant && !/^[0-9a-f-]{36}$/.test(reportsGrant)) return fail(form, "Pick a grant from the list.")
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("posts")
@@ -177,12 +207,61 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
       image_paths: images.paths,
       image_alts: images.alts,
       beneficiary_consent: consent,
+      reports_grant_id: reportsGrant || null,
+      ...call,
     })
     .select("id")
     .single()
   if (error) return fail(form, error.message)
+
+  // Foundations can tag grantees; each grant waits for the nonprofit to confirm it.
+  if (grantFields.grants.length) {
+    const { error: grantError } = await supabase
+      .from("grants")
+      .insert(grantFields.grants.map((g) => ({ ...g, foundation_id: orgId, post_id: data.id, created_by: userId })))
+    if (grantError) return { ok: true, id: data.id, message: `Posted, but the grants weren't saved: ${grantError.message}` }
+  }
   revalidatePath("/")
-  return { ok: true, message: "Posted.", id: data.id }
+  return {
+    ok: true,
+    id: data.id,
+    message: grantFields.grants.length ? "Posted. Grants show once each nonprofit confirms them." : "Posted.",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Grants
+// ---------------------------------------------------------------------------
+export async function searchGrantees(q: string) {
+  await requireUser()
+  const term = q.trim().slice(0, 100)
+  if (term.length < 2) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("orgs")
+    .select("id, slug, name, logo_url, org_type")
+    .eq("status", "verified")
+    .eq("org_type", "nonprofit")
+    .ilike("name", `%${escapeLike(term)}%`)
+    .order("name")
+    .limit(8)
+  return data ?? []
+}
+
+export async function confirmGrant(grantId: string, orgId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("confirm_grant", { target: grantId })
+  if (error) throw error
+  revalidatePath(`/dashboard/${orgId}`)
+  revalidatePath("/", "layout")
+}
+
+export async function declineGrant(grantId: string, orgId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("grants").delete().eq("id", grantId)
+  revalidatePath(`/dashboard/${orgId}`)
 }
 
 // ---------------------------------------------------------------------------

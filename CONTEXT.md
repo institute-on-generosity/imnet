@@ -11,7 +11,8 @@ Domain language for imnet. Use these terms in code, docs and UI. Table names in 
 - **Individual fundraiser**: a person raising money for themselves. Deferred past Phase I (decisions/0004).
 
 ## Nonprofits
-- **Org**: a verified nonprofit with a public profile (`orgs`). Only `verified` orgs are public.
+- **Org**: a verified organization with a public profile (`orgs`). Only `verified` orgs are public.
+- **Org type**: `nonprofit` (does the work) or `foundation` (funds the work, e.g. through grants). Set at claim time; only admins change it.
 - **Claim**: a staff member's request to represent an org (`org_claims`). Needs an EIN, an https website and a work email on that domain. An admin approves it with `approve_claim()`, which creates the org and the membership.
 - **Profile**: an org's public page (`/o/[slug]`): mission, causes, what gifts fund, impact stats, posts, donate.
 - **Impact stat**: one number on a profile with a required source link (`impact_stats`). No source, no stat.
@@ -23,6 +24,7 @@ Domain language for imnet. Use these terms in code, docs and UI. Table names in 
   - **Update**: news or progress.
   - **Impact story**: what giving made possible.
   - **Ask**: a specific need.
+  - **Open call**: a foundation's invitation to apply for grants (apply-by date, link to the foundation's own application, optional max award, eligible causes). Foundations only.
 - **Embed**: a YouTube, Vimeo or Instagram video attached to a post. Only those providers are allowed (`lib/embeds.ts`).
 - **Consent**: staff confirm anyone identifiable has agreed to be shown. Posts with images require it.
 - **Feed**: a list of posts, newest first. Never ranked by engagement.
@@ -31,13 +33,19 @@ Domain language for imnet. Use these terms in code, docs and UI. Table names in 
 
 ## Network
 - **Follow**: a donor subscribes to an org's posts (`follows`). Private.
-- **Supporter**: a follow the donor chose to show on their public profile (`follows.supporter`). Self-declared, not verified giving.
+- **Supporter**: a follow the donor chose to show on their public profile (`follows.supporter`). Self-declared, not verified giving. For a foundation, worded "I give through this fund".
+- **Portfolio**: a foundation's grantees' grant reports. Following a foundation brings its portfolio into your Following feed, labeled "From the portfolio of <foundation>, which you follow".
+- **What my giving became**: on a donor's profile, the confirmed grants (and latest reports) of each fund they say they give through. Pooled money: the fund's record, not a trace of one gift.
 - **Moved**: a private "this moved me" on a post (`moved`). The org sees only a total. No public counts.
 - **Share**: sending a post or profile link elsewhere. Logged as an event.
 - **Report**: a donor flags a post for admin review (`reports`).
 - **Event**: an analytics record: `view`, `share` or `donate_click` (`events`). Readable by the org's staff only.
 
 ## Giving
+- **Grant**: money a foundation gives a nonprofit (`grants`). The foundation records it, optionally tagged on a post; the nonprofit **confirms** it. Only confirmed grants are public.
+- **Grant report**: a nonprofit's post about what a confirmed grant made possible (`posts.reports_grant_id`). Shown with a banner on the post and as the latest report on the foundation's Grantees list.
+- **Backers / co-funded**: the foundations behind a nonprofit, from its confirmed grants. Two or more = co-funded.
+- **Funded by / Grantees**: a nonprofit's confirmed grants by funder / a foundation's confirmed grants by recipient. Totals are computed from grants, never typed in.
 - **Donate**: handled by Every.org (`orgs.everyorg_slug`). imnet never touches money.
 
 ## AI
@@ -94,9 +102,18 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-026 Post action bar.** Every post card has "Moved me" (private, signed-out users go to sign-in), Share and Open. Long posts clamp to 4 lines with "see more". Supersedes F-022's hidden org name on profiles: posts always show their org. Test: none
 - **F-027 Photo posts.** A post can carry up to 4 photos, shown LinkedIn-style (1 full width, 2 side by side, 3 as one large plus two, 4 as a grid). Every photo has alt text; credits, when present, show under the photos. The database rejects a 5th photo, missing or empty alt text, and credits that don't match the photos. Test: `supabase/tests/rls.test.ts`, `e2e/public.spec.ts`
 - **F-028 Photo upload in the composer.** Staff add photos (JPG, PNG, WebP, under 5 MB), which upload to their org's folder right away. Each needs a description, and photos need the consent box. The server re-checks every path is in that org's folder. Test: `lib/post-images.test.ts`, `e2e/signed-in.spec.ts`
-- **F-029 Demo media.** Seed orgs have 11 openly licensed photos from Wikimedia Commons showing volunteers at work (pantry restocking, packing grocery boxes, sorting a food drive, roof repair, school setup), never the people being served. Credits in `supabase/seed-images/CREDITS.md` and on each post. Loaded by `npx supabase seed buckets --local`. Test: none
-- **F-030 Shared videos.** Wikimedia Commons video links (`.webm`, `.ogv`) embed through Commons' own player, alongside YouTube, Vimeo and Instagram. A video can carry a credit line ("Video: ..."); the database rejects a credit without a video. Demo: Harbor Table shares a public-domain USDA food bank video, credited, not presented as its own footage. Test: `lib/embeds.test.ts`, `supabase/tests/rls.test.ts`, `e2e/public.spec.ts`
+- **F-029 Demo media.** Seed orgs have 11 openly licensed photos (and, since F-032, 3 videos) from Wikimedia Commons showing volunteers at work (pantry restocking, packing grocery boxes, sorting a food drive, roof repair, school setup), never the people being served. Credits in `supabase/seed-images/CREDITS.md` and on each post. Loaded by `npx supabase seed buckets --local`. Test: none
+- **F-030 Shared videos.** Wikimedia Commons video links (`.webm`, `.ogv`) embed through Commons' own player, alongside YouTube, Vimeo and Instagram. A video can carry a credit line ("Video: ..."); the database rejects a credit without a video. Test: `lib/embeds.test.ts`, `supabase/tests/rls.test.ts`
 - **F-031 Upload cleanup.** Removing a photo in the composer deletes it from storage at once. `npm run cleanup:uploads` deletes photos older than a day that no post uses (via `orphan_post_images()`, callable only by the service role; the script uses `SUPABASE_SECRET_KEY`, never the web app). Test: `supabase/tests/rls.test.ts` (listing and permissions)
+- **F-032 Video posts that autoplay.** Posts can carry a native video (file in the `post-videos` bucket, with a poster, a required description and an optional credit). In the feed, videos play muted while 60% on screen and pause when scrolled away; YouTube and Vimeo links start muted when scrolled into view. No autoplay when the device asks to reduce motion. A post has at most one video (native or embedded). Demo: Harbor Table's pantry garden harvest and a new demo org, Greenway Stewards (environment), with trail and fence-removal crews; openly licensed footage with no real org named, credited. Test: `supabase/tests/rls.test.ts`, `lib/autoplay-src.test.ts`, `e2e/public.spec.ts`
+- **F-033 Nonprofits vs. foundations.** Every org is a nonprofit or a foundation, chosen on the claim form and carried to the approved org (staff can't change it). They look different everywhere: nonprofits get a green mark, banner and "Nonprofit" badge; foundations a navy mark with a marigold letter, a navy banner and a "Foundation" badge. Explore and Following filter by All / Nonprofits / Foundations, kept alongside the cause filter. Demo: Lakeshore Community Foundation posts its grants to the demo nonprofits. Test: `supabase/tests/rls.test.ts`, `lib/feed-href.test.ts`, `e2e/public.spec.ts`
+- **F-034 Grants link foundations to nonprofits.** A foundation's staff can tag up to 10 nonprofits on a post, each with an optional whole-dollar amount and purpose. Each grant stays private (visible only to both orgs' staff) until the nonprofit's staff confirm it from their dashboard ("Grants to confirm": Confirm or Not ours). Confirmed grants show on the post as links to the grantee. Only foundations give, only nonprofits receive; the funder can never confirm its own grant; changing a confirmed grant's amount, purpose or grantee un-confirms it. Test: `supabase/tests/rls.test.ts`, `lib/grants.test.ts`, `e2e/signed-in.spec.ts`, `e2e/public.spec.ts`
+- **F-035 Funded by / Grantees.** Nonprofit profiles list confirmed grants by foundation ("Funded by"); foundation profiles list confirmed grantees with a computed total ("$43,000 to 2 nonprofits, each confirmed by the grantee"). Test: `lib/grants.test.ts`, `e2e/public.spec.ts`
+- **F-036 Grant reports.** A nonprofit can mark a post as its report on a confirmed grant it received (composer: "This post reports on a grant"). The post shows a "Grant report for <foundation>" banner linking to the foundation; the foundation's Grantees list shows each grantee's latest report; the announcement post marks grants with "Report posted". The nonprofit's dashboard lists confirmed grants without a report ("Share how your grants are going") with a one-click "Write a report". The database only accepts reports on confirmed grants the posting org received. Test: `supabase/tests/rls.test.ts`, `e2e/public.spec.ts`, `e2e/signed-in.spec.ts`
+- **F-037 Foundation portfolio.** Foundations have a Portfolio tab: grant reports from the nonprofits they fund. Following a foundation adds its portfolio to your Following feed; posts you see only because of that carry a "From the portfolio of <foundation>, which you follow" line. Nonprofits have no Portfolio tab (`?tab=portfolio` shows Home). Test: `lib/portfolio.test.ts`, `lib/org-tabs.test.ts`, `e2e/public.spec.ts`, `e2e/signed-in.spec.ts`
+- **F-038 What my giving became.** On an org you follow, a toggle shows it on your public profile ("I give through this fund" for foundations, "I support this nonprofit" otherwise; self-reported). A donor's profile then lists, per fund, its confirmed grants and each grantee's latest report, with a note that funds are pooled. Visitors see it in the third person. Demo donor: `/u/dana_demo`. Test: `e2e/signed-in.spec.ts`
+- **F-039 Open calls.** Foundations can post an Open call: apply-by date, application link (http/https, imnet links out), optional maximum award, eligible causes (none = all). The post shows Open / Closing soon (last 7 days, deadline day included) / Closed, with an Apply button until it closes. `/calls` (nav: Open calls) lists calls still open, soonest deadline first, with a cause filter. Nonprofit dashboards show "Open calls for your causes". The database allows open calls only from foundations, requires deadline and link, rejects unknown causes, and keeps call fields off other posts. Test: `supabase/tests/rls.test.ts`, `lib/open-calls.test.ts`, `lib/open-call-fields.test.ts`, `e2e/public.spec.ts`, `e2e/signed-in.spec.ts`
+- **F-040 Co-funded badges.** Nonprofit profiles show the foundations behind them, from confirmed grants only: stacked logos plus "Backed by X", "Co-funded by X and Y" or "Co-funded by X and N other foundations", largest total first. Demo: Harbor Table (Lakeshore + Riverside). Test: `lib/grants.test.ts`, `e2e/public.spec.ts`
 
 ### Fixes
 
@@ -113,3 +130,6 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **B-008 Forms lost what you typed after an error.** React 19 resets a form after every action, so a claim rejected for its email came back empty. Server actions now return the submitted values with the error, and the login, claim, composer and profile forms refill from them. Test: `lib/form-values.test.ts`, `e2e/signed-in.spec.ts`
 - **B-009 Org tab labels were lowercase for screen readers.** Tabs showed "Home / About / Posts" only through CSS capitalization; the text was "home / about / posts". Labels are now real text. Test: `e2e/public.spec.ts`
 - **B-010 Feed jumped as photos loaded.** Lazy-loaded single photos had no reserved height, so posts shifted as images arrived (and photos below the fold had zero height). Single photos now sit in a fixed 4:3 frame like galleries. Test: `e2e/public.spec.ts`
+- **B-011 Single portrait photos overflowed their frame.** The 4:3 frame from B-010 held galleries but a single tall photo grew past it. The frame now clips and the photo fills it. Test: none (visual)
+
+- **B-012 Dashboard card titles weren't headings.** shadcn's `CardTitle` renders a `<div>`, so screen-reader users couldn't jump between dashboard and admin sections. It now renders an `<h2>`. Test: `e2e/signed-in.spec.ts`

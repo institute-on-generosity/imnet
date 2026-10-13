@@ -7,7 +7,7 @@ import { PostCard } from "@/components/post-card"
 import { Panel, TwoColumn } from "@/components/shell"
 import { TrackView } from "@/components/track-view"
 import { buttonVariants } from "@/components/ui/button"
-import { getMovedPostIds, getPost } from "@/lib/queries"
+import { getGrantsForPosts, getMovedPostIds, getPost } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 
 export async function generateMetadata({ params }: PageProps<"/p/[id]">): Promise<Metadata> {
@@ -28,7 +28,8 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
   if (!post) notFound()
 
   const userId = await getUserId()
-  const moved = (await getMovedPostIds(userId, [post.id])).has(post.id)
+  const [movedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, [post.id]), getGrantsForPosts([post.id])])
+  const moved = movedIds.has(post.id)
 
   return (
     <TwoColumn
@@ -45,7 +46,7 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
       }
     >
       <TrackView orgId={post.org_id} postId={post.id} />
-      <PostCard post={post} full moved={moved} signedIn={!!userId} />
+      <PostCard post={post} full moved={moved} signedIn={!!userId} grants={grantsByPost.get(post.id)} />
       <p className="px-1 text-xs text-muted-foreground">&ldquo;Moved me&rdquo; is private. {PRIVATE_NOTE}.</p>
     </TwoColumn>
   )

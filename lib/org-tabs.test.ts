@@ -10,3 +10,12 @@ describe("parseOrgTab", () => {
     expect(parseOrgTab(["about"])).toBe("home")
   })
 })
+
+describe("tabsFor", () => {
+  it("F-037: only foundations have a Portfolio tab", () => {
+    expect(parseOrgTab("portfolio", "foundation")).toBe("portfolio")
+    expect(parseOrgTab("portfolio", "nonprofit")).toBe("home")
+    expect(parseOrgTab("portfolio")).toBe("home")
+  })
+})
+

@@ -2,16 +2,20 @@ import Link from "next/link"
 import { DonateButton } from "@/components/donate-button"
 import { FollowButton } from "@/components/follow-button"
 import { OrgMark } from "@/components/org-mark"
+import { OrgTypeBadge } from "@/components/org-type-badge"
 import { Feed } from "@/components/post-card"
 import { ShareButton } from "@/components/share-button"
 import { Panel, TwoColumn } from "@/components/shell"
+import { GrantsPanel } from "@/components/grants-panel"
 import { SuggestedOrgs } from "@/components/side-cards"
+import { SupporterToggle } from "@/components/supporter-toggle"
 import { TrackView } from "@/components/track-view"
 import { buttonVariants } from "@/components/ui/button"
 import { footnotes } from "@/lib/footnotes"
-import { ORG_TAB_LABEL, ORG_TABS, type OrgTab } from "@/lib/org-tabs"
+import { backers, backersLabel } from "@/lib/grants"
+import { ORG_TAB_LABEL, tabsFor, type OrgTab } from "@/lib/org-tabs"
 import type { OrgSummaryWithMission } from "@/lib/queries"
-import type { Cause, ImpactStat, Org, Post } from "@/lib/types"
+import type { Cause, Grant, ImpactStat, Org, Post } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 const longDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
@@ -25,41 +29,59 @@ type Props = {
   posts: Post[]
   similar: OrgSummaryWithMission[]
   signedIn: boolean
-  following: boolean
+  follow: { following: boolean; supporter: boolean }
+  portfolio: Post[]
   movedIds?: Set<string>
+  grants: Grant[]
+  grantsByPost: Map<string, Grant[]>
   tab: OrgTab
 }
 
-export function OrgProfile({ org, stats, causes, followers, posts, similar, signedIn, following, movedIds, tab }: Props) {
+export function OrgProfile({ org, stats, causes, followers, posts, portfolio, similar, signedIn, follow, movedIds, grants, grantsByPost, tab }: Props) {
   const base = `/o/${org.slug}`
   return (
-    <TwoColumn right={<SuggestedOrgs title="Similar nonprofits" orgs={similar} signedIn={signedIn} />}>
+    <TwoColumn right={<SuggestedOrgs title="Similar organizations" orgs={similar} signedIn={signedIn} />}>
       <TrackView orgId={org.id} />
 
       <Panel className="overflow-hidden">
-        <div className="relative h-28 bg-leaf sm:h-36">
-          <div aria-hidden className="absolute inset-0 opacity-15 [background:repeating-linear-gradient(135deg,transparent_0_14px,white_14px_15px)]" />
-        </div>
+        {org.org_type === "foundation" ? (
+          <div className="relative h-28 bg-primary sm:h-36">
+            <div aria-hidden className="absolute inset-0 opacity-40 [background:repeating-linear-gradient(135deg,transparent_0_14px,var(--marigold)_14px_15px)]" />
+          </div>
+        ) : (
+          <div className="relative h-28 bg-leaf sm:h-36">
+            <div aria-hidden className="absolute inset-0 opacity-15 [background:repeating-linear-gradient(135deg,transparent_0_14px,white_14px_15px)]" />
+          </div>
+        )}
         <div className="px-4 pb-4 sm:px-6">
           <div className="relative -mt-12 sm:-mt-14"><OrgMark org={org} size="xl" /></div>
-          <h1 className="mt-3 text-3xl font-semibold">{org.name}</h1>
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="text-3xl font-semibold">{org.name}</h1>
+            <OrgTypeBadge type={org.org_type} className="px-2.5 py-1 text-xs" />
+          </div>
           {org.mission && <p className="mt-1 line-clamp-2 max-w-prose text-muted-foreground">{org.mission}</p>}
+          {org.org_type === "nonprofit" && <Backers grants={grants} />}
           <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
             {causes.length > 0 && <span>{causes.map((c) => c.name).join(", ")}</span>}
             <span>{followers} {followers === 1 ? "follower" : "followers"}</span>
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {signedIn ? (
-              <FollowButton orgId={org.id} slug={org.slug} following={following} />
+              <FollowButton orgId={org.id} slug={org.slug} following={follow.following} />
             ) : (
               <Link href="/login" className={buttonVariants()}>Follow</Link>
             )}
             {org.everyorg_slug && <DonateButton orgId={org.id} everyorgSlug={org.everyorg_slug} />}
             <ShareButton path={base} title={org.name} orgId={org.id} variant="pill" />
           </div>
+          {signedIn && follow.following && (
+            <div className="mt-2">
+              <SupporterToggle orgId={org.id} orgType={org.org_type} supporter={follow.supporter} />
+            </div>
+          )}
         </div>
         <nav aria-label={`${org.name} sections`} className="flex border-t px-2 sm:px-4">
-          {ORG_TABS.map((t) => (
+          {tabsFor(org.org_type).map((t) => (
             <Link
               key={t}
               href={t === "home" ? base : `${base}?tab=${t}`}
@@ -88,9 +110,10 @@ export function OrgProfile({ org, stats, causes, followers, posts, similar, sign
           )}
           <GiftsFund org={org} />
           <ImpactLedger stats={stats} />
+          <GrantsPanel org={org} grants={grants} />
           <section aria-labelledby="recent" className="space-y-3">
             <h2 id="recent" className="px-1 font-sans text-lg font-semibold tracking-normal">Recent posts</h2>
-            <Feed posts={posts.slice(0, 3)} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} />
+            <Feed posts={posts.slice(0, 3)} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
             {posts.length > 3 && (
               <Link href={`${base}?tab=posts`} className={buttonVariants({ variant: "outline", className: "w-full" })}>Show all posts</Link>
             )}
@@ -132,10 +155,21 @@ export function OrgProfile({ org, stats, causes, followers, posts, similar, sign
           </Panel>
           <GiftsFund org={org} />
           <ImpactLedger stats={stats} />
+          <GrantsPanel org={org} grants={grants} />
         </>
       )}
 
-      {tab === "posts" && <Feed posts={posts} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} />}
+      {tab === "posts" && <Feed posts={posts} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} grantsByPost={grantsByPost} />}
+
+      {tab === "portfolio" && (
+        <>
+          <Panel className="p-4 sm:p-6">
+            <h2 className="font-sans text-lg font-semibold tracking-normal">Portfolio</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Grant reports from the nonprofits {org.name} funds: what each grant made possible, in the grantee&apos;s own words.</p>
+          </Panel>
+          <Feed posts={portfolio} empty="No grant reports yet. They appear here when grantees post them." movedIds={movedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
+        </>
+      )}
     </TwoColumn>
   )
 }
@@ -186,3 +220,22 @@ function ImpactLedger({ stats }: { stats: ImpactStat[] }) {
     </Panel>
   )
 }
+
+// Trust signal from confirmed grants only: who funds this nonprofit.
+function Backers({ grants }: { grants: Grant[] }) {
+  const funders = backers(grants)
+  if (funders.length === 0) return null
+  return (
+    <Link href="?tab=about" className="mt-3 flex w-fit items-center gap-2.5 rounded-full border bg-card py-1 pr-3 pl-1 text-sm hover:bg-muted">
+      <span className="flex -space-x-2">
+        {funders.slice(0, 3).map((f) => (
+          <span key={f.id} className="rounded-md ring-2 ring-card">
+            <OrgMark org={f} size="sm" />
+          </span>
+        ))}
+      </span>
+      <span>{backersLabel(funders.map((f) => f.name))}</span>
+    </Link>
+  )
+}
+

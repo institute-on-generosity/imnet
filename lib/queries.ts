@@ -1,16 +1,19 @@
+import { cache } from "react"
 import { escapeLike } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
-import type { Cause, ImpactStat, Org, Post } from "@/lib/types"
+import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
 
 const PAGE_SIZE = 20
-const POST_FIELDS = "id, org_id, kind, body, embed_url, embed_credit, image_paths, image_alts, image_credits, created_at"
+const POST_FIELDS = `id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at, call_deadline, call_apply_url, call_max_award, call_causes,
+  report_grant:grants!posts_reports_grant_id_fkey(id, amount_usd, purpose, foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type))`
 
 // Chronological, no engagement ranking (design principle #4).
-export async function getFeed(opts: { cause?: string; orgIds?: string[] } = {}): Promise<Post[]> {
+// reportGrantIds: also include grant reports on these grants (portfolio of followed foundations).
+export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType?: OrgType; reportGrantIds?: string[] } = {}): Promise<Post[]> {
   const supabase = await createClient()
   const orgJoin = opts.cause
-    ? "org:orgs!inner(id, slug, name, logo_url, org_causes!inner(cause_slug))"
-    : "org:orgs!inner(id, slug, name, logo_url)"
+    ? "org:orgs!inner(id, slug, name, logo_url, org_type, org_causes!inner(cause_slug))"
+    : "org:orgs!inner(id, slug, name, logo_url, org_type)"
 
   let query = supabase
     .from("posts")
@@ -20,24 +23,29 @@ export async function getFeed(opts: { cause?: string; orgIds?: string[] } = {}):
     .limit(PAGE_SIZE)
 
   if (opts.cause) query = query.eq("org.org_causes.cause_slug", opts.cause)
-  if (opts.orgIds) query = query.in("org_id", opts.orgIds)
+  if (opts.orgIds && opts.reportGrantIds?.length) {
+    const orgs = opts.orgIds.length ? `org_id.in.(${opts.orgIds.join(",")}),` : ""
+    query = query.or(`${orgs}reports_grant_id.in.(${opts.reportGrantIds.join(",")})`)
+  } else if (opts.orgIds) query = query.in("org_id", opts.orgIds)
+  if (opts.orgType) query = query.eq("org.org_type", opts.orgType)
 
   const { data, error } = await query
   if (error) throw error
   return (data ?? []) as unknown as Post[]
 }
 
-export async function getCauses(): Promise<Cause[]> {
+// Cached per request: many components need cause names.
+export const getCauses = cache(async (): Promise<Cause[]> => {
   const supabase = await createClient()
   const { data } = await supabase.from("causes").select("slug, name").order("name")
   return data ?? []
-}
+})
 
 export async function getOrgBySlug(slug: string) {
   const supabase = await createClient()
   const { data: org } = await supabase
     .from("orgs")
-    .select("id, slug, name, ein, website, mission, what_gifts_fund, logo_url, everyorg_slug, status")
+    .select("id, slug, name, ein, website, mission, what_gifts_fund, logo_url, everyorg_slug, status, org_type")
     .eq("slug", slug)
     .maybeSingle<Org>()
   if (!org) return null
@@ -64,7 +72,7 @@ export async function getPost(id: string): Promise<Post | null> {
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select(`${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url)`)
+    .select(`${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type)`)
     .eq("id", id)
     .maybeSingle()
   return data as unknown as Post | null
@@ -74,6 +82,10 @@ export async function getFollowedOrgIds(userId: string): Promise<string[]> {
   const supabase = await createClient()
   const { data } = await supabase.from("follows").select("org_id").eq("user_id", userId)
   return (data ?? []).map((f) => f.org_id)
+}
+
+export function postVideoUrl(path: string) {
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-videos/${path}`
 }
 
 export function postImageUrl(path: string) {
@@ -126,7 +138,7 @@ export async function getSuggestedOrgs(opts: { userId?: string | null; cause?: s
 
   let query = supabase
     .from("orgs")
-    .select(opts.cause ? "id, slug, name, logo_url, mission, org_causes!inner(cause_slug)" : "id, slug, name, logo_url, mission")
+    .select(opts.cause ? "id, slug, name, logo_url, org_type, mission, org_causes!inner(cause_slug)" : "id, slug, name, logo_url, org_type, mission")
     .eq("status", "verified")
     .order("name")
     .limit(opts.limit ?? 5)
@@ -137,7 +149,7 @@ export async function getSuggestedOrgs(opts: { userId?: string | null; cause?: s
   return (data ?? []) as unknown as (OrgSummaryWithMission)[]
 }
 
-export type OrgSummaryWithMission = { id: string; slug: string; name: string; logo_url: string | null; mission: string | null }
+export type OrgSummaryWithMission = OrgSummary & { mission: string | null }
 
 export async function getMovedPostIds(userId: string | null, postIds: string[]): Promise<Set<string>> {
   if (!userId || postIds.length === 0) return new Set()
@@ -153,10 +165,128 @@ export async function searchOrgs(q: string): Promise<OrgSummaryWithMission[]> {
   const escaped = escapeLike(term)
   const { data } = await supabase
     .from("orgs")
-    .select("id, slug, name, logo_url, mission")
+    .select("id, slug, name, logo_url, org_type, mission")
     .eq("status", "verified")
     .ilike("name", `%${escaped}%`)
     .order("name")
     .limit(20)
   return data ?? []
 }
+
+// ---------------------------------------------------------------------------
+// Grants (RLS shows confirmed grants to everyone, unconfirmed ones only to the two orgs' staff)
+// ---------------------------------------------------------------------------
+const GRANT_FIELDS = `id, post_id, amount_usd, purpose, awarded_on, confirmed_at,
+  foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type),
+  grantee:orgs!grants_grantee_id_fkey(id, slug, name, logo_url, org_type),
+  reports:posts!posts_reports_grant_id_fkey(id, body, created_at)`
+
+export async function getGrantsForPosts(postIds: string[]): Promise<Map<string, Grant[]>> {
+  const byPost = new Map<string, Grant[]>()
+  if (postIds.length === 0) return byPost
+  const supabase = await createClient()
+  const { data } = await supabase.from("grants").select(GRANT_FIELDS).in("post_id", postIds).order("amount_usd", { ascending: false, nullsFirst: false })
+  for (const g of (data ?? []) as unknown as Grant[]) {
+    const list = byPost.get(g.post_id!) ?? []
+    list.push(g)
+    byPost.set(g.post_id!, list)
+  }
+  return byPost
+}
+
+// Funded-by (nonprofit) or grantees (foundation), confirmed only, newest first.
+export async function getOrgGrants(org: Pick<Org, "id" | "org_type">): Promise<Grant[]> {
+  const supabase = await createClient()
+  const column = org.org_type === "foundation" ? "foundation_id" : "grantee_id"
+  const { data } = await supabase
+    .from("grants")
+    .select(GRANT_FIELDS)
+    .eq(column, org.id)
+    .not("confirmed_at", "is", null)
+    .order("awarded_on", { ascending: false })
+  return (data ?? []) as unknown as Grant[]
+}
+
+export async function getGrantsToConfirm(orgId: string): Promise<Grant[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("grants")
+    .select(GRANT_FIELDS)
+    .eq("grantee_id", orgId)
+    .is("confirmed_at", null)
+    .order("created_at", { ascending: false })
+  return (data ?? []) as unknown as Grant[]
+}
+
+// Confirmed grants this nonprofit received that it hasn't reported on yet (dashboard nudge).
+export async function getGrantsNeedingReport(orgId: string): Promise<Grant[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("grants")
+    .select(GRANT_FIELDS)
+    .eq("grantee_id", orgId)
+    .not("confirmed_at", "is", null)
+    .order("awarded_on", { ascending: false })
+  return ((data ?? []) as unknown as Grant[]).filter((g) => g.reports.length === 0)
+}
+
+// Confirmed grants a nonprofit can report on (composer picker).
+export async function getReportableGrants(orgId: string): Promise<Grant[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("grants")
+    .select(GRANT_FIELDS)
+    .eq("grantee_id", orgId)
+    .not("confirmed_at", "is", null)
+    .order("awarded_on", { ascending: false })
+  return (data ?? []) as unknown as Grant[]
+}
+
+// Confirmed grants given by these foundations (ids only), for portfolio feeds.
+export async function getConfirmedGrantIds(foundationIds: string[]): Promise<string[]> {
+  if (foundationIds.length === 0) return []
+  const supabase = await createClient()
+  const { data } = await supabase.from("grants").select("id").in("foundation_id", foundationIds).not("confirmed_at", "is", null)
+  return (data ?? []).map((g) => g.id)
+}
+
+// A foundation's portfolio: grant reports from the nonprofits it funded, newest first.
+export async function getPortfolioPosts(foundationId: string): Promise<Post[]> {
+  const grantIds = await getConfirmedGrantIds([foundationId])
+  if (grantIds.length === 0) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("posts")
+    .select(`${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type)`)
+    .eq("published", true)
+    .in("reports_grant_id", grantIds)
+    .order("created_at", { ascending: false })
+    .limit(PAGE_SIZE)
+  return (data ?? []) as unknown as Post[]
+}
+
+// The viewer's follow of one org: following at all, and shown publicly as support.
+export async function getFollow(userId: string | null, orgId: string) {
+  if (!userId) return { following: false, supporter: false }
+  const supabase = await createClient()
+  const { data } = await supabase.from("follows").select("supporter").match({ user_id: userId, org_id: orgId }).maybeSingle()
+  return { following: !!data, supporter: !!data?.supporter }
+}
+
+// Open calls still accepting applications, soonest deadline first (not engagement-ranked).
+// causes: only calls open to at least one of these causes (calls with no causes listed are open to all).
+export async function getOpenCalls(opts: { causes?: string[]; limit?: number } = {}): Promise<Post[]> {
+  const supabase = await createClient()
+  let query = supabase
+    .from("posts")
+    .select(`${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type)`)
+    .eq("published", true)
+    .eq("kind", "open_call")
+    .gte("call_deadline", new Date().toISOString().slice(0, 10))
+    .order("call_deadline", { ascending: true })
+    .limit(opts.limit ?? 50)
+  if (opts.causes?.length) query = query.or(`call_causes.ov.{${opts.causes.join(",")}},call_causes.eq.{}`)
+  const { data } = await query
+  return (data ?? []) as unknown as Post[]
+}
+

@@ -25,8 +25,8 @@ export async function SiteHeader() {
           <input
             type="search"
             name="q"
-            placeholder="Search nonprofits"
-            aria-label="Search nonprofits"
+            placeholder="Search nonprofits and foundations"
+            aria-label="Search organizations"
             className="h-9 w-full rounded-md bg-muted pr-3 pl-9 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
         </form>
@@ -38,6 +38,7 @@ export async function SiteHeader() {
                 items={[
                   { href: "/", label: "Home", icon: "home", exact: true },
                   { href: "/following", label: "Following", icon: "following" },
+                  { href: "/calls", label: "Open calls", icon: "calls" },
                   { href: "/dashboard", label: "For nonprofits", icon: "nonprofits" },
                   ...(handle ? [{ href: `/u/${handle}`, label: "Me", icon: "me" as const, exact: true }] : []),
                 ]}
@@ -48,7 +49,7 @@ export async function SiteHeader() {
             </>
           ) : (
             <div className="flex items-center gap-2 py-2.5">
-              <Link href="/search" className="text-muted-foreground sm:hidden" aria-label="Search nonprofits"><Search className="size-5" /></Link>
+              <Link href="/search" className="text-muted-foreground sm:hidden" aria-label="Search organizations"><Search className="size-5" /></Link>
               <Link href="/login" className={buttonVariants({ variant: "ghost" })}>Join now</Link>
               <Link href="/login" className={buttonVariants({ variant: "outline" })}>Sign in</Link>
             </div>

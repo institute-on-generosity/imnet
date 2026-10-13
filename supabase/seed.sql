@@ -28,7 +28,20 @@ insert into orgs (id, slug, name, ein, website, mission, what_gifts_fund, status
    'https://example.org/riverbend',
    'One-on-one reading tutors for early readers in rural schools.',
    '$40 buys a take-home book set. $300 trains one volunteer tutor.',
+   'verified'),
+  ('00000000-0000-4000-a000-000000000004', 'greenway-stewards', 'Greenway Stewards (Demo)', '00-0000004',
+   'https://example.org/greenway',
+   'Volunteers restoring trails, rivers and open land in our county, one Saturday at a time.',
+   '$30 buys gloves and hand tools for one volunteer. $250 covers native plants for 100 feet of riverbank.',
    'verified')
+on conflict do nothing;
+
+insert into orgs (id, slug, name, ein, website, mission, what_gifts_fund, status, org_type) values
+  ('00000000-0000-4000-a000-000000000005', 'lakeshore-community-foundation', 'Lakeshore Community Foundation (Demo)', '00-0000005',
+   'https://example.org/lakeshore',
+   'A community foundation pooling local giving into grants for neighborhood nonprofits, with a focus on small groups that have no grant writer.',
+   'Gifts to the Community Fund become grants. $1,000 funds a small nonprofit''s volunteer training; $10,000 funds a year of a program.',
+   'verified', 'foundation')
 on conflict do nothing;
 
 insert into org_causes (org_id, cause_slug) values
@@ -36,7 +49,12 @@ insert into org_causes (org_id, cause_slug) values
   ('00000000-0000-4000-a000-000000000002', 'housing'),
   ('00000000-0000-4000-a000-000000000002', 'youth'),
   ('00000000-0000-4000-a000-000000000003', 'education'),
-  ('00000000-0000-4000-a000-000000000003', 'youth')
+  ('00000000-0000-4000-a000-000000000003', 'youth'),
+  ('00000000-0000-4000-a000-000000000004', 'environment'),
+  ('00000000-0000-4000-a000-000000000005', 'hunger'),
+  ('00000000-0000-4000-a000-000000000005', 'housing'),
+  ('00000000-0000-4000-a000-000000000005', 'education'),
+  ('00000000-0000-4000-a000-000000000005', 'environment')
 on conflict do nothing;
 
 insert into impact_stats (org_id, label, value, source_url, as_of, sort) values
@@ -45,7 +63,11 @@ insert into impact_stats (org_id, label, value, source_url, as_of, sort) values
   ('00000000-0000-4000-a000-000000000002', 'Families housed', '62', 'https://example.org/open-door/outcomes', '2026-06-30', 0),
   ('00000000-0000-4000-a000-000000000002', 'Still housed after 1 year', '91%', 'https://example.org/open-door/outcomes', '2026-06-30', 1),
   ('00000000-0000-4000-a000-000000000003', 'Students tutored', '310', 'https://example.org/riverbend/report', '2026-06-01', 0),
-  ('00000000-0000-4000-a000-000000000003', 'Reading at grade level (from 38%)', '71%', 'https://example.org/riverbend/report', '2026-06-01', 1);
+  ('00000000-0000-4000-a000-000000000003', 'Reading at grade level (from 38%)', '71%', 'https://example.org/riverbend/report', '2026-06-01', 1),
+  ('00000000-0000-4000-a000-000000000004', 'Volunteer hours', '3,400', 'https://example.org/greenway/2026-report', '2026-09-01', 0),
+  ('00000000-0000-4000-a000-000000000004', 'Miles of trail restored', '12', 'https://example.org/greenway/2026-report', '2026-09-01', 1),
+  ('00000000-0000-4000-a000-000000000005', 'Granted in 2026', '$1.2M', 'https://example.org/lakeshore/grants-2026', '2026-09-30', 0),
+  ('00000000-0000-4000-a000-000000000005', 'Local nonprofits funded', '48', 'https://example.org/lakeshore/grants-2026', '2026-09-30', 1);
 
 -- Photos live in supabase/seed-images/post-images (loaded by `supabase seed buckets`); credits in seed-images/CREDITS.md.
 insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, beneficiary_consent, created_at) values
@@ -77,10 +99,100 @@ insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, b
    array['00000000-0000-4000-a000-000000000003/packing-book-sets.jpg', '00000000-0000-4000-a000-000000000003/volunteer-shirt.jpg']::text[], array['Smiling volunteers packing supplies at a school table', 'The back of a volunteer''s shirt reading: If you think my hands are full, you should see my heart']::text[], array['Nazareth College from Rochester, NY, USA, CC BY 2.0, via Wikimedia Commons', 'Nazareth College from Rochester, NY, USA, CC BY 2.0, via Wikimedia Commons']::text[], true,
    now() - interval '15 days');
 
--- A shared video (credited; not presented as Harbor Table's own footage).
-insert into posts (org_id, kind, body, embed_url, embed_credit, created_at) values
+-- Native video posts: files in supabase/seed-images/post-videos (loaded by `supabase seed buckets`).
+insert into posts (org_id, kind, body, video_path, video_poster_path, video_alt, video_credit, created_at) values
   ('00000000-0000-4000-a000-000000000001', 'update',
-   'How a big-city food bank moves food from dock to table. Our new volunteers watched this before Saturday''s training. Worth 90 seconds.',
-   'https://commons.wikimedia.org/wiki/File%3ASan_Antonio%2C_TX%2C_Food_Bank_(20111031-FNS-LSC-9001).webm?embedplayer=yes',
-   'U.S. Department of Agriculture, public domain, via Wikimedia Commons',
-   now() - interval '3 days');
+   'Saturday in the pantry garden: volunteers pulled the last of the summer squash and beans. About 140 pounds goes straight onto Tuesday''s pantry shelves.',
+   '00000000-0000-4000-a000-000000000001/garden-harvest.webm', '00000000-0000-4000-a000-000000000001/garden-harvest.jpg',
+   'Volunteers weeding and harvesting in a community garden', 'USDA, public domain, via Wikimedia Commons',
+   now() - interval '3 days'),
+  ('00000000-0000-4000-a000-000000000004', 'impact_story',
+   'Public Lands Day: 64 volunteers re-cut two miles of eroded trail in a single morning. Next up, native seeding before the fall rains.',
+   '00000000-0000-4000-a000-000000000004/trail-crew.webm', '00000000-0000-4000-a000-000000000004/trail-crew.jpg',
+   'Volunteers with hand tools re-cutting a dirt trail across a dry hillside', 'BLM Oregon & Washington, public domain, via Wikimedia Commons',
+   now() - interval '2 days 6 hours'),
+  ('00000000-0000-4000-a000-000000000004', 'update',
+   'Fence removal crew pulled 900 feet of old barbed wire this weekend, so deer and elk can move through the valley again.',
+   '00000000-0000-4000-a000-000000000004/fence-removal.webm', '00000000-0000-4000-a000-000000000004/fence-removal.jpg',
+   'A volunteer coiling old wire fencing in an open field while others work behind', 'BLM Oregon & Washington, public domain, via Wikimedia Commons',
+   now() - interval '8 days');
+
+-- The demo foundation posts about its grants to the demo nonprofits.
+insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, beneficiary_consent, created_at) values
+  ('00000000-0000-4000-a000-000000000005', 'impact_story',
+   'Fall Community Fund grants are out: $1.2M to 48 local nonprofits. Harbor Table (Demo) gets its new walk-in freezer, and Riverbend Readers (Demo) can train 30 more volunteer tutors. Thank you to the 2,100 neighbors who gave to the fund.',
+   array['00000000-0000-4000-a000-000000000001/pantry-team.jpg']::text[], array['Volunteers in green shirts working together in a food pantry']::text[],
+   array['USDAgov, public domain, via Wikimedia Commons']::text[], true,
+   now() - interval '1 day 12 hours'),
+  ('00000000-0000-4000-a000-000000000005', 'update',
+   'Our grants committee is 11 neighbors, not a boardroom. Meet them at the library on Thursday evenings this month.',
+   '{}'::text[], '{}'::text[], '{}'::text[], false,
+   now() - interval '10 days');
+
+
+-- Grants from the demo foundation, tagged on its announcement post.
+-- Harbor Table and Riverbend have confirmed; Greenway hasn't yet (so it stays private).
+with announcement as (
+  select id from posts
+   where org_id = '00000000-0000-4000-a000-000000000005' and kind = 'impact_story'
+   order by created_at desc limit 1
+)
+insert into grants (foundation_id, grantee_id, post_id, amount_usd, purpose, awarded_on, confirmed_at)
+select '00000000-0000-4000-a000-000000000005', g.grantee, announcement.id, g.amount, g.purpose, current_date - 2, g.confirmed
+  from announcement, (values
+    ('00000000-0000-4000-a000-000000000001'::uuid, 25000, 'New walk-in freezer', now() - interval '1 day'),
+    ('00000000-0000-4000-a000-000000000003'::uuid, 18000, 'Training 30 volunteer tutors', now() - interval '1 day'),
+    ('00000000-0000-4000-a000-000000000004'::uuid, 5000, 'Native plants for the riverbank', null::timestamptz)
+  ) as g(grantee, amount, purpose, confirmed);
+
+-- Harbor Table reports on Lakeshore's freezer grant (Riverbend hasn't reported yet).
+insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, beneficiary_consent, reports_grant_id, created_at)
+select '00000000-0000-4000-a000-000000000001', 'impact_story',
+       'The new walk-in freezer is in. 800 meals a week now stay safe, and we can say yes to fresh produce donations again: 1,100 pounds of it this week alone. Thank you, Lakeshore Community Foundation, and everyone who gives to the Community Fund.',
+       array['00000000-0000-4000-a000-000000000001/pantry-restock.jpg']::text[],
+       array['A volunteer restocking food pantry shelves with a box of canned goods']::text[],
+       array['USDAgov, public domain, via Wikimedia Commons']::text[], true,
+       g.id, now() - interval '6 hours'
+  from grants g
+ where g.foundation_id = '00000000-0000-4000-a000-000000000005'
+   and g.grantee_id = '00000000-0000-4000-a000-000000000001';
+
+-- A demo donor (no password; can't sign in) who gives through Lakeshore and supports Harbor Table.
+insert into auth.users (id, email, aud, role)
+values ('00000000-0000-4000-b000-000000000001', 'dana.demo@example.com', 'authenticated', 'authenticated');
+update profiles set handle = 'dana_demo', display_name = 'Dana Rivera (Demo)',
+       bio = 'Monthly giver to my community foundation. Learning where it all goes.'
+ where id = '00000000-0000-4000-b000-000000000001';
+insert into follows (user_id, org_id, supporter) values
+  ('00000000-0000-4000-b000-000000000001', '00000000-0000-4000-a000-000000000005', true),
+  ('00000000-0000-4000-b000-000000000001', '00000000-0000-4000-a000-000000000001', true);
+insert into profile_causes (user_id, cause_slug) values
+  ('00000000-0000-4000-b000-000000000001', 'hunger'),
+  ('00000000-0000-4000-b000-000000000001', 'education');
+
+-- A second foundation, so Harbor Table shows as co-funded.
+insert into orgs (id, slug, name, ein, website, mission, what_gifts_fund, status, org_type) values
+  ('00000000-0000-4000-a000-000000000006', 'riverside-family-foundation', 'Riverside Family Foundation (Demo)', '00-0000006',
+   'https://example.org/riverside',
+   'A family foundation funding food security and early literacy along the river valley.',
+   'Gifts become small, fast grants: most decisions in under three weeks.',
+   'verified', 'foundation');
+insert into org_causes (org_id, cause_slug) values
+  ('00000000-0000-4000-a000-000000000006', 'hunger'),
+  ('00000000-0000-4000-a000-000000000006', 'education'),
+  ('00000000-0000-4000-a000-000000000006', 'youth');
+insert into grants (foundation_id, grantee_id, amount_usd, purpose, awarded_on, confirmed_at) values
+  ('00000000-0000-4000-a000-000000000006', '00000000-0000-4000-a000-000000000001', 10000, 'Fresh produce program', current_date - 40, now() - interval '35 days');
+
+-- Open calls: one open, one closing soon, one closed (shown on its post, hidden from /calls).
+insert into posts (org_id, kind, body, call_deadline, call_apply_url, call_max_award, call_causes, created_at) values
+  ('00000000-0000-4000-a000-000000000005', 'open_call',
+   'Spring Community Fund grants are open. Small nonprofits without a grant writer: tell us, and we''ll pair you with a volunteer who has written one before.',
+   current_date + 30, 'https://example.org/lakeshore/apply', 25000, '{hunger,housing,education,environment}', now() - interval '5 days'),
+  ('00000000-0000-4000-a000-000000000006', 'open_call',
+   'Youth reading micro-grants: up to $5,000 for programs that put books in kids'' hands this winter. Two-page application.',
+   current_date + 6, 'https://example.org/riverside/reading-grants', 5000, '{education,youth}', now() - interval '4 days'),
+  ('00000000-0000-4000-a000-000000000006', 'open_call',
+   'Summer meals grants for programs feeding kids while school is out.',
+   current_date - 5, 'https://example.org/riverside/summer-meals', 15000, '{hunger}', now() - interval '60 days');
+

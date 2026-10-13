@@ -1,7 +1,7 @@
 // Database security rules (RLS, grants, checks). Each test is named after its CONTEXT.md Ledger entry.
 
 import { beforeAll, describe, expect, it } from "vitest"
-import { ADMIN, createTestDb, DONOR, ORG_1, ORG_2, ORG_PENDING, STAFF } from "./harness"
+import { ADMIN, createTestDb, DONOR, FOUNDATION, ORG_1, ORG_2, ORG_PENDING, STAFF } from "./harness"
 
 let t: Awaited<ReturnType<typeof createTestDb>>
 
@@ -66,6 +66,21 @@ describe("orgs and claims", () => {
     expect(await t.owner(`select 1 from org_members where org_id = '${orgId}' and user_id = '${DONOR}'`)).toHaveLength(1)
   })
 
+  it("F-033: a claim's org type carries to the approved org; staff can't change it", async () => {
+    const user = "10000000-0000-4000-8000-0000000000f3"
+    await t.owner(`insert into auth.users (id, email) values ('${user}', 'grants@lake.example.org')`)
+    const claim = await t.as(
+      user,
+      `insert into org_claims (user_id, org_type, org_name, ein, website, work_email)
+       values ('${user}', 'foundation', 'Lake Fund', '55-5555555', 'https://lake.example.org', 'grants@lake.example.org') returning id`,
+    )
+    const approved = await t.as(ADMIN, `select approve_claim('${claim.rows![0].id}', 'lake-fund') as org_id`)
+    const orgId = approved.rows![0].org_id
+    expect((await t.owner(`select org_type from orgs where id = '${orgId}'`))[0].org_type).toBe("foundation")
+
+    expect((await t.as(user, `update orgs set org_type = 'nonprofit' where id = '${orgId}'`)).error).toMatch(/permission denied/)
+  })
+
   it("F-019: users can't make themselves admin or change an org's status", async () => {
     // Throwaway user and org, so a regression here can't leak admin rights into other tests.
     const user = "10000000-0000-4000-8000-0000000000f1"
@@ -128,6 +143,17 @@ describe("posts", () => {
       `insert into posts (org_id, author_id, body, embed_url, embed_credit) values ('${ORG_1}', '${STAFF}', 'x', 'https://player.vimeo.com/video/1', 'Someone, CC BY')`,
     )
     expect(ok.error).toBeUndefined()
+  })
+
+  it("F-032: a video needs a description, can't share a post with an embed, and extras need a video", async () => {
+    const post = (cols: string, vals: string) =>
+      t.as(STAFF, `insert into posts (org_id, author_id, body, ${cols}) values ('${ORG_1}', '${STAFF}', 'video', ${vals})`)
+
+    expect((await post("video_path", `'${ORG_1}/a.webm'`)).error).toMatch(/video_needs_alt/)
+    expect((await post("video_path, video_alt", `'${ORG_1}/a.webm', ''`)).error).toMatch(/video_needs_alt/)
+    expect((await post("video_path, video_alt, embed_url", `'${ORG_1}/a.webm', 'Crew at work', 'https://player.vimeo.com/video/1'`)).error).toMatch(/one_video_per_post/)
+    expect((await post("video_credit", `'Someone, CC BY'`)).error).toMatch(/video_extras_need_video/)
+    expect((await post("video_path, video_alt, video_poster_path, video_credit", `'${ORG_1}/a.webm', 'Crew at work', '${ORG_1}/a.jpg', 'Someone, CC BY'`)).error).toBeUndefined()
   })
 
   it("B-003: staff can't move a post to another org", async () => {
@@ -202,6 +228,14 @@ describe("storage", () => {
   })
 })
 
+describe("video storage", () => {
+  it("F-032: staff upload videos only into their own org's folder", async () => {
+    expect((await t.as(STAFF, `insert into storage.objects (bucket_id, name) values ('post-videos', '${ORG_1}/clip.webm')`)).error).toBeUndefined()
+    expect((await t.as(STAFF, `insert into storage.objects (bucket_id, name) values ('post-videos', '${ORG_2}/clip.webm')`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `insert into storage.objects (bucket_id, name) values ('post-videos', '${ORG_1}/clip.webm')`)).error).toMatch(/row-level security/)
+  })
+})
+
 describe("upload cleanup", () => {
   it("F-031: lists only photos older than a day that no post uses, and only to the service role", async () => {
     const used = `${ORG_1}/aaaaaaaa-0000-4000-8000-000000000001.jpg`
@@ -221,3 +255,94 @@ describe("upload cleanup", () => {
     expect((await t.as(null, `select * from orphan_post_images()`)).error).toMatch(/permission denied/)
   })
 })
+
+describe("grants", () => {
+  // FUNDER is staff of the seeded FOUNDATION; STAFF is staff of ORG_1 (a nonprofit).
+  const FUNDER = "10000000-0000-4000-8000-0000000000f5"
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${FUNDER}', 'grants@lakeshore.example.org') on conflict do nothing`)
+    await t.owner(`insert into org_members (org_id, user_id) values ('${FOUNDATION}', '${FUNDER}') on conflict do nothing`)
+  })
+  const give = (who: string, grantee: string, extra = "") =>
+    t.as(who, `insert into grants (foundation_id, grantee_id, amount_usd, purpose, created_by${extra ? ", confirmed_at" : ""})
+               values ('${FOUNDATION}', '${grantee}', 25000, 'New freezer', '${who}'${extra}) returning id`)
+
+  it("F-034: only a foundation's staff can record its grants, only to nonprofits, never pre-confirmed", async () => {
+    expect((await give(STAFF, ORG_1)).error).toMatch(/row-level security/)
+    expect((await give(FUNDER, ORG_1, ", now()")).error).toMatch(/row-level security/)
+    expect((await t.as(FUNDER, `insert into grants (foundation_id, grantee_id, created_by) values ('${FOUNDATION}', '${FOUNDATION}', '${FUNDER}')`)).error).toMatch(/grant_not_self|grants go to nonprofits/)
+    expect((await t.as(STAFF, `insert into grants (foundation_id, grantee_id, created_by) values ('${ORG_1}', '${ORG_2}', '${STAFF}')`)).error).toMatch(/row-level security|given by foundations/)
+    expect((await give(FUNDER, ORG_1)).error).toBeUndefined()
+  })
+
+  it("F-034: unconfirmed grants are private; the grantee confirms; then they're public", async () => {
+    const id = (await give(FUNDER, ORG_2)).rows![0].id
+    expect((await t.as(null, `select id from grants where id = '${id}'`)).rows).toHaveLength(0)
+    expect((await t.as(DONOR, `select id from grants where id = '${id}'`)).rows).toHaveLength(0)
+    expect((await t.as(FUNDER, `select id from grants where id = '${id}'`)).rows).toHaveLength(1)
+
+    // The funder can't confirm its own grant, directly or through the function.
+    expect((await t.as(FUNDER, `update grants set confirmed_at = now() where id = '${id}'`)).error).toMatch(/permission denied/)
+    expect((await t.as(FUNDER, `select confirm_grant('${id}')`)).error).toMatch(/not yours to confirm/)
+    // Staff of a different nonprofit can't either.
+    expect((await t.as(STAFF, `select confirm_grant('${id}')`)).error).toMatch(/not yours to confirm/)
+
+    await t.owner(`insert into org_members (org_id, user_id) values ('${ORG_2}', '${DONOR}') on conflict do nothing`)
+    expect((await t.as(DONOR, `select confirm_grant('${id}')`)).error).toBeUndefined()
+    expect((await t.as(null, `select amount_usd from grants where id = '${id}'`)).rows).toEqual([{ amount_usd: 25000 }])
+    await t.owner(`delete from org_members where org_id = '${ORG_2}' and user_id = '${DONOR}'`)
+  })
+
+  it("F-034: changing a confirmed grant's amount un-confirms it", async () => {
+    const id = (await give(FUNDER, ORG_1)).rows![0].id
+    expect((await t.as(STAFF, `select confirm_grant('${id}')`)).error).toBeUndefined()
+    expect((await t.as(FUNDER, `update grants set amount_usd = 99999 where id = '${id}'`)).error).toBeUndefined()
+    expect((await t.owner(`select confirmed_at from grants where id = '${id}'`))[0].confirmed_at).toBeNull()
+  })
+
+  it("F-036: a post can report only on a confirmed grant its own org received", async () => {
+    const confirmed = String((await give(FUNDER, ORG_1)).rows![0].id)
+    await t.as(STAFF, `select confirm_grant('${confirmed}')`)
+    const pending = String((await give(FUNDER, ORG_1)).rows![0].id)
+    const report = (grant: string, org = ORG_1, who = STAFF) =>
+      t.as(who, `insert into posts (org_id, author_id, body, reports_grant_id) values ('${org}', '${who}', 'Our freezer is in', '${grant}')`)
+
+    expect((await report(pending)).error).toMatch(/confirmed grant your organization received/)
+    // The foundation can't post a "report" on its own grant.
+    expect((await report(confirmed, FOUNDATION, FUNDER)).error).toMatch(/confirmed grant your organization received/)
+    expect((await report(confirmed)).error).toBeUndefined()
+  })
+
+  it("F-034: the grantee can remove a grant that isn't theirs ('not ours')", async () => {
+    const id = (await give(FUNDER, ORG_1)).rows![0].id
+    expect((await t.as(STAFF, `delete from grants where id = '${id}' returning id`)).rows).toHaveLength(1)
+    expect((await t.as(DONOR, `delete from grants where grantee_id = '${ORG_1}' returning id`)).rows).toHaveLength(0)
+  })
+})
+
+describe("open calls", () => {
+  const FUNDER = "10000000-0000-4000-8000-0000000000f6"
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${FUNDER}', 'calls@lakeshore.example.org') on conflict do nothing`)
+    await t.owner(`insert into org_members (org_id, user_id) values ('${FOUNDATION}', '${FUNDER}') on conflict do nothing`)
+  })
+  const call = (who: string, org: string, cols: string, vals: string) =>
+    t.as(who, `insert into posts (org_id, author_id, kind, body, ${cols}) values ('${org}', '${who}', 'open_call', 'Apply now', ${vals})`)
+
+  it("F-039: only foundations post open calls, with a deadline, an apply link and real causes", async () => {
+    const ok = "call_deadline, call_apply_url, call_max_award, call_causes"
+    const vals = (causes = "'{hunger,housing}'") => `current_date + 30, 'https://example.org/apply', 25000, ${causes}`
+
+    expect((await call(STAFF, ORG_1, ok, vals())).error).toMatch(/only foundations post open calls/)
+    expect((await call(FUNDER, FOUNDATION, "call_apply_url", "'https://example.org/apply'")).error).toMatch(/open_call_fields/)
+    expect((await call(FUNDER, FOUNDATION, "call_deadline, call_apply_url", "current_date + 30, 'ftp://x'")).error).toMatch(/check constraint/)
+    expect((await call(FUNDER, FOUNDATION, ok, vals("'{hunger,not-a-cause}'"))).error).toMatch(/unknown cause/)
+    expect((await call(FUNDER, FOUNDATION, ok, vals())).error).toBeUndefined()
+  })
+
+  it("F-039: ordinary posts can't carry open-call fields", async () => {
+    const res = await t.as(STAFF, `insert into posts (org_id, author_id, body, call_deadline) values ('${ORG_1}', '${STAFF}', 'x', current_date)`)
+    expect(res.error).toMatch(/open_call_fields/)
+  })
+})
+

@@ -19,7 +19,7 @@ const SUPABASE_STANDINS = `
   alter default privileges in schema public grant all on sequences to anon, authenticated;
 
   create schema auth;
-  create table auth.users (id uuid primary key, email text);
+  create table auth.users (id uuid primary key, email text, aud text, role text);
   create function auth.uid() returns uuid language sql stable as $$
     select nullif(current_setting('request.jwt.sub', true), '')::uuid
   $$;
@@ -40,6 +40,7 @@ const SUPABASE_STANDINS = `
 export const ORG_1 = "00000000-0000-4000-a000-000000000001" // Harbor Table
 export const ORG_2 = "00000000-0000-4000-a000-000000000002" // Open Door Homes
 export const ORG_PENDING = "00000000-0000-4000-a000-0000000000ff" // not verified
+export const FOUNDATION = "00000000-0000-4000-a000-000000000005" // Lakeshore Community Foundation
 
 // Test users
 export const DONOR = "10000000-0000-4000-8000-000000000001"

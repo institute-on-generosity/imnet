@@ -130,6 +130,13 @@ file_size_limit = "5MiB"
 allowed_mime_types = ["image/png", "image/jpeg", "image/webp"]
 objects_path = "./seed-images/post-images"
 
+# Demo post videos (openly licensed; see seed-images/CREDITS.md).
+[storage.buckets.post-videos]
+public = true
+file_size_limit = "50MiB"
+allowed_mime_types = ["video/webm", "video/mp4", "image/jpeg", "image/webp"]
+objects_path = "./seed-images/post-videos"
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true
@@ -210,9 +217,9 @@ anonymous_users = 30
 # Number of sessions that can be refreshed in a 5 minute interval per IP address.
 token_refresh = 150
 # Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
-sign_in_sign_ups = 30
+sign_in_sign_ups = 300
 # Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
-token_verifications = 30
+token_verifications = 300
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.
 web3 = 30
 
