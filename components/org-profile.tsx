@@ -12,6 +12,7 @@ import { SupporterToggle } from "@/components/supporter-toggle"
 import { TrackView } from "@/components/track-view"
 import { buttonVariants } from "@/components/ui/button"
 import { footnotes } from "@/lib/footnotes"
+import { backers, backersLabel } from "@/lib/grants"
 import { ORG_TAB_LABEL, tabsFor, type OrgTab } from "@/lib/org-tabs"
 import type { OrgSummaryWithMission } from "@/lib/queries"
 import type { Cause, Grant, ImpactStat, Org, Post } from "@/lib/types"
@@ -59,6 +60,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, portfolio, si
             <OrgTypeBadge type={org.org_type} className="px-2.5 py-1 text-xs" />
           </div>
           {org.mission && <p className="mt-1 line-clamp-2 max-w-prose text-muted-foreground">{org.mission}</p>}
+          {org.org_type === "nonprofit" && <Backers grants={grants} />}
           <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
             {causes.length > 0 && <span>{causes.map((c) => c.name).join(", ")}</span>}
             <span>{followers} {followers === 1 ? "follower" : "followers"}</span>
@@ -218,3 +220,22 @@ function ImpactLedger({ stats }: { stats: ImpactStat[] }) {
     </Panel>
   )
 }
+
+// Trust signal from confirmed grants only: who funds this nonprofit.
+function Backers({ grants }: { grants: Grant[] }) {
+  const funders = backers(grants)
+  if (funders.length === 0) return null
+  return (
+    <Link href="?tab=about" className="mt-3 flex w-fit items-center gap-2.5 rounded-full border bg-card py-1 pr-3 pl-1 text-sm hover:bg-muted">
+      <span className="flex -space-x-2">
+        {funders.slice(0, 3).map((f) => (
+          <span key={f.id} className="rounded-md ring-2 ring-card">
+            <OrgMark org={f} size="sm" />
+          </span>
+        ))}
+      </span>
+      <span>{backersLabel(funders.map((f) => f.name))}</span>
+    </Link>
+  )
+}
+

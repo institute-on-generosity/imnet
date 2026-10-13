@@ -319,3 +319,30 @@ describe("grants", () => {
     expect((await t.as(DONOR, `delete from grants where grantee_id = '${ORG_1}' returning id`)).rows).toHaveLength(0)
   })
 })
+
+describe("open calls", () => {
+  const FUNDER = "10000000-0000-4000-8000-0000000000f6"
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${FUNDER}', 'calls@lakeshore.example.org') on conflict do nothing`)
+    await t.owner(`insert into org_members (org_id, user_id) values ('${FOUNDATION}', '${FUNDER}') on conflict do nothing`)
+  })
+  const call = (who: string, org: string, cols: string, vals: string) =>
+    t.as(who, `insert into posts (org_id, author_id, kind, body, ${cols}) values ('${org}', '${who}', 'open_call', 'Apply now', ${vals})`)
+
+  it("F-039: only foundations post open calls, with a deadline, an apply link and real causes", async () => {
+    const ok = "call_deadline, call_apply_url, call_max_award, call_causes"
+    const vals = (causes = "'{hunger,housing}'") => `current_date + 30, 'https://example.org/apply', 25000, ${causes}`
+
+    expect((await call(STAFF, ORG_1, ok, vals())).error).toMatch(/only foundations post open calls/)
+    expect((await call(FUNDER, FOUNDATION, "call_apply_url", "'https://example.org/apply'")).error).toMatch(/open_call_fields/)
+    expect((await call(FUNDER, FOUNDATION, "call_deadline, call_apply_url", "current_date + 30, 'ftp://x'")).error).toMatch(/check constraint/)
+    expect((await call(FUNDER, FOUNDATION, ok, vals("'{hunger,not-a-cause}'"))).error).toMatch(/unknown cause/)
+    expect((await call(FUNDER, FOUNDATION, ok, vals())).error).toBeUndefined()
+  })
+
+  it("F-039: ordinary posts can't carry open-call fields", async () => {
+    const res = await t.as(STAFF, `insert into posts (org_id, author_id, body, call_deadline) values ('${ORG_1}', '${STAFF}', 'x', current_date)`)
+    expect(res.error).toMatch(/open_call_fields/)
+  })
+})
+

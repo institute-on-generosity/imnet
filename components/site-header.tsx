@@ -38,6 +38,7 @@ export async function SiteHeader() {
                 items={[
                   { href: "/", label: "Home", icon: "home", exact: true },
                   { href: "/following", label: "Following", icon: "following" },
+                  { href: "/calls", label: "Open calls", icon: "calls" },
                   { href: "/dashboard", label: "For nonprofits", icon: "nonprofits" },
                   ...(handle ? [{ href: `/u/${handle}`, label: "Me", icon: "me" as const, exact: true }] : []),
                 ]}

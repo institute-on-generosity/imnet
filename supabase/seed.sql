@@ -125,7 +125,7 @@ insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, b
    array['USDAgov, public domain, via Wikimedia Commons']::text[], true,
    now() - interval '1 day 12 hours'),
   ('00000000-0000-4000-a000-000000000005', 'update',
-   'Spring grant applications open November 1. Small nonprofits without a grant writer: tell us, and we''ll pair you with a volunteer who has written one before.',
+   'Our grants committee is 11 neighbors, not a boardroom. Meet them at the library on Thursday evenings this month.',
    '{}'::text[], '{}'::text[], '{}'::text[], false,
    now() - interval '10 days');
 
@@ -169,3 +169,30 @@ insert into follows (user_id, org_id, supporter) values
 insert into profile_causes (user_id, cause_slug) values
   ('00000000-0000-4000-b000-000000000001', 'hunger'),
   ('00000000-0000-4000-b000-000000000001', 'education');
+
+-- A second foundation, so Harbor Table shows as co-funded.
+insert into orgs (id, slug, name, ein, website, mission, what_gifts_fund, status, org_type) values
+  ('00000000-0000-4000-a000-000000000006', 'riverside-family-foundation', 'Riverside Family Foundation (Demo)', '00-0000006',
+   'https://example.org/riverside',
+   'A family foundation funding food security and early literacy along the river valley.',
+   'Gifts become small, fast grants: most decisions in under three weeks.',
+   'verified', 'foundation');
+insert into org_causes (org_id, cause_slug) values
+  ('00000000-0000-4000-a000-000000000006', 'hunger'),
+  ('00000000-0000-4000-a000-000000000006', 'education'),
+  ('00000000-0000-4000-a000-000000000006', 'youth');
+insert into grants (foundation_id, grantee_id, amount_usd, purpose, awarded_on, confirmed_at) values
+  ('00000000-0000-4000-a000-000000000006', '00000000-0000-4000-a000-000000000001', 10000, 'Fresh produce program', current_date - 40, now() - interval '35 days');
+
+-- Open calls: one open, one closing soon, one closed (shown on its post, hidden from /calls).
+insert into posts (org_id, kind, body, call_deadline, call_apply_url, call_max_award, call_causes, created_at) values
+  ('00000000-0000-4000-a000-000000000005', 'open_call',
+   'Spring Community Fund grants are open. Small nonprofits without a grant writer: tell us, and we''ll pair you with a volunteer who has written one before.',
+   current_date + 30, 'https://example.org/lakeshore/apply', 25000, '{hunger,housing,education,environment}', now() - interval '5 days'),
+  ('00000000-0000-4000-a000-000000000006', 'open_call',
+   'Youth reading micro-grants: up to $5,000 for programs that put books in kids'' hands this winter. Two-page application.',
+   current_date + 6, 'https://example.org/riverside/reading-grants', 5000, '{education,youth}', now() - interval '4 days'),
+  ('00000000-0000-4000-a000-000000000006', 'open_call',
+   'Summer meals grants for programs feeding kids while school is out.',
+   current_date - 5, 'https://example.org/riverside/summer-meals', 15000, '{hunger}', now() - interval '60 days');
+

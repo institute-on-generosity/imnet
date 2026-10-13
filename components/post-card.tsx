@@ -5,6 +5,7 @@ import { ExpandableText } from "./expandable-text"
 import { GrantChips } from "./grant-chips"
 import { GrantReportBanner } from "./grant-report-banner"
 import { MovedButton } from "./moved-button"
+import { OpenCallBlock } from "./open-call-block"
 import { OrgMark } from "./org-mark"
 import { OrgTypeBadge } from "./org-type-badge"
 import { PostKindLabel } from "./post-kind"
@@ -57,6 +58,7 @@ export function PostCard({ post, full = false, moved = false, signedIn = false, 
         )}
       </div>
 
+      {post.kind === "open_call" && <OpenCallBlock post={post} />}
       <PostMedia post={post} />
       <GrantChips grants={grants} />
 

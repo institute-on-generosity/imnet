@@ -1,31 +1,34 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 import { createPost } from "@/app/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { formatUsd } from "@/lib/grants"
-import type { Grant, OrgType } from "@/lib/types"
+import type { Cause, Grant, OrgType, PostKind } from "@/lib/types"
 import { GranteePicker } from "./grantee-picker"
 import { ImagePicker } from "./image-picker"
 
-type ComposerProps = { orgId: string; orgType?: OrgType; reportableGrants?: Grant[]; reportOn?: string }
+type ComposerProps = { orgId: string; orgType?: OrgType; reportableGrants?: Grant[]; reportOn?: string; causes?: Cause[] }
 
-export function Composer({ orgId, orgType = "nonprofit", reportableGrants = [], reportOn }: ComposerProps) {
+export function Composer({ orgId, orgType = "nonprofit", reportableGrants = [], reportOn, causes = [] }: ComposerProps) {
   const [state, action, pending] = useActionState(createPost.bind(null, orgId), null)
   const v = state?.values
+  const [kind, setKind] = useState<PostKind>((v?.kind as PostKind) ?? "impact_story")
   return (
     <form action={action} className="space-y-3">
       <div className="space-y-1">
         <Label htmlFor="kind">Type</Label>
-        <select id="kind" name="kind" defaultValue={v?.kind ?? "impact_story"} key={v?.kind} className="h-8 w-full rounded-lg border bg-background px-2 text-sm">
+        <select id="kind" name="kind" value={kind} onChange={(e) => setKind(e.target.value as PostKind)} className="h-8 w-full rounded-lg border bg-background px-2 text-sm">
           <option value="impact_story">Impact story</option>
           <option value="update">Update</option>
           <option value="ask">Ask</option>
+          {orgType === "foundation" && <option value="open_call">Open call (invite applications)</option>}
         </select>
       </div>
+      {kind === "open_call" && <OpenCallFields causes={causes} v={v} />}
       <div className="space-y-1">
         <Label htmlFor="body">What happened?</Label>
         <Textarea id="body" name="body" rows={5} required defaultValue={v?.body} placeholder="Share progress, told with dignity. Use first names only with consent." />
@@ -75,3 +78,38 @@ export function Composer({ orgId, orgType = "nonprofit", reportableGrants = [], 
     </form>
   )
 }
+
+// Apply-by date, link to the application, optional max award, eligible causes.
+function OpenCallFields({ causes, v }: { causes: Cause[]; v?: Record<string, string> }) {
+  return (
+    <fieldset className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+      <legend className="px-1 text-sm font-medium">Open call details</legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1">
+          <Label htmlFor="call_deadline">Apply by</Label>
+          <Input id="call_deadline" name="call_deadline" type="date" required min={new Date().toISOString().slice(0, 10)} defaultValue={v?.call_deadline} />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="call_max_award">Maximum award (optional)</Label>
+          <Input id="call_max_award" name="call_max_award" inputMode="numeric" placeholder="e.g. 25000" defaultValue={v?.call_max_award} />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="call_apply_url">Application link</Label>
+        <Input id="call_apply_url" name="call_apply_url" type="url" required placeholder="https://your-foundation.org/apply" defaultValue={v?.call_apply_url} />
+      </div>
+      <fieldset className="space-y-1">
+        <legend className="text-sm">Eligible causes (none checked = open to all)</legend>
+        <div className="flex flex-wrap gap-3">
+          {causes.map((c) => (
+            <label key={c.slug} className="flex items-center gap-1.5 text-sm">
+              <input type="checkbox" name="call_causes" value={c.slug} />
+              {c.name}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    </fieldset>
+  )
+}
+

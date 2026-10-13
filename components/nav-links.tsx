@@ -1,13 +1,13 @@
 "use client"
 
-import { Building2, House, UserRound, Users } from "lucide-react"
+import { Building2, House, Megaphone, UserRound, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 // exact: only the href itself is "current"; otherwise any path under it.
-type Item = { href: string; label: string; icon: "home" | "following" | "nonprofits" | "me"; exact?: boolean }
-const ICONS = { home: House, following: Users, nonprofits: Building2, me: UserRound }
+type Item = { href: string; label: string; icon: "home" | "following" | "calls" | "nonprofits" | "me"; exact?: boolean }
+const ICONS = { home: House, following: Users, calls: Megaphone, nonprofits: Building2, me: UserRound }
 
 // Icon-over-label nav with an underline on the current page, as on LinkedIn.
 export function NavLinks({ items }: { items: Item[] }) {

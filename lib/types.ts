@@ -1,6 +1,6 @@
 // Hand-written row shapes for Phase I. Replace with `npm run db:types` output once linked.
 
-export type PostKind = "update" | "impact_story" | "ask"
+export type PostKind = "update" | "impact_story" | "ask" | "open_call"
 export type OrgType = "nonprofit" | "foundation"
 
 export type OrgSummary = {
@@ -38,6 +38,11 @@ export type Post = {
   org: OrgSummary
   // Set when this post is a grantee's report on a confirmed grant (hidden if the grant isn't visible).
   report_grant: ReportGrant | null
+  // Open calls only (foundations): apply-by date, external apply link, optional max award, eligible causes.
+  call_deadline: string | null
+  call_apply_url: string | null
+  call_max_award: number | null
+  call_causes: string[]
 }
 
 export type ReportGrant = { id: string; amount_usd: number | null; purpose: string | null; foundation: OrgSummary }
@@ -59,6 +64,7 @@ export const POST_KIND_LABEL: Record<PostKind, string> = {
   update: "Update",
   impact_story: "Impact story",
   ask: "Ask",
+  open_call: "Open call",
 }
 
 // A foundation's grant to a nonprofit. Public only once the nonprofit confirms it.

@@ -24,6 +24,7 @@ Domain language for imnet. Use these terms in code, docs and UI. Table names in 
   - **Update**: news or progress.
   - **Impact story**: what giving made possible.
   - **Ask**: a specific need.
+  - **Open call**: a foundation's invitation to apply for grants (apply-by date, link to the foundation's own application, optional max award, eligible causes). Foundations only.
 - **Embed**: a YouTube, Vimeo or Instagram video attached to a post. Only those providers are allowed (`lib/embeds.ts`).
 - **Consent**: staff confirm anyone identifiable has agreed to be shown. Posts with images require it.
 - **Feed**: a list of posts, newest first. Never ranked by engagement.
@@ -43,6 +44,7 @@ Domain language for imnet. Use these terms in code, docs and UI. Table names in 
 ## Giving
 - **Grant**: money a foundation gives a nonprofit (`grants`). The foundation records it, optionally tagged on a post; the nonprofit **confirms** it. Only confirmed grants are public.
 - **Grant report**: a nonprofit's post about what a confirmed grant made possible (`posts.reports_grant_id`). Shown with a banner on the post and as the latest report on the foundation's Grantees list.
+- **Backers / co-funded**: the foundations behind a nonprofit, from its confirmed grants. Two or more = co-funded.
 - **Funded by / Grantees**: a nonprofit's confirmed grants by funder / a foundation's confirmed grants by recipient. Totals are computed from grants, never typed in.
 - **Donate**: handled by Every.org (`orgs.everyorg_slug`). imnet never touches money.
 
@@ -110,6 +112,8 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-036 Grant reports.** A nonprofit can mark a post as its report on a confirmed grant it received (composer: "This post reports on a grant"). The post shows a "Grant report for <foundation>" banner linking to the foundation; the foundation's Grantees list shows each grantee's latest report; the announcement post marks grants with "Report posted". The nonprofit's dashboard lists confirmed grants without a report ("Share how your grants are going") with a one-click "Write a report". The database only accepts reports on confirmed grants the posting org received. Test: `supabase/tests/rls.test.ts`, `e2e/public.spec.ts`, `e2e/signed-in.spec.ts`
 - **F-037 Foundation portfolio.** Foundations have a Portfolio tab: grant reports from the nonprofits they fund. Following a foundation adds its portfolio to your Following feed; posts you see only because of that carry a "From the portfolio of <foundation>, which you follow" line. Nonprofits have no Portfolio tab (`?tab=portfolio` shows Home). Test: `lib/portfolio.test.ts`, `lib/org-tabs.test.ts`, `e2e/public.spec.ts`, `e2e/signed-in.spec.ts`
 - **F-038 What my giving became.** On an org you follow, a toggle shows it on your public profile ("I give through this fund" for foundations, "I support this nonprofit" otherwise; self-reported). A donor's profile then lists, per fund, its confirmed grants and each grantee's latest report, with a note that funds are pooled. Visitors see it in the third person. Demo donor: `/u/dana_demo`. Test: `e2e/signed-in.spec.ts`
+- **F-039 Open calls.** Foundations can post an Open call: apply-by date, application link (http/https, imnet links out), optional maximum award, eligible causes (none = all). The post shows Open / Closing soon (last 7 days, deadline day included) / Closed, with an Apply button until it closes. `/calls` (nav: Open calls) lists calls still open, soonest deadline first, with a cause filter. Nonprofit dashboards show "Open calls for your causes". The database allows open calls only from foundations, requires deadline and link, rejects unknown causes, and keeps call fields off other posts. Test: `supabase/tests/rls.test.ts`, `lib/open-calls.test.ts`, `lib/open-call-fields.test.ts`, `e2e/public.spec.ts`, `e2e/signed-in.spec.ts`
+- **F-040 Co-funded badges.** Nonprofit profiles show the foundations behind them, from confirmed grants only: stacked logos plus "Backed by X", "Co-funded by X and Y" or "Co-funded by X and N other foundations", largest total first. Demo: Harbor Table (Lakeshore + Riverside). Test: `lib/grants.test.ts`, `e2e/public.spec.ts`
 
 ### Fixes
 

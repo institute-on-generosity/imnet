@@ -110,6 +110,34 @@ test("F-037: a foundation's Portfolio tab shows its grantees' reports; nonprofit
   await expect(page.getByRole("heading", { name: "Recent posts" })).toBeVisible()
 })
 
+test("F-039: /calls lists open calls soonest deadline first; closed calls drop off but say Closed on their post", async ({ page }) => {
+  await page.goto("/calls")
+  const text = await page.locator("main").innerText()
+  expect(text.indexOf("Youth reading micro-grants")).toBeGreaterThan(-1)
+  expect(text.indexOf("Youth reading micro-grants")).toBeLessThan(text.indexOf("Spring Community Fund grants are open"))
+  await expect(page.getByText("Summer meals grants")).toHaveCount(0)
+
+  const youth = page.locator("section").filter({ hasText: "Youth reading micro-grants" })
+  await expect(youth.getByText("Closing soon")).toBeVisible()
+  await expect(youth.getByRole("link", { name: "Apply" })).toHaveAttribute("href", "https://example.org/riverside/reading-grants")
+
+  await page.goto("/calls?cause=housing")
+  await expect(page.getByText("Spring Community Fund grants are open")).toBeVisible()
+  await expect(page.getByText("Youth reading micro-grants")).toHaveCount(0)
+
+  await page.goto("/o/riverside-family-foundation?tab=posts")
+  const closed = page.locator("section").filter({ hasText: "Summer meals grants" })
+  await expect(closed.getByText("Closed", { exact: true })).toBeVisible()
+  await expect(closed.getByRole("link", { name: "Apply" })).toHaveCount(0)
+})
+
+test("F-040: a nonprofit funded by two foundations shows as co-funded", async ({ page }) => {
+  await page.goto("/o/harbor-table")
+  await expect(page.getByRole("link", { name: /Co-funded by Lakeshore Community Foundation \(Demo\) and Riverside Family Foundation \(Demo\)/ })).toBeVisible()
+  await page.goto("/o/riverbend-readers")
+  await expect(page.getByRole("link", { name: /Backed by Lakeshore Community Foundation/ })).toBeVisible()
+})
+
 test("F-003 / F-024 / F-021: org profile tabs and footnoted impact stats", async ({ page }) => {
   await page.goto("/o/open-door-homes")
   await expect(page.getByRole("heading", { name: "Open Door Homes (Demo)" })).toBeVisible()

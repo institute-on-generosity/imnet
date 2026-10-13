@@ -203,6 +203,31 @@ test("F-038: 'I give through this fund' shows what that giving became on the don
   await anon.close()
 })
 
+test("F-039: a foundation posts an open call; matching nonprofits see it on their dashboard", async () => {
+  const FOUNDATION = "00000000-0000-4000-a000-000000000005"
+  await page.goto(`/dashboard/${FOUNDATION}`)
+  await page.getByLabel("Type").selectOption("open_call")
+  await page.getByLabel("What happened?").fill(`Kitchen equipment grants for neighborhood meal programs. Call ${id}.`)
+  const deadline = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
+  await page.getByLabel("Apply by").fill(deadline)
+  await page.getByLabel("Maximum award (optional)").fill("12,000")
+  await page.getByLabel("Application link").fill("https://example.org/lakeshore/kitchens")
+  await page.locator('input[name="call_causes"][value="hunger"]').check()
+  await page.getByRole("button", { name: "Post", exact: true }).click()
+  await expect(page.getByText("Posted.")).toBeVisible()
+
+  await page.goto("/calls?cause=hunger")
+  const call = page.locator("section").filter({ hasText: `Call ${id}` })
+  await expect(call.getByText("Up to $12,000")).toBeVisible()
+
+  // A hunger nonprofit sees it in "Open calls for your causes".
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  await sql`insert into org_causes (org_id, cause_slug) values (${kitchen.id}, 'hunger') on conflict do nothing`
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await expect(page.getByRole("heading", { name: "Open calls for your causes" })).toBeVisible()
+  await expect(page.getByText(`Call ${id}`)).toBeVisible()
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

@@ -8,6 +8,8 @@ import { toEmbed } from "@/lib/embeds"
 import { formValues } from "@/lib/form-values"
 import { validateImages } from "@/lib/post-images"
 import { parseGrantFields } from "@/lib/grants"
+import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
+import { todayISO } from "@/lib/open-calls"
 import { escapeLike } from "@/lib/search"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
@@ -146,7 +148,7 @@ export async function updateOrg(orgId: string, _: ActionState, form: FormData): 
 }
 
 const PostSchema = z.object({
-  kind: z.enum(["update", "impact_story", "ask"]),
+  kind: z.enum(["update", "impact_story", "ask", "open_call"]),
   body: z.string().trim().min(1).max(5000),
   embed: z.string().optional(),
 })
@@ -175,6 +177,21 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
   )
   if ("error" in grantFields) return fail(form, grantFields.error)
 
+  let call: CallFields | Record<string, never> = {}
+  if (parsed.data.kind === "open_call") {
+    const parsedCall = parseCallFields(
+      {
+        deadline: String(form.get("call_deadline") ?? ""),
+        applyUrl: String(form.get("call_apply_url") ?? ""),
+        maxAward: String(form.get("call_max_award") ?? ""),
+        causes: form.getAll("call_causes").map(String),
+      },
+      todayISO(),
+    )
+    if ("error" in parsedCall) return fail(form, parsedCall.error)
+    call = parsedCall.fields
+  }
+
   const reportsGrant = String(form.get("reports_grant_id") ?? "")
   if (reportsGrant && !/^[0-9a-f-]{36}$/.test(reportsGrant)) return fail(form, "Pick a grant from the list.")
 
@@ -191,6 +208,7 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
       image_alts: images.alts,
       beneficiary_consent: consent,
       reports_grant_id: reportsGrant || null,
+      ...call,
     })
     .select("id")
     .single()

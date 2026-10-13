@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatUsd, grantTotals, parseGrantFields } from "./grants"
+import { backers, backersLabel, formatUsd, grantTotals, parseGrantFields } from "./grants"
 
 const A = "00000000-0000-4000-a000-000000000001"
 const B = "00000000-0000-4000-a000-000000000003"
@@ -40,3 +40,21 @@ describe("grants helpers", () => {
     expect(formatUsd(1_200_000)).toBe("$1.2M")
   })
 })
+
+describe("backers", () => {
+  const f = (id: string, name: string) => ({ id, slug: id, name, logo_url: null, org_type: "foundation" as const })
+  it("F-040: distinct foundations, largest total first, with a readable label", () => {
+    const lake = f("l", "Lakeshore"), river = f("r", "Riverside")
+    const list = backers([
+      { amount_usd: 5000, foundation: river },
+      { amount_usd: 25000, foundation: lake },
+      { amount_usd: 10000, foundation: river },
+    ])
+    expect(list.map((x) => x.name)).toEqual(["Lakeshore", "Riverside"])
+    expect(backersLabel([])).toBe("")
+    expect(backersLabel(["Lakeshore"])).toBe("Backed by Lakeshore")
+    expect(backersLabel(["Lakeshore", "Riverside"])).toBe("Co-funded by Lakeshore and Riverside")
+    expect(backersLabel(["A", "B", "C"])).toBe("Co-funded by A and 2 other foundations")
+  })
+})
+

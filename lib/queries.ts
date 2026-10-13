@@ -1,9 +1,10 @@
+import { cache } from "react"
 import { escapeLike } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
 import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
 
 const PAGE_SIZE = 20
-const POST_FIELDS = `id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at,
+const POST_FIELDS = `id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at, call_deadline, call_apply_url, call_max_award, call_causes,
   report_grant:grants!posts_reports_grant_id_fkey(id, amount_usd, purpose, foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type))`
 
 // Chronological, no engagement ranking (design principle #4).
@@ -33,11 +34,12 @@ export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType
   return (data ?? []) as unknown as Post[]
 }
 
-export async function getCauses(): Promise<Cause[]> {
+// Cached per request: many components need cause names.
+export const getCauses = cache(async (): Promise<Cause[]> => {
   const supabase = await createClient()
   const { data } = await supabase.from("causes").select("slug, name").order("name")
   return data ?? []
-}
+})
 
 export async function getOrgBySlug(slug: string) {
   const supabase = await createClient()
@@ -269,5 +271,22 @@ export async function getFollow(userId: string | null, orgId: string) {
   const supabase = await createClient()
   const { data } = await supabase.from("follows").select("supporter").match({ user_id: userId, org_id: orgId }).maybeSingle()
   return { following: !!data, supporter: !!data?.supporter }
+}
+
+// Open calls still accepting applications, soonest deadline first (not engagement-ranked).
+// causes: only calls open to at least one of these causes (calls with no causes listed are open to all).
+export async function getOpenCalls(opts: { causes?: string[]; limit?: number } = {}): Promise<Post[]> {
+  const supabase = await createClient()
+  let query = supabase
+    .from("posts")
+    .select(`${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type)`)
+    .eq("published", true)
+    .eq("kind", "open_call")
+    .gte("call_deadline", new Date().toISOString().slice(0, 10))
+    .order("call_deadline", { ascending: true })
+    .limit(opts.limit ?? 50)
+  if (opts.causes?.length) query = query.or(`call_causes.ov.{${opts.causes.join(",")}},call_causes.eq.{}`)
+  const { data } = await query
+  return (data ?? []) as unknown as Post[]
 }
 

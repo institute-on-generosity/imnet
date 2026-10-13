@@ -1,12 +1,13 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCauses, getGrantsNeedingReport, getGrantsToConfirm, getOrgEventCounts, getReportableGrants } from "@/lib/queries"
+import { getCauses, getGrantsNeedingReport, getGrantsToConfirm, getOpenCalls, getOrgEventCounts, getReportableGrants } from "@/lib/queries"
 import type { Org } from "@/lib/types"
 import { createClient, getUserId } from "@/lib/supabase/server"
 import { Composer } from "./composer"
 import { GrantsNeedingReport } from "./grants-needing-report"
 import { GrantsToConfirm } from "./grants-to-confirm"
+import { OpenCallsForYou } from "./open-calls-for-you"
 import { ProfileForm } from "./profile-form"
 
 export default async function OrgDashboardPage({ params, searchParams }: PageProps<"/dashboard/[orgId]">) {
@@ -43,6 +44,9 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
 
       {org.org_type === "nonprofit" && <GrantsToConfirm orgId={org.id} grants={await getGrantsToConfirm(org.id)} />}
       {org.org_type === "nonprofit" && <GrantsNeedingReport orgId={org.id} grants={await getGrantsNeedingReport(org.id)} />}
+      {org.org_type === "nonprofit" && (orgCauses ?? []).length > 0 && (
+        <OpenCallsForYou calls={await getOpenCalls({ causes: (orgCauses ?? []).map((c) => c.cause_slug), limit: 5 })} />
+      )}
 
       <Card id="composer" className="scroll-mt-20">
         <CardHeader><CardTitle>New post</CardTitle></CardHeader>
@@ -52,6 +56,7 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
             orgType={org.org_type}
             reportableGrants={org.org_type === "nonprofit" ? await getReportableGrants(org.id) : []}
             reportOn={typeof report === "string" ? report : undefined}
+            causes={causes}
           />
         </CardContent>
       </Card>

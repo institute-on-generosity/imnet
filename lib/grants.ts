@@ -33,3 +33,23 @@ export function parseGrantFields(ids: string[], amounts: string[], purposes: str
   }
   return { grants }
 }
+
+// Foundations backing a nonprofit (from its confirmed grants), largest total first.
+export function backers(grants: Pick<Grant, "amount_usd" | "foundation">[]) {
+  const byId = new Map<string, { foundation: Grant["foundation"]; total: number }>()
+  for (const g of grants) {
+    const entry = byId.get(g.foundation.id) ?? { foundation: g.foundation, total: 0 }
+    entry.total += g.amount_usd ?? 0
+    byId.set(g.foundation.id, entry)
+  }
+  return [...byId.values()].sort((a, b) => b.total - a.total || a.foundation.name.localeCompare(b.foundation.name)).map((e) => e.foundation)
+}
+
+// "Backed by Lakeshore" / "Co-funded by Lakeshore and Riverside" / "Co-funded by Lakeshore and 2 other foundations"
+export function backersLabel(names: string[]) {
+  if (names.length === 0) return ""
+  if (names.length === 1) return `Backed by ${names[0]}`
+  if (names.length === 2) return `Co-funded by ${names[0]} and ${names[1]}`
+  return `Co-funded by ${names[0]} and ${names.length - 1} other foundations`
+}
+
