@@ -237,3 +237,20 @@ test("F-051: a profile lists current needs with a way to help; met needs say so"
   // Signed-out visitors can't send thank-you notes.
   await expect(page.getByRole("button", { name: "Send a thank-you note" })).toHaveCount(0)
 })
+
+test("F-054: Ways to help lists open needs across orgs, filters by cause, and appears on Home", async ({ page }) => {
+  await page.goto("/needs")
+  await expect(page.getByRole("heading", { name: "Ways to help" })).toBeVisible()
+  await expect(page.getByRole("link", { name: "Help with Saturday dinner crew" })).toBeVisible()
+  await expect(page.getByText("Walk-in cooler repair")).toHaveCount(0) // met needs drop off
+
+  await page.goto("/needs?cause=animals")
+  await expect(page.getByRole("link", { name: "Help with Blankets and towels" })).toBeVisible()
+  await expect(page.getByRole("link", { name: "Help with Saturday dinner crew" })).toHaveCount(0)
+
+  await page.goto("/")
+  const side = page.getByRole("region", { name: "Ways to help" })
+  await expect(side.getByRole("link", { name: /^Help with / })).toHaveCount(3)
+  await side.getByRole("link", { name: "See all needs" }).click()
+  await expect(page).toHaveURL(/\/needs$/)
+})

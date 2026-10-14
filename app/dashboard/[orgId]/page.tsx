@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCauses, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgEventCounts, getOrgNeeds, getReportableGrants, getThanks } from "@/lib/queries"
+import { getCauses, getGrantsAwaitingReport, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgEventCounts, getOrgNeeds, getReportableGrants, getThanks } from "@/lib/queries"
 import type { ImpactStat, Org } from "@/lib/types"
 import { createClient, getUserId } from "@/lib/supabase/server"
 import { Composer } from "./composer"
@@ -10,6 +10,7 @@ import { NeedsEditor } from "./needs-editor"
 import { ThanksCard } from "./thanks-card"
 import { PostManager } from "./post-manager"
 import { TeamCard } from "./team-card"
+import { GrantsAwaitingReport } from "./grants-awaiting-report"
 import { GrantsNeedingReport } from "./grants-needing-report"
 import { GrantsToConfirm } from "./grants-to-confirm"
 import { OpenCallsForYou } from "./open-calls-for-you"
@@ -47,6 +48,7 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
         <Stat label="Donate clicks (30d)" value={counts.donate_click} />
       </section>
 
+      {org.org_type === "foundation" && <GrantsAwaitingReport grants={await getGrantsAwaitingReport(org.id)} />}
       {org.org_type === "nonprofit" && <GrantsToConfirm orgId={org.id} grants={await getGrantsToConfirm(org.id)} />}
       {org.org_type === "nonprofit" && <GrantsNeedingReport orgId={org.id} grants={await getGrantsNeedingReport(org.id)} />}
       {org.org_type === "nonprofit" && (orgCauses ?? []).length > 0 && (

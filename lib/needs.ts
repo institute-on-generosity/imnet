@@ -28,3 +28,5 @@ export type Need = { id: string; kind: NeedKind; title: string; detail: string |
 
 // Recently met needs stay up for a month: proof that asking works.
 export const MET_SHOWN_DAYS = 30
+
+export type NeedWithOrg = Need & { org: { id: string; slug: string; name: string; logo_url: string | null; org_type: "nonprofit" | "foundation" } }

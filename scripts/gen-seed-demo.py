@@ -9,6 +9,10 @@ Photos are openly licensed (supabase/seed-images/CREDITS.md). Re-run after editi
 import json
 import os
 import random
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import demo_more_orgs as more  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "supabase", "seed_demo.sql")
@@ -233,6 +237,96 @@ for n in ALL_ORGS:
         out.append(f"insert into org_members (org_id, user_id) values ('{oid(n)}', '{uid}') on conflict do nothing;")
 out.append("")
 
+# --- Thirty more organizations (scripts/demo_more_orgs.py) and 280 more people -------------
+# A separate random stream, so the data above stays identical when this part changes.
+r2 = random.Random(20261015)
+out.append("insert into orgs (id, slug, name, ein, website, mission, what_gifts_fund, status, org_type, logo_url) values")
+out.append(",\n".join(
+    f"  ('{oid(n)}', '{slug}', {q(name)}, '00-00000{n:02d}', 'https://example.org/{slug}', {q(mission)}, {q(funds)}, 'verified', '{typ}', '{oid(n)}/logo.png')"
+    for n, slug, name, typ, _, mission, funds, *_ in more.ORGS) + ";")
+out.append("insert into org_causes (org_id, cause_slug) values")
+out.append(",\n".join(f"  ('{oid(o[0])}', '{c}')" for o in more.ORGS for c in o[4]) + ";")
+out.append("insert into impact_stats (org_id, label, value, source_url, as_of, sort) values")
+out.append(",\n".join(
+    f"  ('{oid(o[0])}', {q(label)}, {q(value)}, 'https://example.org/{o[1]}/report-2026', '2026-09-01', {i})"
+    for o in more.ORGS for i, (label, value) in enumerate(o[7])) + ";")
+out.append("insert into posts (org_id, kind, body, created_at) values")
+out.append(",\n".join(
+    f"  ('{oid(o[0])}', '{kind}', {q(body)}, now() - interval '{days * 24:.0f} hours')"
+    for o in more.ORGS for kind, body, days in o[8]) + ";")
+out.append("insert into org_needs (org_id, kind, title, help_url, created_at) values")
+out.append(",\n".join(
+    f"  ('{oid(o[0])}', '{kind}', {q(title)}, {q(url if ':' in url else 'mailto:' + url)}, now() - interval '{r2.randint(1, 40)} days')"
+    for o in more.ORGS for kind, title, url in o[9]) + ";")
+for f, g, amount, purpose, days, report in more.GRANTS:
+    out.append(f"insert into grants (foundation_id, grantee_id, amount_usd, purpose, awarded_on, confirmed_at) values "
+               f"('{oid(f)}', '{oid(g)}', {amount}, {q(purpose)}, current_date - {days}, now() - interval '{days - 3} days');")
+    if report:
+        out.append(f"insert into posts (org_id, kind, body, reports_grant_id, created_at) select '{oid(g)}', 'impact_story', {q(report)}, id, "
+                   f"now() - interval '{max(days - 20, 2)} days' from grants where foundation_id = '{oid(f)}' and grantee_id = '{oid(g)}' and purpose = {q(purpose)};")
+for f, body, due, url, award, causes, days in more.OPEN_CALLS:
+    out.append(f"insert into posts (org_id, kind, body, call_deadline, call_apply_url, call_max_award, call_causes, created_at) values "
+               f"('{oid(f)}', 'open_call', {q(body)}, current_date + {due}, {q(url)}, {award}, '{{{','.join(causes)}}}', now() - interval '{days} days');")
+out.append("")
+
+MORE_IDS = [o[0] for o in more.ORGS]
+EVERY_ORG = ALL_ORGS + MORE_IDS
+BIOS2 = ["Nurse, runner, monthly donor.", "I give to the places I walk past every day.", "Board member at my kid's school. Literacy nerd.",
+         "Retired engineer. I volunteer Tuesdays and fund trees.", "Grew up on free lunch. Paying it back.", "Small business owner. 1% of sales to local groups.",
+         "Social worker. I see what these orgs do up close.", "Musician. Every kid deserves an instrument.", "New to the city, finding my people.",
+         "Foster mom to too many kittens.", "Coach, carpool driver, occasional donor.", "Library card holder since 1979.",
+         "Weekend creek cleaner.", "Learning to give with my kids: they pick one org each year.", "Doctor. Prevention is cheaper than cure.",
+         "Former refugee. Now I sponsor families.", "Renters' rights matter.", "Chef. Food waste makes me crazy.", None, None, None, None]
+FIRST2 = FIRST + ["Aaron", "Bea", "Cyrus", "Dalia", "Eli", "Farah", "Gus", "Hiro", "Ivy", "Jonah", "Kai", "Lena", "Milo", "Nia", "Oscar",
+                  "Pia", "Quinn", "Rami", "Selma", "Theo", "Uma", "Vera", "Wes", "Xena", "Yara", "Zeke", "Anya", "Bruno", "Celia", "Dev"]
+LAST2 = LAST + ["Abbott", "Banerjee", "Castillo", "Dubois", "Eze", "Fischer", "Goldberg", "Hale", "Iqbal", "Jensen", "Kaur", "Lindqvist",
+                "Mwangi", "Novak", "Oyelaran", "Park", "Quintero", "Ramos", "Sato", "Torres", "Usman", "Vance", "Walsh", "Yilmaz", "Zhou"]
+more_donors = []
+for i in range(120, 400):
+    first, last = r2.choice(FIRST2), r2.choice(LAST2)
+    handle = f"{first}_{last}".lower()
+    while handle in used:
+        handle = f"{first}_{last}{r2.randint(2, 99)}".lower()
+    used.add(handle)
+    uid = f"00000000-0000-4000-c000-{i:012d}"
+    more_donors.append(uid)
+    bio = r2.choice(BIOS2)
+    out.append(f"insert into auth.users (id, email, aud, role) values ('{uid}', '{handle}@example.com', 'authenticated', 'authenticated');")
+    out.append(f"update profiles set handle = '{handle}', display_name = {q(first + ' ' + last)}, bio = {q(bio) if bio else 'null'}, "
+               f"created_at = now() - interval '{r2.randint(5, 600)} days' where id = '{uid}';")
+    mine = r2.sample(CAUSES, r2.randint(1, 3))
+    for c in mine:
+        out.append(f"insert into profile_causes (user_id, cause_slug) values ('{uid}', '{c}');")
+    # People follow mostly within the causes they care about.
+    pool = [o for o in more.ORGS if set(o[4]) & set(mine)]
+    picks = {o[0] for o in r2.sample(pool, min(len(pool), r2.randint(2, 6)))} | set(r2.sample(EVERY_ORG, r2.randint(1, 4)))
+    for o in picks:
+        out.append(f"insert into follows (user_id, org_id, supporter) values ('{uid}', '{oid(o)}', {'true' if r2.random() < 0.3 else 'false'});")
+# Earlier donors discover some of the new orgs too.
+for uid in donors:
+    for o in r2.sample(MORE_IDS, r2.randint(0, 4)):
+        out.append(f"insert into follows (user_id, org_id, supporter) values ('{uid}', '{oid(o)}', {'true' if r2.random() < 0.25 else 'false'}) on conflict do nothing;")
+everyone = donors + more_donors
+for n in MORE_IDS:
+    for uid in r2.sample(more_donors, 2 if n % 3 == 0 else 1):
+        out.append(f"insert into org_members (org_id, user_id) values ('{oid(n)}', '{uid}') on conflict do nothing;")
+
+# Thank-you notes and private gift logs from many people
+NOTES = ["Thank you for showing up every week. It matters.", "I saw your volunteers in the rain on Saturday. Inspiring.",
+         "You helped my neighbor when no one else would. Thank you.", "Keep posting these updates. I love seeing where my gift goes.",
+         "My son still talks about your program. Thank you for being there.", "Proud to give to you every month.",
+         "Your team made a hard week easier for our family.", "Thanks for treating everyone with so much dignity.",
+         "We moved away but still follow every post. Miss you all.", "Small gift, big thanks. Keep going."]
+for i in range(140):
+    out.append(f"insert into thanks (org_id, user_id, body, created_at) values ('{oid(r2.choice(EVERY_ORG))}', '{r2.choice(everyone)}', "
+               f"{q(r2.choice(NOTES))}, now() - interval '{r2.randint(1, 80)} days');")
+for uid in r2.sample(everyone, 150):
+    for _ in range(r2.randint(1, 6)):
+        note = r2.choice(["Monthly", "Year-end gift", "In memory of Grandma", "Matched by my employer", None, None, None])
+        out.append(f"insert into gifts (user_id, org_id, amount_usd, given_on, note) values ('{uid}', '{oid(r2.choice(EVERY_ORG))}', "
+                   f"{r2.choice([10, 20, 25, 25, 50, 50, 100, 100, 250, 500, 1000])}, current_date - {r2.randint(1, 500)}, {q(note) if note else 'null'});")
+out.append("")
+
 # Current needs (F-051): concrete asks, a few recently met
 NEEDS = [
     (1, "volunteer", "Saturday dinner crew", "Four-hour shifts, 3 to 7 pm. No experience needed.", "https://example.org/harbor-table/volunteer", None),
@@ -283,11 +377,11 @@ out.append("")
 out.append(f"""-- "Moved" and saves: random donors on random posts (private; only totals show to staff).
 insert into moved (user_id, post_id)
 select d.id, p.id from posts p cross join lateral (
-  select id from profiles where id::text like '00000000-0000-4000-c000-%' order by md5(id::text || p.id::text) limit (abs(hashtext(p.id::text)) % 28)
+  select id from profiles where id::text like '00000000-0000-4000-c000-%' order by md5(id::text || p.id::text) limit (abs(hashtext(p.id::text)) % 70)
 ) d on conflict do nothing;
 insert into saved_posts (user_id, post_id)
 select d.id, p.id from posts p cross join lateral (
-  select id from profiles where id::text like '00000000-0000-4000-c000-%' order by md5(p.id::text || id::text) limit (abs(hashtext(p.id::text || 's')) % 6)
+  select id from profiles where id::text like '00000000-0000-4000-c000-%' order by md5(p.id::text || id::text) limit (abs(hashtext(p.id::text || 's')) % 14)
 ) d on conflict do nothing;
 
 -- Views, shares and donate clicks over the last 30 days.
@@ -298,4 +392,5 @@ select (array['view','view','view','view','view','view','share','donate_click'])
 """)
 
 open(OUT, "w").write("\n".join(out) + "\n")
-print(f"wrote {os.path.relpath(OUT)}: {len(NEW_ORGS)} orgs, {len(POSTS)} posts, {len(GRANTS)} grants, {len(donors)} donors")
+print(f"wrote {os.path.relpath(OUT)}: {len(NEW_ORGS) + len(more.ORGS)} new orgs, {len(POSTS) + sum(len(o[8]) for o in more.ORGS)} posts, "
+      f"{len(GRANTS) + len(more.GRANTS)} grants, {len(donors) + len(more_donors)} donors")

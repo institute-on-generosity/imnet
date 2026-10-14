@@ -53,3 +53,11 @@ export function backersLabel(names: string[]) {
   return `Co-funded by ${names[0]} and ${others} ${others === 1 ? "other" : "others"}`
 }
 
+
+// "Awarded 3 months ago" for a grant's award date (whole calendar months, by ISO date).
+export function awardedAgo(awardedOn: string, today: string) {
+  const [y1, m1, d1] = awardedOn.split("-").map(Number)
+  const [y2, m2, d2] = today.split("-").map(Number)
+  const months = (y2 - y1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0)
+  return months < 1 ? "this month" : months === 1 ? "1 month ago" : `${months} months ago`
+}

@@ -4,9 +4,10 @@ import { decodeCursor } from "@/lib/cursor"
 import { feedHref } from "@/lib/feed-href"
 import { Feed } from "@/components/post-card"
 import { Panel, ThreeColumn } from "@/components/shell"
+import { WaysToHelp } from "@/components/needs-panel"
 import { JoinCard, SuggestedOrgs, ViewerCard } from "@/components/side-cards"
 import { portfolioContext } from "@/lib/portfolio"
-import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getGrantsForPosts, getMovedPostIds, getSavedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
+import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getGrantsForPosts, getMovedPostIds, getOpenNeeds, getSavedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
 import { createClient } from "@/lib/supabase/server"
 import { getUserId } from "@/lib/supabase/server"
 import type { OrgType } from "@/lib/types"
@@ -20,11 +21,12 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
   const orgIds = followingOnly && userId ? await getFollowedOrgIds(userId) : undefined
   // Following a foundation also brings in its grantees' grant reports (its portfolio).
   const reportGrantIds = orgIds?.length ? await getConfirmedGrantIds(await foundationsAmong(orgIds)) : []
-  const [viewer, causes, page, suggested] = await Promise.all([
+  const [viewer, causes, page, suggested, needs] = await Promise.all([
     getViewer(userId),
     getCauses(),
     orgIds && orgIds.length === 0 ? Promise.resolve({ posts: [], next: null }) : getFeedPage({ cause, orgIds, orgType, reportGrantIds, before: cursor ?? undefined }),
     getSuggestedOrgs({ userId, cause }),
+    getOpenNeeds({ cause, limit: 3 }),
   ])
   const { posts, next } = page
   const ids = posts.map((p) => p.id)
@@ -43,6 +45,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
       right={
         <div className="sticky top-20 space-y-3">
           <SuggestedOrgs title={cause ? "Organizations in this cause" : "Add to your feed"} orgs={suggested} signedIn={!!userId} />
+          <WaysToHelp needs={needs} cause={cause} />
           <p className="px-4 text-xs leading-relaxed text-muted-foreground">
             Newest first. Never ranked by popularity.
           </p>

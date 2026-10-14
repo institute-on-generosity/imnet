@@ -79,7 +79,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
             ) : (
               <Link href="/login" className={buttonVariants()}><Plus aria-hidden />Follow</Link>
             )}
-            {org.everyorg_slug && <DonateButton orgId={org.id} everyorgSlug={org.everyorg_slug} />}
+            {org.everyorg_slug && <DonateButton orgId={org.id} everyorgSlug={org.everyorg_slug} signedIn={signedIn} />}
             <ShareButton path={base} title={org.name} orgId={org.id} variant="pill" />
             {signedIn && follow.following && <SupporterToggle orgId={org.id} orgType={org.org_type} supporter={follow.supporter} />}
             {signedIn && <ThanksButton orgId={org.id} orgName={org.name} />}

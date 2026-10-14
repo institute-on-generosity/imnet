@@ -48,7 +48,7 @@ Everything runs on your machine: Postgres, auth, storage and a mail inbox for si
 | Studio (database UI) | http://127.0.0.1:54323 |
 | API | http://127.0.0.1:54321 |
 
-Reset the local database to the demo data: `npx supabase db reset && npx supabase seed buckets --local`. The demo network (15 orgs, ~60 posts, 120 people) comes from `supabase/seed.sql` plus the generated `supabase/seed_demo.sql` (`python3 scripts/gen-seed-demo.py`); set `NEXT_PUBLIC_DEMO=1` to show the "Demo data" banner. Stop everything: `npx supabase stop`.
+Reset the local database to the demo data: `npx supabase db reset && npx supabase seed buckets --local`. The demo network (45 orgs, ~130 posts, 400 people) comes from `supabase/seed.sql` plus the generated `supabase/seed_demo.sql` (`python3 scripts/gen-seed-demo.py`, orgs 16-45 in `scripts/demo_more_orgs.py`; logos via `node scripts/gen-logos.mjs`); set `NEXT_PUBLIC_DEMO=1` to show the "Demo data" banner. Stop everything: `npx supabase stop`.
 
 ## Scripts
 | Command | Does |

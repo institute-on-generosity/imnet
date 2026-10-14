@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { Panel, TwoColumn } from "@/components/shell"
 import { summarize } from "@/lib/gifts"
 import { formatUsd } from "@/lib/grants"
-import { getFollowedOrgs, getGifts } from "@/lib/queries"
+import { getFollowedOrgs, getGifts, getOrgName } from "@/lib/queries"
 import { todayISO } from "@/lib/open-calls"
 import { getUserId } from "@/lib/supabase/server"
 import { DeleteGift, GiftForm } from "./gift-form"
@@ -13,10 +13,13 @@ export const metadata = { title: "Giving journal" }
 const day = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 
 // Private record of what you gave. Nobody else sees it, including the orgs.
-export default async function GivingPage() {
+export default async function GivingPage({ searchParams }: PageProps<"/giving">) {
+  const { org } = await searchParams
   const userId = await getUserId()
-  if (!userId) redirect("/login?next=/giving")
-  const [gifts, orgs] = await Promise.all([getGifts(userId), getFollowedOrgs(userId)])
+  if (!userId) redirect(`/login?next=${encodeURIComponent(typeof org === "string" ? `/giving?org=${org}` : "/giving")}`)
+  const [gifts, followed, preselect] = await Promise.all([getGifts(userId), getFollowedOrgs(userId), typeof org === "string" ? getOrgName(org) : null])
+  // Coming from a Donate click: offer that org even if you don't follow it.
+  const orgs = preselect && !followed.some((o) => o.id === preselect.id) ? [preselect, ...followed] : followed
   const years = summarize(gifts)
 
   return (
@@ -31,7 +34,7 @@ export default async function GivingPage() {
         {orgs.length === 0 ? (
           <p className="text-sm text-muted-foreground">Follow an organization to log gifts to it. <Link href="/" className="text-leaf underline">Explore</Link></p>
         ) : (
-          <GiftForm orgs={orgs} today={todayISO()} />
+          <GiftForm orgs={orgs} today={todayISO()} preselect={preselect?.id} />
         )}
       </Panel>
 

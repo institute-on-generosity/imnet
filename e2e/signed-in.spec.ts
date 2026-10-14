@@ -426,6 +426,28 @@ test("F-052: log a gift in the private giving journal; totals by year; nobody el
   await anon.close()
 })
 
+test("F-055: after Donate, a quiet link logs the gift with the org preselected", async () => {
+  const [kitchen] = await sql`update orgs set everyorg_slug = ${`imnet-e2e-${id}`} where slug = ${slug} returning id`
+  await page.context().route("https://www.every.org/**", (r) => r.abort())
+  await page.goto(`/o/${slug}`)
+  const popup = page.waitForEvent("popup")
+  await page.getByRole("link", { name: "Donate" }).click()
+  await (await popup).close()
+  await page.getByRole("link", { name: "Gave? Log it" }).click()
+  await expect(page).toHaveURL(/\/giving\?org=/)
+  await expect(page.getByLabel("Organization", { exact: true })).toHaveValue(kitchen.id)
+})
+
+test("F-056: a foundation sees its confirmed grants with no report yet", async () => {
+  const FOUNDATION = "00000000-0000-4000-a000-000000000005"
+  await page.goto(`/dashboard/${FOUNDATION}`)
+  const card = page.locator("[data-slot=card]").filter({ has: page.getByText("Reports not yet posted") })
+  await expect(card.getByRole("link", { name: "Bridge Welcome Center" })).toBeVisible()
+  await expect(card.getByText(/Awarded \d+ months? ago|Awarded this month/).first()).toBeVisible()
+  // Kennel heaters already has a report, so Second Chance Paws isn't listed.
+  await expect(card.getByRole("link", { name: "Second Chance Paws" })).toHaveCount(0)
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

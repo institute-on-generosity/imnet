@@ -1,7 +1,7 @@
 import { cache } from "react"
 import { type Cursor, encodeCursor, olderThan } from "@/lib/cursor"
 import type { Gift } from "@/lib/gifts"
-import { MET_SHOWN_DAYS, type Need } from "@/lib/needs"
+import { MET_SHOWN_DAYS, type Need, type NeedWithOrg } from "@/lib/needs"
 import { escapeLike } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
 import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
@@ -379,4 +379,39 @@ export async function getFollowedOrgs(userId: string): Promise<{ id: string; nam
   const supabase = await createClient()
   const { data } = await supabase.from("follows").select("org:orgs!inner(id, name)").eq("user_id", userId)
   return ((data ?? []) as unknown as { org: { id: string; name: string } }[]).map((f) => f.org).sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// Open needs across the network, newest first (Ways to help). Optional cause filter on the org's causes.
+export async function getOpenNeeds(opts: { cause?: string; limit?: number } = {}): Promise<NeedWithOrg[]> {
+  const supabase = await createClient()
+  const causeJoin = opts.cause ? ", org_causes!inner(cause_slug)" : ""
+  let q = supabase
+    .from("org_needs")
+    .select(`id, kind, title, detail, help_url, met_at, created_at, org:orgs!inner(id, slug, name, logo_url, org_type${causeJoin})`)
+    .is("met_at", null)
+    .order("created_at", { ascending: false })
+    .limit(opts.limit ?? 50)
+  if (opts.cause) q = q.eq("org.org_causes.cause_slug", opts.cause)
+  const { data } = await q
+  return (data ?? []) as unknown as NeedWithOrg[]
+}
+
+// Confirmed grants a foundation gave that have no report yet, oldest first.
+export async function getGrantsAwaitingReport(foundationId: string): Promise<Grant[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("grants")
+    .select(GRANT_FIELDS)
+    .eq("foundation_id", foundationId)
+    .not("confirmed_at", "is", null)
+    .order("awarded_on", { ascending: true })
+  return ((data ?? []) as unknown as Grant[]).filter((g) => g.reports.length === 0)
+}
+
+// One org by id, for preselecting it in a form (visible orgs only, under RLS).
+export async function getOrgName(id: string): Promise<{ id: string; name: string } | null> {
+  if (!/^[0-9a-f-]{36}$/.test(id)) return null
+  const supabase = await createClient()
+  const { data } = await supabase.from("orgs").select("id, name").eq("id", id).maybeSingle()
+  return data
 }

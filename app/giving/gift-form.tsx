@@ -8,14 +8,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-export function GiftForm({ orgs, today }: { orgs: { id: string; name: string }[]; today: string }) {
+export function GiftForm({ orgs, today, preselect }: { orgs: { id: string; name: string }[]; today: string; preselect?: string }) {
   const [state, action, pending] = useActionState(addGift, null)
   const v = state?.values
   return (
     <form key={state?.id ?? "new"} action={action} className="grid gap-3 sm:grid-cols-[1fr_8rem_10rem]">
       <div className="space-y-1">
         <Label htmlFor="gift-org">Organization</Label>
-        <select id="gift-org" name="org_id" required defaultValue={v?.org_id ?? ""} className="h-8 w-full rounded-lg border bg-background px-2 text-sm">
+        <select id="gift-org" name="org_id" required defaultValue={v?.org_id ?? preselect ?? ""} className="h-8 w-full rounded-lg border bg-background px-2 text-sm">
           <option value="" disabled>Choose...</option>
           {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
         </select>
