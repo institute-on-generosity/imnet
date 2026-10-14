@@ -1,9 +1,7 @@
 import { BadgeCheck, CalendarDays, Globe, MapPin, Users } from "lucide-react"
 import Link from "@/components/intent-link"
 import { footnotes } from "@/lib/footnotes"
-import { formatUsd } from "@/lib/grants"
-import type { Grant, ImpactStat, Org, OrgSummary } from "@/lib/types"
-import { OrgMark } from "./org-mark"
+import type { ImpactStat, Org } from "@/lib/types"
 import { Panel } from "./shell"
 
 const host = (url: string) => new URL(url).hostname.replace(/^www\./, "")
@@ -41,34 +39,6 @@ export function ImpactCard({ stats, where = "rail" }: { stats: ImpactStat[]; whe
           </li>
         ))}
       </ol>
-    </Panel>
-  )
-}
-
-// Nonprofit: who funds them (confirmed grants), largest first. Details live on the About tab.
-export function FundersCard({ grants, slug, where = "rail" }: { grants: Grant[]; slug: string; where?: string }) {
-  if (grants.length === 0) return null
-  const byFunder = new Map<string, { org: OrgSummary; total: number }>()
-  for (const g of grants) {
-    const e = byFunder.get(g.foundation.id) ?? { org: g.foundation, total: 0 }
-    e.total += g.amount_usd ?? 0
-    byFunder.set(g.foundation.id, e)
-  }
-  const funders = [...byFunder.values()].sort((a, b) => b.total - a.total)
-  return (
-    <Panel aria-labelledby={`funders-${where}`} className="p-4">
-      <RailHeading id={`funders-${where}`}>Funded by</RailHeading>
-      <p className="text-xs text-muted-foreground">Confirmed grants</p>
-      <ul className="mt-3 space-y-2.5">
-        {funders.map(({ org, total }) => (
-          <li key={org.id} className="flex items-center gap-2.5">
-            <OrgMark org={org} size="sm" />
-            <Link href={`/o/${org.slug}`} className="min-w-0 flex-1 truncate text-sm font-medium hover:underline">{org.name}</Link>
-            {total > 0 && <span className="text-sm text-muted-foreground">{formatUsd(total)}</span>}
-          </li>
-        ))}
-      </ul>
-      <Link href={`/o/${slug}?tab=about`} className="mt-3 block text-sm font-semibold text-leaf hover:underline">See grant details</Link>
     </Panel>
   )
 }

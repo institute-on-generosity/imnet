@@ -74,8 +74,8 @@ test("F-034 / F-035: foundation posts link confirmed grantees; profiles show Fun
   await expect(page).toHaveURL(/\/o\/harbor-table$/)
 
   // Compact funders card beside the story; full details on About.
-  await expect(page.getByRole("heading", { name: "Funded by" })).toBeVisible()
-  await page.getByRole("link", { name: "See grant details" }).first().click()
+  await expect(page.getByRole("heading", { name: "Top supporters" }).first()).toBeVisible()
+  await page.getByRole("link", { name: "About", exact: true }).click()
   await expect(page.getByText("$25,000, New walk-in freezer")).toBeVisible()
 
   await page.goto("/o/lakeshore-community-foundation")
@@ -140,8 +140,8 @@ test("F-039: /calls lists open calls soonest deadline first; closed calls drop o
 test("F-040: a nonprofit funded by two foundations shows as co-funded", async ({ page }) => {
   await page.goto("/o/harbor-table")
   await expect(page.getByRole("link", { name: /Co-funded by Lakeshore Community Foundation and 1 other/ })).toBeVisible()
-  await expect(page.getByRole("heading", { name: "Funded by" })).toBeVisible()
   await page.goto("/o/harbor-table?tab=about")
+  await expect(page.getByRole("heading", { name: "Funded by" })).toBeVisible()
   await expect(page.getByText("$10,000, Fresh produce program")).toBeVisible()
   await page.goto("/o/riverbend-readers")
   await expect(page.getByRole("link", { name: /Backed by Lakeshore Community Foundation/ })).toBeVisible()
@@ -294,8 +294,7 @@ test("F-062 / F-063: LinkedIn-style posts: header, action bar, inline comments w
 
   // A post whose Author reply sits under one of the five newest threads (older ones are behind "Load more").
   const [post] = await sql`select r.post_id as id from comments r
-    join posts p on p.id = r.post_id
-   where p.org_id = ${"00000000-0000-4000-a000-000000000001"} and r.as_org and r.parent_id in (
+   where r.as_org and r.parent_id in (
      select t.id from comments t where t.post_id = r.post_id and t.parent_id is null order by t.created_at desc limit 5)
    order by r.post_id limit 1`
   await page.goto(`/p/${post.id}`)
@@ -411,4 +410,15 @@ test("F-076: an opted-in donor's profile shows total giving and the split by cau
   await expect(panel.getByText(/Self-reported/)).toBeVisible()
   // What their giving became no longer repeats grant reports.
   await expect(page.getByText(/Latest report/)).toHaveCount(0)
+})
+
+test("F-078: a nonprofit shows its top supporters: foundations by confirmed grants and opted-in donors, with amounts", async ({ page }) => {
+  await page.goto("/o/harbor-table")
+  const card = page.getByRole("region", { name: "Top supporters" }).first()
+  const lakeshore = card.getByRole("listitem").filter({ hasText: "Lakeshore Community Foundation" })
+  await expect(lakeshore).toContainText("$25,000")
+  // Opted-in individual donors, with self-reported totals, link to their profiles.
+  await expect(card.locator('a[href^="/u/"]').first()).toBeVisible()
+  await expect(card.getByText(/People: self-reported/)).toBeVisible()
+  await expect(card.getByText(/Foundations: confirmed grants/)).toBeVisible()
 })

@@ -673,3 +673,18 @@ describe("giving totals", () => {
     expect((await t.as(null, `select * from giving_by_org('${G}')`)).rows).toHaveLength(0)
   })
 })
+
+describe("top supporters", () => {
+  it("F-078: foundations by confirmed grants and opted-in people by their gifts, largest first", async () => {
+    const A = "10000000-0000-4000-8000-0000000000e7", B = "10000000-0000-4000-8000-0000000000e8"
+    await t.owner(`insert into auth.users (id, email) values ('${A}', 'top.a@example.com'), ('${B}', 'top.b@example.com') on conflict do nothing`)
+    await t.owner(`update profiles set display_name = 'Shown Giver', show_giving_totals = true where id = '${A}'`)
+    await t.owner(`insert into gifts (user_id, org_id, amount_usd, given_on) values ('${A}', '${ORG_2}', 900, current_date), ('${B}', '${ORG_2}', 5000, current_date)`)
+    await t.owner(`insert into grants (foundation_id, grantee_id, amount_usd, confirmed_at) values ('${FOUNDATION}', '${ORG_2}', 1500, now()), ('${FOUNDATION}', '${ORG_2}', 99999, null)`)
+    const rows = (await t.as(null, `select kind, name, amount::int from top_supporters('${ORG_2}')`)).rows!
+    expect(rows.find((r) => r.kind === "foundation")).toMatchObject({ name: "Lakeshore Community Foundation" })
+    expect(rows.find((r) => r.name === "Shown Giver")).toMatchObject({ amount: 900 })
+    expect(rows.some((r) => r.amount === 5000)).toBe(false)   // B didn't opt in
+    expect(rows.some((r) => Number(r.amount) >= 99999)).toBe(false)  // unconfirmed grant
+  })
+})

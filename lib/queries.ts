@@ -641,3 +641,12 @@ export async function getGivingSummary(userId: string): Promise<GivingSummary | 
     byOrg: ((orgRows ?? []) as (OrgSummary & { amount: number })[]).map((o) => ({ ...o, amount: Number(o.amount) })),
   }
 }
+
+export type Supporter = { kind: "foundation" | "person"; id: string; slug: string; name: string; logo_url: string | null; avatar_url: string | null; amount: number }
+
+// A nonprofit's top supporters: foundations (confirmed grants) and opted-in individuals (self-reported).
+export async function getTopSupporters(orgId: string, limit = 8): Promise<Supporter[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("top_supporters", { target: orgId, lim: limit })
+  return ((data ?? []) as Supporter[]).map((s) => ({ ...s, amount: Number(s.amount) }))
+}

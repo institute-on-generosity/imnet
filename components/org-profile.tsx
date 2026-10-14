@@ -9,7 +9,9 @@ import { Feed } from "@/components/post-card"
 import { ShareButton } from "@/components/share-button"
 import { Panel, TwoColumn } from "@/components/shell"
 import { GrantsPanel } from "@/components/grants-panel"
-import { FundersCard, ImpactCard, OrgFacts } from "@/components/rail-cards"
+import { ImpactCard, OrgFacts } from "@/components/rail-cards"
+import { TopSupporters } from "@/components/top-supporters"
+import type { Supporter } from "@/lib/queries"
 import { orgCoverSrc } from "@/lib/cover"
 import { EventsPanel } from "@/components/events-panel"
 import { NeedsPanel } from "@/components/needs-panel"
@@ -50,9 +52,10 @@ type Props = {
   interestIds: Set<string>
   events: OrgEvent[]
   rsvpIds: Set<string>
+  supporters: Supporter[]
 }
 
-export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, savedIds, grants, grantsByPost, tab, needs, interestIds, events, rsvpIds }: Props) {
+export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, savedIds, grants, grantsByPost, tab, needs, interestIds, events, rsvpIds, supporters }: Props) {
   const base = `/o/${org.slug}`
   return (
     <TwoColumn
@@ -62,7 +65,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
           {tab === "home" && (
             <div className="hidden space-y-3 lg:block">
               <ImpactCard stats={stats} />
-              {org.org_type === "nonprofit" && <FundersCard grants={grants} slug={org.slug} />}
+              {org.org_type === "nonprofit" && <TopSupporters supporters={supporters} />}
             </div>
           )}
           <OrgFacts org={org} causes={causes} />
@@ -124,7 +127,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
           <GiftsFund org={org} />
           <div className="space-y-3 lg:hidden">
             <ImpactCard stats={stats} where="main" />
-            {org.org_type === "nonprofit" && <FundersCard grants={grants} slug={org.slug} where="main" />}
+            {org.org_type === "nonprofit" && <TopSupporters supporters={supporters} where="main" />}
           </div>
           <NeedsPanel needs={needs} interestIds={interestIds} signedIn={signedIn} />
           <EventsPanel events={events} rsvpIds={rsvpIds} signedIn={signedIn} />

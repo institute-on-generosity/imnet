@@ -37,7 +37,7 @@ export function GivingTotalsToggle({ on: initial }: { on: boolean }) {
       />
       <span>
         Show my <span className="font-semibold">giving totals</span> on my profile
-        <span className="block text-xs text-muted-foreground">The total, the amount to each organization and the split by cause. Individual gifts and dates stay private.</span>
+        <span className="block text-xs text-muted-foreground">The total, the amount to each organization and the split by cause, and you may appear among those organizations&apos; top supporters. Individual gifts and dates stay private.</span>
       </span>
     </label>
   )

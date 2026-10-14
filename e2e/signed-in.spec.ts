@@ -136,7 +136,7 @@ test("F-034: a foundation tags a grantee; it stays private until the nonprofit c
   // Signed-out visitors don't see the unconfirmed grant.
   const anon = await page.context().browser()!.newPage()
   await anon.goto(`/o/${slug}`)
-  await expect(anon.getByRole("heading", { name: "Funded by" })).toHaveCount(0)
+  await expect(anon.getByRole("heading", { name: "Top supporters" })).toHaveCount(0)
 
   // The nonprofit confirms it from its dashboard.
   await page.goto(`/dashboard/${kitchen.id}`)
@@ -145,7 +145,7 @@ test("F-034: a foundation tags a grantee; it stays private until the nonprofit c
   await expect.poll(async () => (await sql`select confirmed_at from grants where id = ${grant.id}`)[0].confirmed_at).not.toBeNull()
 
   await anon.goto(`/o/${slug}`)
-  await expect(anon.getByRole("heading", { name: "Funded by" })).toBeVisible()
+  await expect(anon.getByRole("heading", { name: "Top supporters" }).first()).toBeVisible()
   await anon.goto(`/o/${slug}?tab=about`)
   await expect(anon.getByText("$7,500, Community dinner supplies")).toBeVisible()
   await anon.close()
