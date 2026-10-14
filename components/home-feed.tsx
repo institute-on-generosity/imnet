@@ -10,13 +10,14 @@ import { UpcomingEvents } from "@/components/events-panel"
 import { WaysToHelp } from "@/components/needs-panel"
 import { JoinCard, SuggestedOrgs, ViewerCard } from "@/components/side-cards"
 import { portfolioContext } from "@/lib/portfolio"
-import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getGrantsForPosts, getMovedPostIds, getMyRsvpIds, getOpenNeeds, getUpcomingEvents, getSavedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
+import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getFollowedOrgs, getGrantsForPosts, getMovedPostIds, getMyRsvpIds, getOpenNeeds, getUpcomingEvents, getSavedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
 import { createClient } from "@/lib/supabase/server"
 import { getUserId } from "@/lib/supabase/server"
-import type { OrgType } from "@/lib/types"
+import type { FeedType } from "@/lib/feed-href"
+import { DonorComposer } from "@/components/donor-composer"
 
 // Shared by Home (all orgs) and Following (followed orgs only).
-type Props = { cause?: string; orgType?: OrgType; followingOnly?: boolean; basePath: string; before?: string }
+type Props = { cause?: string; orgType?: FeedType; followingOnly?: boolean; basePath: string; before?: string }
 
 export async function HomeFeed({ cause, orgType, followingOnly, basePath, before }: Props) {
   const cursor = decodeCursor(before)
@@ -37,7 +38,9 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
     ? orgIds?.length
       ? "The nonprofits you follow haven't posted for this cause yet."
       : "You don't follow anyone yet. Pick nonprofits and foundations from Add to your feed."
-    : "No stories for this cause yet. Try another cause."
+    : orgType === "donor"
+      ? "No posts from donors yet. Start one above."
+      : "No stories for this cause yet. Try another cause."
 
   // Side columns load in parallel with the feed and stream in on their own.
   return (
@@ -52,14 +55,17 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
         </div>
       }
     >
+      {userId && !followingOnly && <Suspense fallback={null}><Composer userId={userId} /></Suspense>}
       <h1 className="sr-only">{followingOnly ? "From organizations you follow" : "What giving made possible"}</h1>
       <Panel>
         <div className="p-2.5">
-          <OrgTypeFilter active={orgType} cause={cause} basePath={basePath} />
+          <OrgTypeFilter active={orgType} cause={cause} basePath={basePath} donors={!followingOnly} />
         </div>
-        <div className="border-t p-2.5">
-          <CauseFilter causes={causes} active={cause} type={orgType} basePath={basePath} />
-        </div>
+        {orgType !== "donor" && (
+          <div className="border-t p-2.5">
+            <CauseFilter causes={causes} active={cause} type={orgType} basePath={basePath} />
+          </div>
+        )}
       </Panel>
       <Feed posts={posts} empty={empty} movedIds={movedIds} savedIds={savedIds} signedIn={!!userId} grantsByPost={grantsByPost} context={context} />
       <OlderPosts
@@ -69,6 +75,12 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
       />
     </ThreeColumn>
   )
+}
+
+async function Composer({ userId }: { userId: string }) {
+  const [viewer, orgs] = await Promise.all([getViewer(userId), getFollowedOrgs(userId)])
+  if (!viewer) return null
+  return <DonorComposer viewer={{ name: viewer.display_name ?? `@${viewer.handle}`, avatarUrl: viewer.avatar_url }} orgs={orgs} />
 }
 
 async function LeftRail({ userId }: { userId: string | null }) {

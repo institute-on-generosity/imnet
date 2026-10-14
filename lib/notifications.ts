@@ -20,7 +20,7 @@ export const getNotifications = cache(async (userId: string): Promise<Notificati
   const foundations = orgs.filter((o) => o.org_type === "foundation").map((o) => o.id)
   const items: Notification[] = []
 
-  const [toConfirm, confirmed, reports, calls, claims, joined, comments, replies, notes] = await Promise.all([
+  const [toConfirm, confirmed, reports, calls, claims, joined, comments, replies, notes, onMyPosts] = await Promise.all([
     nonprofits.length
       ? supabase.from("grants").select("id, amount_usd, created_at, grantee_id, foundation:orgs!grants_foundation_id_fkey(name)").in("grantee_id", nonprofits).is("confirmed_at", null).gte("created_at", since)
       : null,
@@ -28,7 +28,7 @@ export const getNotifications = cache(async (userId: string): Promise<Notificati
       ? supabase.from("grants").select("id, amount_usd, confirmed_at, grantee:orgs!grants_grantee_id_fkey(name, slug)").in("foundation_id", foundations).not("confirmed_at", "is", null).gte("confirmed_at", since)
       : null,
     foundations.length
-      ? supabase.from("posts").select("id, created_at, org:orgs!inner(name), grant:grants!posts_reports_grant_id_fkey!inner(foundation_id)").in("grant.foundation_id", foundations).gte("created_at", since)
+      ? supabase.from("posts").select("id, created_at, org:orgs!posts_org_id_fkey!inner(name), grant:grants!posts_reports_grant_id_fkey!inner(foundation_id)").in("grant.foundation_id", foundations).gte("created_at", since)
       : null,
     nonprofits.length ? openCallsForCauses(nonprofits, since) : null,
     supabase.from("org_claims").select("id, org_name, status, reviewed_at, org_id").eq("user_id", userId).not("reviewed_at", "is", null).gte("reviewed_at", since),
@@ -41,6 +41,8 @@ export const getNotifications = cache(async (userId: string): Promise<Notificati
       : null,
     repliesToYou(userId, since),
     orgs.length ? supabase.from("thanks").select("id, org_id, created_at").in("org_id", orgs.map((o) => o.id)).neq("user_id", userId).gte("created_at", since) : null,
+    // F-079: comments on your own posts.
+    supabase.from("comments").select("id, post_id, created_at, author:profiles(display_name, handle), post:posts!inner(author_id, org_id)").eq("post.author_id", userId).is("post.org_id", null).neq("user_id", userId).gte("created_at", since).order("created_at", { ascending: false }).limit(30),
   ])
 
   for (const g of (toConfirm?.data ?? []) as unknown as { id: string; amount_usd: number | null; created_at: string; grantee_id: string; foundation: { name: string } }[]) {
@@ -68,6 +70,9 @@ export const getNotifications = cache(async (userId: string): Promise<Notificati
     items.push({ key: `comment-${c.id}`, at: c.created_at, kind: "comment", text: `${c.author.display_name ?? `@${c.author.handle}`} commented on your post.`, href: `/p/${c.post_id}#comments` })
   }
   for (const r of replies) items.push(r)
+  for (const c of (onMyPosts?.data ?? []) as unknown as { id: string; post_id: string; created_at: string; author: { display_name: string | null; handle: string } }[]) {
+    items.push({ key: `mine-${c.id}`, at: c.created_at, kind: "comment", text: `${c.author.display_name ?? `@${c.author.handle}`} commented on your post.`, href: `/p/${c.post_id}#comments` })
+  }
   return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30)
 })
 
@@ -78,7 +83,7 @@ async function openCallsForCauses(orgIds: string[], since: string): Promise<Noti
   if (slugs.length === 0) return []
   const { data } = await supabase
     .from("posts")
-    .select("id, body, created_at, call_deadline, org:orgs!inner(name)")
+    .select("id, body, created_at, call_deadline, org:orgs!posts_org_id_fkey!inner(name)")
     .eq("kind", "open_call")
     .gte("created_at", since)
     .gte("call_deadline", new Date().toISOString().slice(0, 10))
@@ -99,7 +104,7 @@ async function repliesToYou(userId: string, since: string): Promise<Notification
   if (!mine?.length) return []
   const { data } = await supabase
     .from("comments")
-    .select("id, post_id, created_at, as_org, author:profiles(display_name, handle), post:posts!inner(org:orgs!inner(name))")
+    .select("id, post_id, created_at, as_org, author:profiles(display_name, handle), post:posts!inner(org:orgs!posts_org_id_fkey(name))")
     .in("parent_id", mine.map((c) => c.id))
     .neq("user_id", userId)
     .gte("created_at", since)

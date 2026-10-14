@@ -12,9 +12,9 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   const post = await getPost(id)
   if (!post) return ogCard({ orgName: "imnet", orgType: "nonprofit", text: "Stories from nonprofits, with the sources behind them." })
   return ogCard({
-    orgName: post.org.name,
-    orgType: post.org.org_type,
-    eyebrow: POST_KIND_LABEL[post.kind],
+    orgName: post.org?.name ?? post.author?.display_name ?? "imnet",
+    orgType: post.org?.org_type ?? "nonprofit",
+    eyebrow: post.org ? POST_KIND_LABEL[post.kind] : "Post",
     text: post.body,
     imageUrl: post.image_paths[0] ? postImageUrl(post.image_paths[0]) : null,
   })

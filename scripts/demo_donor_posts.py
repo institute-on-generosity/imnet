@@ -1,0 +1,43 @@
+"""Posts by demo donors (F-079), imported by gen-seed-demo.py. All fictional.
+
+(spotlight org id or None, body, days ago). Authors are picked deterministically from demo people.
+"""
+
+POSTS = [
+    (1, "If you're in Portland and free on a Saturday afternoon, Harbor Table needs dinner crew. I went last week for the first time: four hours, no experience, and I've never felt more useful. They feed anyone who walks in, no questions asked.", 0.6),
+    (7, "Biscuit spent 214 days at Second Chance Paws before she got adopted. If you can walk a dog for an hour a week, the long-stay dogs need you most. That's how they stay happy enough to get picked.", 1.2),
+    (None, "Started giving monthly this year instead of a big check in December. Smaller amounts, but the orgs I support can actually plan around it. If you can, try recurring. They all say it's the most useful kind of gift.", 1.8),
+    (11, "Bridge Welcome Center is looking for airport welcome drivers. My cousin's family arrived at 2 am two years ago and a volunteer was there with a sign and snacks. It changed their first night completely.", 2.3),
+    (14, "Free blood pressure and diabetes screening at the Eastside rec center this Thursday, with Spanish and Somali interpreters. Neighborhood Health Corps follows up until you have a doctor. Please share with anyone who needs it.", 2.9),
+    (8, "Our block got 46 new street trees last spring. This summer it was noticeably cooler on the sidewalk. Rooted Neighborhoods is taking nominations for spring planting. Nominate your block!", 3.4),
+    (None, "Reminder that a lot of employers match donations, and most people never ask. I found out mine matches up to $1,000 a year. Five minutes on the HR site doubled what I gave.", 3.9),
+    (36, "Fostered my first litter of bottle babies with Foster Kitten Network this month. Every two hours, day and night, for three weeks. All four are gaining weight and going up for adoption Saturday. Exhausting and the best thing I've done all year.", 4.5),
+    (21, "Hearth & Home is running low on move-in kits: sheets, towels, pots, a shower curtain. Twenty-two guests moved into their own apartments last quarter. A kit is what makes the first night feel like home.", 5.1),
+    (28, "Did two warehouse shifts at Prairie Wind Food Bank this week. We sorted enough sweet corn and squash for 41 school backpack programs. They need sorters through the holidays, no experience needed.", 5.6),
+    (3, "Read with a first grader at Riverbend Readers today. He read me a whole chapter book, out loud, and asked to keep it. They're always looking for Tuesday afternoon tutors.", 6.2),
+    (None, "What I've learned from following orgs here: the best ones post the boring updates too. Freezer repaired, volunteers trained, waitlist down. That's how you know the money's working.", 6.8),
+    (34, "If your company is upgrading laptops, Bright Lines Coding Club refurbishes them for teens to borrow. Their demo night was incredible: a bus tracker one school now actually uses.", 7.3),
+    (19, "Spent Saturday knee-deep in Mill Creek with Blue Heron Watershed. Water testing shows nitrate down for the third year in a row. Creek cleanups are the second Saturday of every month and they lend you waders.", 8.1),
+    (12, "Clear Minds Collective's warm line isn't a crisis line. It's someone who's been there, to talk to before things get that bad. Sharing in case anyone needs it this week.", 8.7),
+    (24, "Had dinner at Shared Table's pay-what-you-can night. Eritrean lentils and injera, made by trainees who'll be working in restaurant kitchens in a few weeks. Go hungry, bring friends.", 9.4),
+    (None, "My kids and I pick one organization each year to give to together. This year my daughter picked the little libraries in laundromats because 'people get bored waiting.' Hard to argue.", 10.2),
+    (31, "Hilltop Senior Meals needs drivers for north end routes. It's about 90 minutes on a weekday. My Tuesday route includes a 92-year-old who beats me at cribbage every single week.", 11.0),
+    (5, "Love that the Lakeshore Community Foundation publishes every grant, and the nonprofits confirm them. Giving through the Community Fund feels a lot less like a black box when you can see exactly where it went.", 11.9),
+    (27, "Mobile Dental Neighbors saw 410 kids this fall, 180 of them for their first dental visit. If you're a hygienist with a free Saturday, they need you at shelter visits.", 12.6),
+    (None, "Volunteered for the first time this year after reading posts here for months. Nobody cared that I had no experience. Just show up.", 13.3),
+    (33, "The Seedline Growers stand at the Saturday market sells out of amaranth greens every week. Buying from refugee farmers' first businesses is one of the easiest ways to help.", 14.1),
+    (17, "Keystone Housing's Wednesday tenant clinic helped my neighbor keep her apartment after a medical emergency. Free legal advice, interpreters, and someone who actually explains the paperwork.", 15.0),
+    (9, "The new mural by Westside Arts Studio teens went up on the 3rd Street underpass. The whole neighborhood voted on the design. Go see it in person if you can.", 16.2),
+    (22, "Saw Saltmarsh Wildlife Rescue release two pelicans this morning. They came in tangled in fishing line in August. Please cut your line before you bin it.", 17.0),
+    (None, "Giving tip: check what a nonprofit says their gift amounts actually fund. '$25 covers a week of dinners for one neighbor' tells you way more than a mission statement.", 18.4),
+    (26, "Little Oak Early Learning runs on a sliding scale so every kid gets preschool. They're asking for picture books with diverse families. Their wish list is on their site.", 19.3),
+    (10, "Northside Youth Soccer is free for every kid, and their cleat closet is empty in sizes 3 to 6. If your kids have outgrown theirs, Saturday practice is the drop-off.", 20.5),
+    (35, "Quiet Hours Hospice Volunteers sat with my grandfather through his last nights so my mom could sleep. Their January training class is open if you have patience and four Saturday mornings.", 22.0),
+    (16, "Rode along on an Eastgate Food Rescue night route. 19 stops, 4,100 pounds of food that would've been thrown out, on pantry shelves by 7 am. They need drivers for one route a week.", 23.7),
+    (None, "Two years of logging my gifts in the giving journal here. Turns out I gave way more to hunger and housing than I thought, and almost nothing to the environment. Changing that this year.", 25.1),
+    (13, "Open Shelves just installed three new little libraries, including the Route 9 bus shelter. Picture books go fastest. Book drive at the library through Friday.", 26.4),
+    (39, "Alder Family Foundation moved most of its grants to three-year operating support because grantees asked. More funders should do this.", 28.0),
+    (30, "Open Gate Youth Shelter's drop-in center is open until 10 pm now, with dinner, showers and laundry. They need phone chargers and prepaid phone cards.", 30.2),
+    (25, "Steady Path's recovery coaches are in the county ER every night now. A coach sat with my brother at 3 am two years ago. This month he finished coach training himself.", 33.5),
+    (None, "If you've been meaning to give but feel like your amount is too small: every org I've talked to says $10 a month from a hundred people is worth more to them than one big gift.", 36.0),
+]

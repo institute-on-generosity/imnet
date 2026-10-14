@@ -95,9 +95,13 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
           {posts.slice(0, limit(3)).map((p) => (
             <li key={p.id}>
               <Link href={`/p/${p.id}`} className="flex gap-3 px-4 py-3 hover:bg-muted/50">
-                <span className="mt-1 shrink-0"><OrgMark org={p.org} /></span>
+                {p.org ? (
+                  <span className="mt-1 shrink-0"><OrgMark org={p.org} /></span>
+                ) : (
+                  <PersonAvatar name={p.author?.display_name ?? p.author?.handle ?? "?"} avatarUrl={p.author?.avatar_url} size="lg" className="mt-1" />
+                )}
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold">{p.org.name}</p>
+                  <p className="text-sm font-semibold">{p.org?.name ?? p.author?.display_name ?? `@${p.author?.handle}`}</p>
                   <p className="line-clamp-2 text-sm text-muted-foreground">{p.body}</p>
                 </div>
               </Link>

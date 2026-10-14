@@ -7,21 +7,28 @@ import type { Gift } from "@/lib/gifts"
 import { MET_SHOWN_DAYS, type Need, type NeedWithOrg } from "@/lib/needs"
 import { escapeLike, orFilterTerm, wordStartPattern } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
-import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
+import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post, PostAuthor } from "@/lib/types"
 
 const PAGE_SIZE = 20
-const POST_FIELDS = `id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at, edited_at, call_deadline, call_apply_url, call_max_award, call_causes,
-  report_grant:grants!posts_reports_grant_id_fkey(id, amount_usd, purpose, foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type))`
+const POST_FIELDS = `id, org_id, author_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at, edited_at, call_deadline, call_apply_url, call_max_award, call_causes,
+  report_grant:grants!posts_reports_grant_id_fkey(id, amount_usd, purpose, foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type)),
+  author:profiles!posts_author_id_fkey(handle, display_name, bio, avatar_url),
+  about_org:orgs!posts_about_org_id_fkey(id, slug, name, logo_url, org_type, mission)`
+// The posting org (null for donor posts). posts has two foreign keys to orgs, so name the one.
+const ORG = "org:orgs!posts_org_id_fkey(id, slug, name, logo_url, org_type)"
 
-type FeedOpts = { cause?: string; orgIds?: string[]; orgType?: OrgType; reportGrantIds?: string[]; before?: Cursor }
+type FeedOpts = { cause?: string; orgIds?: string[]; orgType?: OrgType | "donor"; reportGrantIds?: string[]; before?: Cursor }
 
 // Chronological, no engagement ranking (design principle #4). One page plus a cursor for the next.
 // reportGrantIds: also include grant reports on these grants (portfolio of followed foundations).
 export async function getFeedPage(opts: FeedOpts = {}): Promise<{ posts: Post[]; next: string | null }> {
   const supabase = await createClient()
-  const orgJoin = opts.cause
-    ? "org:orgs!inner(id, slug, name, logo_url, org_type, org_causes!inner(cause_slug))"
-    : "org:orgs!inner(id, slug, name, logo_url, org_type)"
+  // Filtering by an org's type or cause needs an inner join; otherwise donor posts (no org) are included.
+  const cause = opts.orgType === "donor" ? undefined : opts.cause // donor posts have no org causes
+  const orgFilter = cause || opts.orgType === "nonprofit" || opts.orgType === "foundation"
+  const orgJoin = cause
+    ? "org:orgs!posts_org_id_fkey!inner(id, slug, name, logo_url, org_type, org_causes!inner(cause_slug))"
+    : orgFilter ? "org:orgs!posts_org_id_fkey!inner(id, slug, name, logo_url, org_type)" : ORG
 
   let query = supabase
     .from("posts")
@@ -31,12 +38,13 @@ export async function getFeedPage(opts: FeedOpts = {}): Promise<{ posts: Post[];
     .order("id", { ascending: false })
     .limit(PAGE_SIZE + 1)
 
-  if (opts.cause) query = query.eq("org.org_causes.cause_slug", opts.cause)
+  if (cause) query = query.eq("org.org_causes.cause_slug", cause)
   if (opts.orgIds && opts.reportGrantIds?.length) {
     const orgs = opts.orgIds.length ? `org_id.in.(${opts.orgIds.join(",")}),` : ""
     query = query.or(`${orgs}reports_grant_id.in.(${opts.reportGrantIds.join(",")})`)
   } else if (opts.orgIds) query = query.in("org_id", opts.orgIds)
-  if (opts.orgType) query = query.eq("org.org_type", opts.orgType)
+  if (opts.orgType === "donor") query = query.is("org_id", null)
+  else if (opts.orgType) query = query.eq("org.org_type", opts.orgType)
   if (opts.before) query = query.or(olderThan(opts.before))
 
   const { data, error } = await query
@@ -89,7 +97,7 @@ export async function getPost(id: string): Promise<Post | null> {
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select(`${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type)`)
+    .select(`${POST_FIELDS}, ${ORG}`)
     .eq("id", id)
     .maybeSingle()
   return data as unknown as Post | null
@@ -286,7 +294,7 @@ export async function getPortfolioPosts(foundationId: string): Promise<Post[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select(`${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type)`)
+    .select(`${POST_FIELDS}, org:orgs!posts_org_id_fkey!inner(id, slug, name, logo_url, org_type)`)
     .eq("published", true)
     .in("reports_grant_id", grantIds)
     .order("created_at", { ascending: false })
@@ -308,7 +316,7 @@ export async function getOpenCalls(opts: { causes?: string[]; limit?: number } =
   const supabase = await createClient()
   let query = supabase
     .from("posts")
-    .select(`${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type)`)
+    .select(`${POST_FIELDS}, org:orgs!posts_org_id_fkey!inner(id, slug, name, logo_url, org_type)`)
     .eq("published", true)
     .eq("kind", "open_call")
     .gte("call_deadline", new Date().toISOString().slice(0, 10))
@@ -343,7 +351,7 @@ export async function getSavedPosts(userId: string): Promise<Post[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from("saved_posts")
-    .select(`created_at, post:posts!inner(${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type))`)
+    .select(`created_at, post:posts!inner(${POST_FIELDS}, ${ORG})`)
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50)
@@ -499,7 +507,7 @@ export async function getSinceYourGifts(gifts: Gift[]) {
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select("id, body, kind, created_at, org:orgs!inner(id, slug, name, logo_url, org_type)")
+    .select("id, body, kind, created_at, org:orgs!posts_org_id_fkey!inner(id, slug, name, logo_url, org_type)")
     .in("org_id", [...first.keys()])
     .gte("created_at", [...first.values()].sort()[0])
     .order("created_at", { ascending: false })
@@ -564,12 +572,12 @@ export async function getDonorOrgs(userId: string): Promise<OrgSummary[]> {
 }
 
 // Profile Activity: a person's public comments, newest first, with the post they're on.
-export type ActivityItem = { id: string; body: string; created_at: string; donor: boolean; parent_id: string | null; post: { id: string; body: string; org: OrgSummary } }
+export type ActivityItem = { id: string; body: string; created_at: string; donor: boolean; parent_id: string | null; post: { id: string; body: string; org: OrgSummary | null; author: PostAuthor | null } }
 export async function getActivity(userId: string): Promise<ActivityItem[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from("comments")
-    .select("id, body, created_at, donor, parent_id, post:posts!inner(id, body, org:orgs!inner(id, slug, name, logo_url, org_type))")
+    .select("id, body, created_at, donor, parent_id, post:posts!inner(id, body, org:orgs!posts_org_id_fkey(id, slug, name, logo_url, org_type), author:profiles!posts_author_id_fkey(handle, display_name, bio, avatar_url))")
     .eq("user_id", userId)
     .eq("as_org", false)
     .order("created_at", { ascending: false })
@@ -600,11 +608,11 @@ export async function searchPosts(q: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select("id, body, kind, created_at, org:orgs!inner(id, slug, name, logo_url, org_type)")
+    .select("id, body, kind, created_at, org:orgs!posts_org_id_fkey(id, slug, name, logo_url, org_type), author:profiles!posts_author_id_fkey(handle, display_name, bio, avatar_url)")
     .filter("body", "imatch", wordStartPattern(term)) // "river" finds "riverbank", not "drivers"
     .order("created_at", { ascending: false })
     .limit(20)
-  return (data ?? []) as unknown as { id: string; body: string; kind: string; created_at: string; org: OrgSummary }[]
+  return (data ?? []) as unknown as { id: string; body: string; kind: string; created_at: string; org: OrgSummary | null; author: PostAuthor | null }[]
 }
 
 export type EventDetail = OrgEvent & { org: OrgSummary & { cover_url: string | null; mission: string | null }; causes: string[] }
@@ -649,4 +657,18 @@ export async function getTopSupporters(orgId: string, limit = 8): Promise<Suppor
   const supabase = await createClient()
   const { data } = await supabase.rpc("top_supporters", { target: orgId, lim: limit })
   return ((data ?? []) as Supporter[]).map((s) => ({ ...s, amount: Number(s.amount) }))
+}
+
+// A person's own posts (F-079), newest first.
+export async function getPersonPosts(userId: string, limit = 20): Promise<Post[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("posts")
+    .select(`${POST_FIELDS}, ${ORG}`)
+    .is("org_id", null)
+    .eq("author_id", userId)
+    .eq("published", true)
+    .order("created_at", { ascending: false })
+    .limit(limit)
+  return (data ?? []) as unknown as Post[]
 }

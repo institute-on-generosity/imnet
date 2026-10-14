@@ -26,9 +26,13 @@ export type Org = OrgSummary & {
   programs: string[]
 }
 
+// A post by someone on imnet. Org posts have org + org_id; donor posts (F-079) have neither,
+// and carry their author (a person) and an optional spotlighted org instead.
+export type PostAuthor = { handle: string; display_name: string | null; bio: string | null; avatar_url: string | null }
+
 export type Post = {
   id: string
-  org_id: string
+  org_id: string | null
   kind: PostKind
   body: string
   embed_url: string | null
@@ -42,7 +46,10 @@ export type Post = {
   image_credits: string[]
   created_at: string
   edited_at: string | null
-  org: OrgSummary
+  org: OrgSummary | null
+  author_id: string | null
+  author: PostAuthor | null
+  about_org: (OrgSummary & { mission: string | null }) | null
   // Set when this post is a grantee's report on a confirmed grant (hidden if the grant isn't visible).
   report_grant: ReportGrant | null
   // Open calls only (foundations): apply-by date, external apply link, optional max award, eligible causes.

@@ -609,6 +609,27 @@ test("F-073: staff add location, founding year, team and programs; they show on 
   await expect(page.getByRole("listitem").filter({ hasText: "Soup night" })).toBeVisible()
 })
 
+test("F-079: a donor posts from Home with a spotlight; it shows on their profile; they can delete it", async () => {
+  await page.goto("/")
+  await page.getByRole("button", { name: "Start a post" }).click()
+  await page.getByLabel("What do you want to share?").fill(`Harbor Table needs pot washers this weekend ${id}`)
+  await page.getByLabel("Spotlight an organization").selectOption({ label: "Harbor Table" })
+  await page.getByRole("button", { name: "Post", exact: true }).click()
+  await expect(page.getByText("Posted. It's at the top of your feed.")).toBeVisible()
+  const mine = page.locator("article").filter({ hasText: `pot washers this weekend ${id}` }).first()
+  await expect(mine).toBeVisible()
+  await expect(mine.getByRole("link", { name: /Harbor Table.*View/ })).toBeVisible()
+
+  const [{ handle }] = await sql`select handle from profiles where id = ${userId}`
+  await page.goto(`/u/${handle}`)
+  const onProfile = page.locator("article").filter({ hasText: `pot washers this weekend ${id}` }).first()
+  await expect(onProfile).toBeVisible()
+  page.once("dialog", (d) => d.accept())
+  await onProfile.getByRole("button", { name: "More actions" }).click()
+  await page.getByRole("menuitem", { name: "Delete post" }).click()
+  await expect.poll(async () => (await sql`select count(*)::int n from posts where body like ${`%${id}%`} and org_id is null`)[0].n).toBe(0)
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

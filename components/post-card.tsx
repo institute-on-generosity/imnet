@@ -10,6 +10,7 @@ import { FollowLink } from "./follow-link"
 import { PostActions } from "./post-actions"
 import type { CommentsData } from "./post-comments"
 import { PostMenu } from "./post-menu"
+import { PersonAvatar } from "./person-avatar"
 import { GrantChips } from "./grant-chips"
 import { GrantReportBanner } from "./grant-report-banner"
 import { OpenCallBlock } from "./open-call-block"
@@ -35,11 +36,12 @@ const followersLabel = (n: number) => `${n.toLocaleString("en-US")} ${n === 1 ? 
 type CardProps = {
   post: Post; full?: boolean; moved?: boolean; saved?: boolean; signedIn?: boolean; grants?: Grant[]; context?: OrgSummary
   followers?: number; following?: boolean; comments?: CommentsData; preview?: Comment & { more: boolean }
+  canDelete?: boolean
 }
 
 // A LinkedIn post: author header (followers, time, Follow, ⋯), text with "…more", media,
 // then the Moved · Comment · Share · Save bar and an inline comment thread. No counts.
-export function PostCard({ post, full = false, moved = false, saved = false, signedIn = false, grants = [], context, followers, following, comments, preview }: CardProps) {
+export function PostCard({ post, full = false, moved = false, saved = false, signedIn = false, grants = [], context, followers, following, comments, preview, canDelete }: CardProps) {
   return (
     <article className="rounded-xl border bg-card">
       {context && (
@@ -49,31 +51,61 @@ export function PostCard({ post, full = false, moved = false, saved = false, sig
         </p>
       )}
       <header className="flex items-start gap-2 px-4 pt-3">
-        <Link href={`/o/${post.org.slug}`} tabIndex={-1} aria-hidden className="mt-0.5"><OrgMark org={post.org} size="md" /></Link>
-        <div className="min-w-0 flex-1 leading-tight">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <Link href={`/o/${post.org.slug}`} className="truncate font-semibold hover:text-leaf hover:underline">{post.org.name}</Link>
-            {post.org.org_type === "foundation" && <FoundationMark />}
-          </div>
-          {followers !== undefined && <p className="mt-0.5 truncate text-xs text-muted-foreground">{followersLabel(followers)}</p>}
-          <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-            <PostKindLabel kind={post.kind} />
-            <span aria-hidden>•</span>
-            <Link href={`/p/${post.id}`} aria-label={`${relative(post.created_at)} ago, open post`} className="hover:text-leaf hover:underline">
-              <time dateTime={post.created_at}>{relative(post.created_at)}</time>
-            </Link>
-            {post.edited_at && (
-              <>
+        {post.org ? (
+          <>
+            <Link href={`/o/${post.org.slug}`} tabIndex={-1} aria-hidden className="mt-0.5"><OrgMark org={post.org} size="md" /></Link>
+            <div className="min-w-0 flex-1 leading-tight">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <Link href={`/o/${post.org.slug}`} className="truncate font-semibold hover:text-leaf hover:underline">{post.org.name}</Link>
+                {post.org.org_type === "foundation" && <FoundationMark />}
+              </div>
+              {followers !== undefined && <p className="mt-0.5 truncate text-xs text-muted-foreground">{followersLabel(followers)}</p>}
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                {post.org ? <PostKindLabel kind={post.kind} /> : <span>Post</span>}
                 <span aria-hidden>•</span>
-                <span title={`Edited ${new Date(post.edited_at).toLocaleString("en-US")}`}>Edited</span>
-              </>
-            )}
-            <span aria-hidden>•</span>
-            <Earth className="size-3" aria-label="Public" />
-          </p>
-        </div>
-        {following !== undefined && <FollowLink orgId={post.org.id} orgName={post.org.name} following={following} />}
-        <PostMenu postId={post.id} signedIn={signedIn} />
+                <Link href={`/p/${post.id}`} aria-label={`${relative(post.created_at)} ago, open post`} className="hover:text-leaf hover:underline">
+                  <time dateTime={post.created_at}>{relative(post.created_at)}</time>
+                </Link>
+                {post.edited_at && (
+                  <>
+                    <span aria-hidden>•</span>
+                    <span title={`Edited ${new Date(post.edited_at).toLocaleString("en-US")}`}>Edited</span>
+                  </>
+                )}
+                <span aria-hidden>•</span>
+                <Earth className="size-3" aria-label="Public" />
+              </p>
+            </div>
+            {following !== undefined && <FollowLink orgId={post.org.id} orgName={post.org.name} following={following} />}
+          </>
+        ) : post.author ? (
+          // Donor post (F-079): the person is the author.
+          <>
+            <Link href={`/u/${post.author.handle}`} tabIndex={-1} aria-hidden className="mt-0.5">
+              <PersonAvatar name={post.author.display_name ?? post.author.handle} avatarUrl={post.author.avatar_url} size="lg" />
+            </Link>
+            <div className="min-w-0 flex-1 leading-tight">
+              <Link href={`/u/${post.author.handle}`} className="block truncate font-semibold hover:text-leaf hover:underline">{post.author.display_name ?? `@${post.author.handle}`}</Link>
+              {post.author.bio && <p className="mt-0.5 truncate text-xs text-muted-foreground">{post.author.bio}</p>}
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                {post.org ? <PostKindLabel kind={post.kind} /> : <span>Post</span>}
+                <span aria-hidden>•</span>
+                <Link href={`/p/${post.id}`} aria-label={`${relative(post.created_at)} ago, open post`} className="hover:text-leaf hover:underline">
+                  <time dateTime={post.created_at}>{relative(post.created_at)}</time>
+                </Link>
+                {post.edited_at && (
+                  <>
+                    <span aria-hidden>•</span>
+                    <span title={`Edited ${new Date(post.edited_at).toLocaleString("en-US")}`}>Edited</span>
+                  </>
+                )}
+                <span aria-hidden>•</span>
+                <Earth className="size-3" aria-label="Public" />
+              </p>
+            </div>
+          </>
+        ) : null}
+        <PostMenu postId={post.id} signedIn={signedIn} canDelete={canDelete} />
       </header>
 
       {post.report_grant && <GrantReportBanner grant={post.report_grant} />}
@@ -86,12 +118,13 @@ export function PostCard({ post, full = false, moved = false, saved = false, sig
         )}
       </div>
 
+      {post.about_org && <Spotlight org={post.about_org} />}
       {post.kind === "open_call" && <OpenCallBlock post={post} />}
       <PostMedia post={post} />
       <GrantChips grants={grants} />
 
       <div className="mt-2">
-        <PostActions postId={post.id} org={post.org} moved={moved} saved={saved} signedIn={signedIn} full={full} comments={comments} preview={preview} />
+        <PostActions postId={post.id} org={post.org} title={post.org?.name ?? post.author?.display_name ?? "imnet"} moved={moved} saved={saved} signedIn={signedIn} full={full} comments={comments} preview={preview} />
       </div>
     </article>
   )
@@ -104,7 +137,7 @@ export async function Feed({ posts, empty, movedIds, savedIds, signedIn = false,
   if (posts.length === 0) return <Panel className="p-6 text-muted-foreground">{empty}</Panel>
   const userId = signedIn ? await getUserId() : null
   const [counts, followed, previews] = await Promise.all([
-    getFollowerCounts(posts.map((p) => p.org_id)),
+    getFollowerCounts(posts.flatMap((p) => (p.org_id ? [p.org_id] : []))),
     userId ? getFollowedOrgIds(userId) : Promise.resolve([]),
     getLatestComments(posts.map((p) => p.id)),
   ])
@@ -120,11 +153,26 @@ export async function Feed({ posts, empty, movedIds, savedIds, signedIn = false,
           signedIn={signedIn}
           grants={grantsByPost?.get(post.id)}
           context={context?.get(post.id)}
-          followers={counts.get(post.org_id) ?? 0}
-          following={userId && !hideFollow ? followedSet.has(post.org_id) : undefined}
+          followers={post.org_id ? (counts.get(post.org_id) ?? 0) : undefined}
+          following={userId && !hideFollow && post.org_id ? followedSet.has(post.org_id) : undefined}
+          canDelete={!!userId && !post.org_id && post.author_id === userId}
           preview={previews.get(post.id)}
         />
       ))}
     </div>
+  )
+}
+
+// A donor post's spotlight: the nonprofit or foundation they're spreading the word about.
+function Spotlight({ org }: { org: OrgSummary & { mission: string | null } }) {
+  return (
+    <Link href={`/o/${org.slug}`} className="mx-4 mt-3 flex items-center gap-3 rounded-lg border bg-muted/40 p-3 hover:bg-muted">
+      <OrgMark org={org} size="md" />
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1.5 font-semibold">{org.name}{org.org_type === "foundation" && <FoundationMark />}</p>
+        {org.mission && <p className="line-clamp-2 text-sm text-muted-foreground">{org.mission}</p>}
+      </div>
+      <span className="shrink-0 rounded-full border bg-card px-3 py-1 text-sm font-semibold text-leaf">View</span>
+    </Link>
   )
 }

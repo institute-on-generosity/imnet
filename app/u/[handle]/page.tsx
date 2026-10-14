@@ -5,7 +5,8 @@ import { OrgMark } from "@/components/org-mark"
 import { PersonAvatar } from "@/components/person-avatar"
 import { FoundationMark } from "@/components/org-type-badge"
 import { GivingBecame } from "@/components/giving-became"
-import { getActivity, getDonorOrgs, getGivingSummary, getOrgGrants } from "@/lib/queries"
+import { getActivity, getDonorOrgs, getGivingSummary, getMovedPostIds, getOrgGrants, getPersonPosts, getSavedPostIds } from "@/lib/queries"
+import { Feed } from "@/components/post-card"
 import { GivingSummaryPanel } from "@/components/giving-summary"
 import { CalendarDays, HandHeart, MapPin, Pencil } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
@@ -45,13 +46,18 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   if (!data) notFound()
   const { profile, supports } = data
   const name = profile.display_name ?? `@${profile.handle}`
-  const isOwn = (await getUserId()) === profile.id
-  const [funds, gaveTo, activity, totals] = await Promise.all([
+  const viewerId = await getUserId()
+  const isOwn = viewerId === profile.id
+  const [funds, gaveTo, activity, totals, posts] = await Promise.all([
     Promise.all(supports.filter((o) => o.org_type === "foundation").map(async (foundation) => ({ foundation, grants: await getOrgGrants(foundation) }))),
     getDonorOrgs(profile.id),
     getActivity(profile.id),
     getGivingSummary(profile.id),
+    getPersonPosts(profile.id),
   ])
+  const shownPosts = tab === "activity" ? posts : posts.slice(0, 2)
+  const postIds = shownPosts.map((p) => p.id)
+  const [movedIds, savedIds] = await Promise.all([getMovedPostIds(viewerId, postIds), getSavedPostIds(viewerId, postIds)])
   const joined = new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
   const base = `/u/${profile.handle}`
   const shownActivity = tab === "activity" ? activity : activity.slice(0, 3)
@@ -115,10 +121,19 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
       {tab === "about" && <GivingBecame funds={funds} isOwn={isOwn} />}
       {tab === "about" && <div className="space-y-3 lg:hidden">{giving("main")}</div>}
 
+      {shownPosts.length > 0 && (
+        <section aria-labelledby="posts" className="space-y-3">
+          <h2 id="posts" className="px-1 font-sans text-lg font-semibold tracking-normal">Posts</h2>
+          <Feed posts={shownPosts} empty="" movedIds={movedIds} savedIds={savedIds} signedIn={!!viewerId} />
+          {tab === "about" && posts.length > 2 && (
+            <Link href={`${base}?tab=activity`} className={buttonVariants({ variant: "outline", className: "w-full" })}>Show all posts</Link>
+          )}
+        </section>
+      )}
       {(tab === "activity" || activity.length > 0) && (
       <Panel aria-labelledby="activity">
         <div className="flex items-baseline justify-between px-4 pt-4 sm:px-6">
-          <h2 id="activity" className="font-sans text-lg font-semibold tracking-normal">{tab === "activity" ? "Comments" : "Recent activity"}</h2>
+          <h2 id="activity" className="font-sans text-lg font-semibold tracking-normal">{tab === "activity" ? "Comments" : "Recent comments"}</h2>
         </div>
         {shownActivity.length === 0 ? (
           <p className="px-4 pt-1 pb-4 text-sm text-muted-foreground sm:px-6">No comments yet.</p>
@@ -128,13 +143,17 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
               <li key={a.id} className="px-4 py-3 sm:px-6">
                 <p className="text-xs text-muted-foreground">
                   {a.parent_id ? "Replied" : "Commented"} on a post by{" "}
-                  <Link href={`/o/${a.post.org.slug}`} className="font-medium text-foreground hover:underline">{a.post.org.name}</Link>
+                  {a.post.org ? (
+                    <Link href={`/o/${a.post.org.slug}`} className="font-medium text-foreground hover:underline">{a.post.org.name}</Link>
+                  ) : a.post.author ? (
+                    <Link href={`/u/${a.post.author.handle}`} className="font-medium text-foreground hover:underline">{a.post.author.display_name ?? `@${a.post.author.handle}`}</Link>
+                  ) : null}
                   {" "}• <time dateTime={a.created_at}>{ago(a.created_at)}</time>
                   {a.donor && <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-marigold-soft py-px pr-1.5 pl-1 text-[10px] font-semibold text-amber-800"><HandHeart className="size-3" aria-hidden />Donor</span>}
                 </p>
                 <p className="mt-1 whitespace-pre-line">{a.body}</p>
                 <Link href={`/p/${a.post.id}#comments`} className="mt-2 flex items-center gap-2 rounded-lg border bg-muted/40 p-2 text-sm hover:bg-muted">
-                  <OrgMark org={a.post.org} size="sm" />
+                  {a.post.org ? <OrgMark org={a.post.org} size="sm" /> : a.post.author ? <PersonAvatar name={a.post.author.display_name ?? a.post.author.handle} avatarUrl={a.post.author.avatar_url} size="xs" className="size-6" /> : null}
                   <span className="line-clamp-1 text-muted-foreground">{a.post.body}</span>
                 </Link>
               </li>

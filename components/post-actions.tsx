@@ -13,11 +13,11 @@ import { CommentItem, PostComments, type CommentsData } from "./post-comments"
 
 const BAR = "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted sm:flex-row sm:gap-1.5 sm:text-sm"
 
-type Props = { postId: string; org: OrgSummary; moved: boolean; saved: boolean; signedIn: boolean; full?: boolean; comments?: CommentsData; preview?: Comment & { more: boolean } }
+type Props = { postId: string; org: OrgSummary | null; title: string; moved: boolean; saved: boolean; signedIn: boolean; full?: boolean; comments?: CommentsData; preview?: Comment & { more: boolean } }
 
 // LinkedIn's action bar (Moved · Comment · Share · Save) with the comment thread below it.
 // "Moved" and Save are private; there are no counts.
-export function PostActions({ postId, org, moved, saved, signedIn, full, comments, preview }: Props) {
+export function PostActions({ postId, org, title, moved, saved, signedIn, full, comments, preview }: Props) {
   const [open, setOpen] = useState(!!full)
   const [isMoved, setMoved] = useOptimistic(moved)
   const [isSaved, setSaved] = useOptimistic(saved)
@@ -36,13 +36,13 @@ export function PostActions({ postId, org, moved, saved, signedIn, full, comment
   async function share() {
     const url = `${window.location.origin}/p/${postId}`
     try {
-      if (navigator.share) await navigator.share({ title: `${org.name} on imnet`, url })
+      if (navigator.share) await navigator.share({ title: `${title} on imnet`, url })
       else {
         await navigator.clipboard.writeText(url)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       }
-      void logEvent("share", org.id, postId)
+      if (org) void logEvent("share", org.id, postId)
     } catch {
       // Share sheet cancelled.
     }

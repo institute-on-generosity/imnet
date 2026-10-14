@@ -1,7 +1,7 @@
 import Link from "@/components/intent-link"
-import { feedHref } from "@/lib/feed-href"
+import { feedHref, type FeedType } from "@/lib/feed-href"
 import { cn } from "@/lib/utils"
-import type { Cause, OrgType } from "@/lib/types"
+import type { Cause } from "@/lib/types"
 
 const pill = (on: boolean) =>
   cn(
@@ -10,7 +10,7 @@ const pill = (on: boolean) =>
   )
 
 // Horizontal pill row; scrolls sideways on phones instead of wrapping into a wall.
-export function CauseFilter({ causes, active, type, basePath }: { causes: Cause[]; active?: string; type?: OrgType; basePath: string }) {
+export function CauseFilter({ causes, active, type, basePath }: { causes: Cause[]; active?: string; type?: FeedType; basePath: string }) {
   return (
     <nav aria-label="Filter by cause" className="overflow-x-auto [scrollbar-width:none]">
       <div className="flex w-max gap-1.5">
@@ -27,14 +27,15 @@ export function CauseFilter({ causes, active, type, basePath }: { causes: Cause[
 }
 
 // Segmented control: who's posting.
-export function OrgTypeFilter({ active, cause, basePath }: { active?: OrgType; cause?: string; basePath: string }) {
-  const options: { type?: OrgType; label: string }[] = [
+export function OrgTypeFilter({ active, cause, basePath, donors = true }: { active?: FeedType; cause?: string; basePath: string; donors?: boolean }) {
+  const options: { type?: FeedType; label: string }[] = [
     { label: "All" },
     { type: "nonprofit", label: "Nonprofits" },
     { type: "foundation", label: "Foundations" },
+    ...(donors ? [{ type: "donor" as const, label: "Donors" }] : []),
   ]
   return (
-    <nav aria-label="Filter by organization type" className="inline-flex shrink-0 rounded-full bg-muted p-1 text-sm">
+    <nav aria-label="Filter by who's posting" className="inline-flex shrink-0 rounded-full bg-muted p-1 text-sm">
       {options.map((o) => {
         const on = active === o.type
         return (

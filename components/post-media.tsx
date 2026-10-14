@@ -47,7 +47,7 @@ export function PostMedia({ post }: { post: Pick<Post, "org" | "embed_url" | "em
             <AutoplayVideo
               src={postVideoUrl(post.video_path)}
               poster={post.video_poster_path ? postVideoUrl(post.video_poster_path) : undefined}
-              label={post.video_alt ?? `Video from ${post.org.name}`}
+              label={post.video_alt ?? `Video from ${post.org?.name ?? "imnet"}`}
             />
           </div>
           {post.video_credit && (
@@ -58,7 +58,7 @@ export function PostMedia({ post }: { post: Pick<Post, "org" | "embed_url" | "em
       {post.embed_url && (
         <figure className="mt-3">
           <div className="aspect-video bg-muted">
-            <AutoplayEmbed src={post.embed_url} title={`Video shared by ${post.org.name}`} />
+            <AutoplayEmbed src={post.embed_url} title={`Video shared by ${post.org?.name ?? "imnet"}`} />
           </div>
           {post.embed_credit && (
             <figcaption className="px-4 pt-1.5 text-[11px] text-muted-foreground">Video: {post.embed_credit}</figcaption>

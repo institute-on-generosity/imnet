@@ -688,3 +688,30 @@ describe("top supporters", () => {
     expect(rows.some((r) => Number(r.amount) >= 99999)).toBe(false)  // unconfirmed grant
   })
 })
+
+describe("donor posts", () => {
+  const OTHER = "10000000-0000-4000-8000-0000000000e9"
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${OTHER}', 'other9@example.com') on conflict do nothing`)
+  })
+
+  it("F-079: a donor posts as themselves (text, optional spotlight); everyone reads it", async () => {
+    const r = await t.as(DONOR, `insert into posts (author_id, body, about_org_id) values ('${DONOR}', 'Harbor Table needs Saturday cooks!', '${ORG_1}') returning id`)
+    expect(r.error).toBeUndefined()
+    const id = r.rows![0].id
+    expect((await t.as(null, `select body from posts where id = '${id}'`)).rows).toHaveLength(1)
+    expect((await t.as(DONOR, `insert into posts (author_id, body) values ('${OTHER}', 'impersonating')`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `insert into posts (author_id, body, kind) values ('${DONOR}', 'x', 'ask')`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into posts (author_id, body, image_paths, image_alts, image_credits, beneficiary_consent) values ('${DONOR}', 'x', '{a.jpg}', '{alt}', '{""}', true)`)).error).toBeDefined()
+    expect((await t.as(DONOR, `insert into posts (author_id, body, about_org_id) values ('${DONOR}', 'x', '${ORG_PENDING}')`)).error).toMatch(/row-level security/)
+  })
+
+  it("F-079: only the author edits or deletes a donor post, and can't move it under an org", async () => {
+    const id = (await t.as(DONOR, `insert into posts (author_id, body) values ('${DONOR}', 'mine') returning id`)).rows![0].id
+    expect((await t.as(OTHER, `update posts set body = 'hacked' where id = '${id}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(STAFF, `delete from posts where id = '${id}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(DONOR, `update posts set org_id = '${ORG_1}' where id = '${id}'`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `update posts set body = 'edited' where id = '${id}' returning id`)).rows).toHaveLength(1)
+    expect((await t.as(DONOR, `delete from posts where id = '${id}' returning id`)).rows).toHaveLength(1)
+  })
+})

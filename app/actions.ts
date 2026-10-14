@@ -564,7 +564,12 @@ export async function loadComments(postId: string) {
   const userId = await getUserId()
   const post = await getPost(postId)
   if (!post) return null
-  const [comments, isStaff, viewer, donorHint] = await Promise.all([getComments(postId), isOrgStaff(userId, post.org_id), getViewer(userId), donorBadgeHint(userId, post.org_id)])
+  const [comments, isStaff, viewer, donorHint] = await Promise.all([
+    getComments(postId),
+    post.org_id ? isOrgStaff(userId, post.org_id) : false,
+    getViewer(userId),
+    post.org_id ? donorBadgeHint(userId, post.org_id) : false,
+  ])
   return {
     threads: thread(comments),
     isStaff,
@@ -633,4 +638,31 @@ export async function updateMyProfile(_: ActionState, form: FormData): Promise<A
   if (causes.length) await supabase.from("profile_causes").insert(causes.map((cause_slug) => ({ user_id: userId, cause_slug })))
   revalidatePath("/", "layout")
   redirect(`/u/${data.handle}`)
+}
+
+// ---------------------------------------------------------------------------
+// Donor posts (F-079): people post as themselves, optionally spotlighting an org
+// ---------------------------------------------------------------------------
+export async function createDonorPost(_: ActionState, form: FormData): Promise<ActionState> {
+  const userId = await requireUser()
+  const body = z.string().trim().min(1, "Write something first.").max(3000, "Keep it under 3,000 characters.").safeParse(form.get("body"))
+  if (!body.success) return fail(form, body.error.issues[0].message)
+  const about = String(form.get("about_org_id") ?? "")
+  if (about && !/^[0-9a-f-]{36}$/.test(about)) return fail(form, "Pick an organization from the list.")
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("posts")
+    .insert({ author_id: userId, body: body.data, about_org_id: about || null })
+    .select("id")
+    .single()
+  if (error) return fail(form, error.message.includes("row-level security") ? "You can't spotlight that organization." : error.message)
+  revalidatePath("/", "layout")
+  return { ok: true, id: data.id, message: "Posted." }
+}
+
+export async function deleteMyPost(postId: string) {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("posts").delete().match({ id: postId, author_id: userId }).is("org_id", null)
+  revalidatePath("/", "layout")
 }

@@ -55,7 +55,7 @@ test("F-033: foundations and nonprofits look different, and the feed filters by 
   const harborPost = page.locator("article").filter({ hasText: "10,000th family visit" }).first()
   await expect(harborPost.locator('header [title="Foundation"]')).toHaveCount(0)
 
-  await page.getByRole("navigation", { name: "Filter by organization type" }).getByRole("link", { name: "Foundations" }).click()
+  await page.getByRole("navigation", { name: "Filter by who's posting" }).getByRole("link", { name: "Foundations" }).click()
   await expect(page).toHaveURL(/type=foundation/)
   await expect(page.getByText("Fall Community Fund grants are out")).toBeVisible()
   await expect(page.getByText("10,000th family visit")).toHaveCount(0)
@@ -421,4 +421,17 @@ test("F-078: a nonprofit shows its top supporters: foundations by confirmed gran
   await expect(card.locator('a[href^="/u/"]').first()).toBeVisible()
   await expect(card.getByText(/People: self-reported/)).toBeVisible()
   await expect(card.getByText(/Foundations: confirmed grants/)).toBeVisible()
+})
+
+test("F-079: the Donors tab shows posts by people, with spotlighted organizations and comments", async ({ page }) => {
+  await page.goto("/")
+  await page.getByRole("navigation", { name: "Filter by who's posting" }).getByRole("link", { name: "Donors" }).click()
+  await expect(page).toHaveURL(/type=donor/)
+  const post = page.locator("article").filter({ hasText: "Harbor Table needs dinner crew" }).first()
+  await expect(post).toBeVisible()
+  await expect(post.locator('a[href^="/u/"]').first()).toBeVisible()
+  await expect(post.getByRole("link", { name: /Harbor Table.*View/ })).toHaveAttribute("href", "/o/harbor-table")
+  // Only people's posts here: no org headers.
+  await expect(page.locator("article header a[href^='/o/']")).toHaveCount(0)
+  await expect(page.getByRole("navigation", { name: "Filter by cause" })).toHaveCount(0)
 })

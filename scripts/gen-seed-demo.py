@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import demo_more_orgs as more  # noqa: E402
 import demo_profiles as prof  # noqa: E402
 import demo_media as media  # noqa: E402
+import demo_donor_posts as dposts  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "supabase", "seed_demo.sql")
@@ -468,6 +469,17 @@ for uid in r3.sample(new_people, 220):
                    f"{r3.choice([5, 10, 20, 25, 50, 50, 75, 100, 150, 250, 500])}, current_date - {r3.randint(1, 500)});")
 out.append("")
 
+# --- Donor posts (F-079): people spreading the word, many spotlighting an org --------------
+r5 = random.Random(20261025)
+def about_sql(about):
+    return f"'{oid(about)}'" if about else "null"
+authors = r5.sample(people, len(dposts.POSTS))
+out.append("insert into posts (author_id, kind, body, about_org_id, created_at) values")
+out.append(",\n".join(
+    f"  ('{a}', 'update', {q(body)}, {about_sql(about)}, now() - interval '{days * 24:.0f} hours')"
+    for a, (about, body, days) in zip(authors, dposts.POSTS)) + ";")
+out.append("")
+
 # --- Comments (F-062): many people comment on nonprofit and foundation posts; teams reply -------------
 GENERAL = [
     "This is why I give. Thank you, {org}.", "Love seeing the actual numbers. Keep posting these.", "Shared this with my book club.",
@@ -500,6 +512,10 @@ REPLIES = [
     "Our volunteers will be so happy to read this.", "Thank you. Every gift really does add up.",
     "Yes! Send us a note through the Help link and we'll get you started.", "Grateful for you. See you soon.",
 ]
+DONOR_POST_COMMENTS = ["Thanks for sharing this!", "Just signed up. See you Saturday.", "Sharing with my neighborhood group.", "This is so good to know.",
+    "I didn't know about this. Thank you.", "Love this. Following them now.", "Same experience here, highly recommend.", "Going to bring my kids next time.",
+    "Thank you for spreading the word.", "Sent them a little something.", "Great tip, I just checked my employer's match.", "This made my day.",
+    "Where do I sign up?", "Saving this for the weekend.", "So glad they exist."]
 PEER = ["Couldn't agree more.", "Same here!", "See you there!", "This is exactly why I started volunteering too.",
         "Well said.", "Thanks for sharing that.", "I'm going Saturday too. Say hi!", "Love this.", "So true.",
         "My family feels the same way.", "Their volunteer orientation is great, highly recommend.", "Yes! Signed up after reading this."]
@@ -520,6 +536,18 @@ select p.id, d.id,
      order by md5(p.id::text || id::text || 'comment') limit 2 + abs(hashtext(p.id::text || 'comments')) % 28
   ) d
  where p.published;
+
+-- Comments on donor posts (F-079).
+insert into comments (post_id, user_id, body, created_at)
+select p.id, d.id, ({sql_arr(DONOR_POST_COMMENTS)})[1 + (abs(hashtext(p.id::text || 'dbody')) + d.rn) % {len(DONOR_POST_COMMENTS)}],
+       p.created_at + (now() - p.created_at) * ((abs(hashtext(p.id::text || d.id::text)) % 950) / 1000.0)
+  from posts p
+  cross join lateral (
+    select id, row_number() over (order by md5(p.id::text || id::text || 'dc')) rn from profiles
+     where id::text like '00000000-0000-4000-c000-%' and id <> p.author_id
+     order by md5(p.id::text || id::text || 'dc') limit 2 + abs(hashtext(p.id::text || 'dcomments')) % 9
+  ) d
+ where p.org_id is null and p.published;
 
 -- Team replies (LinkedIn "Author" replies) under one or two comments on about half the posts.
 insert into comments (post_id, parent_id, user_id, body, as_org, created_at)
@@ -634,7 +662,8 @@ select d.id, p.id from posts p cross join lateral (
 insert into events (type, org_id, post_id, created_at)
 select (array['view','view','view','view','view','view','share','donate_click'])[1 + (abs(hashtext(p.id::text || g::text)) % 8)],
        p.org_id, p.id, now() - make_interval(hours => abs(hashtext(g::text || p.id::text)) % 720)
-  from posts p cross join generate_series(1, 20 + abs(hashtext(p.id::text)) % 120) g;
+  from posts p cross join generate_series(1, 20 + abs(hashtext(p.id::text)) % 120) g
+ where p.org_id is not null;
 """)
 
 open(OUT, "w").write("\n".join(out) + "\n")
