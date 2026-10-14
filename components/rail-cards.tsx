@@ -1,5 +1,5 @@
-import { BadgeCheck, Globe } from "lucide-react"
-import Link from "next/link"
+import { BadgeCheck, CalendarDays, Globe, MapPin, Users } from "lucide-react"
+import Link from "@/components/intent-link"
 import { footnotes } from "@/lib/footnotes"
 import { formatUsd } from "@/lib/grants"
 import type { Grant, ImpactStat, Org, OrgSummary } from "@/lib/types"
@@ -74,7 +74,7 @@ export function FundersCard({ grants, slug, where = "rail" }: { grants: Grant[];
 }
 
 // LinkedIn-style "About" summary: verification, website, causes.
-export function OrgFacts({ org, causes }: { org: Pick<Org, "website" | "slug" | "org_type">; causes: { slug: string; name: string }[] }) {
+export function OrgFacts({ org, causes }: { org: Pick<Org, "website" | "slug" | "org_type" | "location" | "founded_year" | "team_size">; causes: { slug: string; name: string }[] }) {
   return (
     <Panel className="space-y-2.5 p-4 text-sm">
       <p className="flex items-center gap-2"><BadgeCheck className="size-4 shrink-0 text-leaf" aria-hidden />Verified {org.org_type}: EIN and staff email checked</p>
@@ -84,6 +84,9 @@ export function OrgFacts({ org, causes }: { org: Pick<Org, "website" | "slug" | 
           <a href={org.website} target="_blank" rel="noopener noreferrer" className="truncate text-leaf hover:underline">{host(org.website)}</a>
         </p>
       )}
+      {org.location && <p className="flex items-center gap-2"><MapPin className="size-4 shrink-0 text-muted-foreground" aria-hidden />{org.location}</p>}
+      {org.founded_year && <p className="flex items-center gap-2"><CalendarDays className="size-4 shrink-0 text-muted-foreground" aria-hidden />Founded {org.founded_year}</p>}
+      {org.team_size && <p className="flex items-center gap-2"><Users className="size-4 shrink-0 text-muted-foreground" aria-hidden />{org.team_size}</p>}
       {causes.length > 0 && (
         <ul className="flex flex-wrap gap-1.5 pt-1">
           {causes.map((c) => <li key={c.slug}><Link href={`/?cause=${c.slug}`} className="rounded-full bg-muted px-2.5 py-0.5 text-xs hover:bg-secondary">{c.name}</Link></li>)}

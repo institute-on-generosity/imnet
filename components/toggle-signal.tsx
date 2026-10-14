@@ -1,7 +1,8 @@
 "use client"
 
 import { Check, Hand, Plus } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
+import { useRouter } from "next/navigation"
 import { useOptimistic, useTransition } from "react"
 import { sendSignal } from "@/lib/send-signal"
 import { cn } from "@/lib/utils"
@@ -15,6 +16,7 @@ const SIZE = { md: "pl-2.5 pr-3 py-1 text-sm", sm: "pl-2 pr-2.5 py-0.5 text-xs" 
 export function ToggleSignal({ kind, id, on: initial, signedIn, label, size = "md" }: { kind: "rsvp" | "interest"; id: string; on: boolean; signedIn: boolean; label: string; size?: "sm" | "md" }) {
   const [on, setOn] = useOptimistic(initial)
   const [, start] = useTransition()
+  const router = useRouter()
   const [offText, onText] = kind === "rsvp" ? ["Going?", "Going"] : ["I'm interested", "Interested"]
   const Icon = on ? Check : kind === "rsvp" ? Plus : Hand
   if (!signedIn) {
@@ -28,6 +30,7 @@ export function ToggleSignal({ kind, id, on: initial, signedIn, label, size = "m
         start(async () => {
           setOn(!on)
           await sendSignal({ kind, id, on: !on }).catch(() => {})
+          router.refresh() // clear prefetched pages so RSVPs and interest show everywhere
         })
       }
       className={cn(PILL, SIZE[size], on ? "border-leaf bg-leaf-soft text-leaf" : "text-muted-foreground hover:bg-muted")}

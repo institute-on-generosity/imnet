@@ -1,6 +1,7 @@
 "use client"
 
 import { Check, Plus } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useOptimistic, useTransition } from "react"
 import { sendSignal } from "@/lib/send-signal"
 import { cn } from "@/lib/utils"
@@ -9,12 +10,13 @@ import { cn } from "@/lib/utils"
 export function FollowLink({ orgId, orgName, following }: { orgId: string; orgName: string; following: boolean }) {
   const [on, setOn] = useOptimistic(following)
   const [, start] = useTransition()
+  const router = useRouter()
   return (
     <button
       type="button"
       aria-pressed={on}
       aria-label={`${on ? "Following" : "Follow"} ${orgName}`}
-      onClick={() => start(async () => { setOn(!on); await sendSignal({ kind: "follow", id: orgId, on: !on }).catch(() => {}) })}
+      onClick={() => start(async () => { setOn(!on); await sendSignal({ kind: "follow", id: orgId, on: !on }).catch(() => {}); router.refresh() })}
       className={cn("inline-flex shrink-0 items-center gap-1 rounded-md py-1 pr-2 pl-1.5 text-sm font-semibold transition-colors", on ? "text-muted-foreground hover:bg-muted" : "text-leaf hover:bg-leaf-soft")}
     >
       {on ? <Check className="size-4" aria-hidden /> : <Plus className="size-4" aria-hidden />}

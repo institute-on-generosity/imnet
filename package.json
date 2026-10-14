@@ -13,7 +13,8 @@
     "db:push": "supabase db push --include-seed",
     "db:types": "supabase gen types typescript --linked > lib/database.types.ts",
     "cleanup:uploads": "node --env-file-if-exists=.env.local scripts/cleanup-uploads.mts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "preview": "next build && next start -p 3100"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.130.0",

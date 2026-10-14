@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { OrgMark } from "@/components/org-mark"
 import { PersonAvatar } from "@/components/person-avatar"
 import { OrgTypeBadge } from "@/components/org-type-badge"

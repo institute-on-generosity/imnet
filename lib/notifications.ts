@@ -1,4 +1,5 @@
 import "server-only"
+import { cache } from "react"
 import { formatUsd } from "@/lib/grants"
 import { formatDeadline } from "@/lib/open-calls"
 import { createClient } from "@/lib/supabase/server"
@@ -10,7 +11,7 @@ const name = (o: { name: string } | null | undefined) => o?.name ?? "An organiza
 const amount = (n: number | null) => (n ? `${formatUsd(n)} ` : "")
 
 // Everything here runs under the viewer's RLS, so it only ever shows what they may see.
-export async function getNotifications(userId: string): Promise<Notification[]> {
+export const getNotifications = cache(async (userId: string): Promise<Notification[]> => {
   const supabase = await createClient()
   const since = new Date(Date.now() - SINCE_DAYS * 86_400_000).toISOString()
   const { data: memberships } = await supabase.from("org_members").select("org:orgs(id, name, org_type)").eq("user_id", userId)
@@ -68,7 +69,7 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
   }
   for (const r of replies) items.push(r)
   return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30)
-}
+})
 
 async function openCallsForCauses(orgIds: string[], since: string): Promise<Notification[]> {
   const supabase = await createClient()

@@ -1,5 +1,5 @@
 import { CircleCheck, HandCoins, HandHelping, Package } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { NEED_KIND_LABEL, type Need, type NeedWithOrg } from "@/lib/needs"
 import { OrgMark } from "./org-mark"
 import { Panel } from "./shell"

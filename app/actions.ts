@@ -13,7 +13,9 @@ import { parseGiftFields } from "@/lib/gifts"
 import { parseGrantFields } from "@/lib/grants"
 import { parseStatFields } from "@/lib/impact-stat-fields"
 import { logoPathIsValid } from "@/lib/logo"
+import { orgCoverPathIsValid, personCoverPath } from "@/lib/cover"
 import { parseNeedFields } from "@/lib/needs"
+import { parseFoundedYear, parsePrograms } from "@/lib/profile-fields"
 import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
 import { todayISO } from "@/lib/open-calls"
 import { safeNext } from "@/lib/safe-next"
@@ -104,6 +106,9 @@ export async function submitClaim(_: ActionState, form: FormData): Promise<Actio
 
 const OrgSchema = z.object({
   name: z.string().trim().min(2).max(200),
+  about: z.string().trim().max(2000).optional(),
+  location: z.string().trim().max(80).optional(),
+  team_size: z.string().trim().max(80).optional(),
   mission: z.string().max(1000).optional(),
   what_gifts_fund: z.string().max(1000).optional(),
   everyorg_slug: z.string().regex(/^[\w-]*$/).max(100).optional(),
@@ -116,8 +121,28 @@ export async function updateOrg(orgId: string, _: ActionState, form: FormData): 
     mission: form.get("mission") ?? undefined,
     what_gifts_fund: form.get("what_gifts_fund") ?? undefined,
     everyorg_slug: form.get("everyorg_slug") ?? undefined,
+    about: form.get("about") ?? undefined,
+    location: form.get("location") ?? undefined,
+    team_size: form.get("team_size") ?? undefined,
   })
   if (!parsed.success) return fail(form, parsed.error.issues[0].message)
+  const programs = parsePrograms(String(form.get("programs") ?? ""))
+  if ("error" in programs) return fail(form, programs.error)
+  const founded = parseFoundedYear(String(form.get("founded_year") ?? ""), new Date().getFullYear())
+  if ("error" in founded) return fail(form, founded.error)
+  const details = {
+    about: parsed.data.about || null, location: parsed.data.location || null, team_size: parsed.data.team_size || null,
+    programs: programs.programs, founded_year: founded.year,
+  }
+
+  // Cover: a fresh upload in the org's folder, "remove", or unchanged (same rules as the logo).
+  const coverPath = String(form.get("cover_path") ?? "")
+  let cover: { cover_url?: string | null } = {}
+  if (form.get("remove_cover") === "on") cover = { cover_url: null }
+  else if (coverPath) {
+    if (!orgCoverPathIsValid(orgId, coverPath)) return fail(form, "The cover upload didn't finish. Try again.")
+    cover = { cover_url: coverPath }
+  }
 
   // Logo: a fresh upload in the org's folder, "remove", or unchanged.
   const logoPath = String(form.get("logo_path") ?? "")
@@ -129,7 +154,13 @@ export async function updateOrg(orgId: string, _: ActionState, form: FormData): 
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.from("orgs").update({ ...parsed.data, ...logo }).eq("id", orgId).select("slug").single()
+  const { name, mission, what_gifts_fund, everyorg_slug } = parsed.data
+  const { error } = await supabase
+    .from("orgs")
+    .update({ name, mission, what_gifts_fund, everyorg_slug, ...details, ...logo, ...cover })
+    .eq("id", orgId)
+    .select("slug")
+    .single()
   if (error) return fail(form, error.message)
 
   const causes = form.getAll("causes").map(String)
@@ -554,4 +585,45 @@ export async function deleteComment(commentId: string, postId: string) {
   const supabase = await createClient()
   await supabase.from("comments").delete().eq("id", commentId)
   revalidatePath(`/p/${postId}`)
+}
+
+// ---------------------------------------------------------------------------
+// Your profile (F-073)
+// ---------------------------------------------------------------------------
+const MyProfileSchema = z.object({
+  display_name: z.string().trim().min(1, "Add your name.").max(80),
+  bio: z.string().trim().max(160, "Keep your headline under 160 characters."),
+  location: z.string().trim().max(80),
+  about: z.string().trim().max(2000, "Keep About under 2,000 characters."),
+})
+
+export async function updateMyProfile(_: ActionState, form: FormData): Promise<ActionState> {
+  const userId = await requireUser()
+  const parsed = MyProfileSchema.safeParse({
+    display_name: String(form.get("display_name") ?? ""),
+    bio: String(form.get("bio") ?? ""),
+    location: String(form.get("location") ?? ""),
+    about: String(form.get("about") ?? ""),
+  })
+  if (!parsed.success) return fail(form, parsed.error.issues[0].message)
+  const coverKey = String(form.get("cover") ?? "")
+  const cover_url = coverKey ? personCoverPath(coverKey) : null
+  if (coverKey && !cover_url) return fail(form, "Pick a cover from the list.")
+  const avatar = form.get("new_avatar") === "on" ? { avatar_url: `/avatars/u${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}` } : {}
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({
+      display_name: parsed.data.display_name, bio: parsed.data.bio || null, location: parsed.data.location || null,
+      about: parsed.data.about || null, cover_url, ...avatar,
+    })
+    .eq("id", userId)
+    .select("handle")
+    .single()
+  if (error) return fail(form, error.message)
+  const causes = form.getAll("causes").map(String)
+  await supabase.from("profile_causes").delete().eq("user_id", userId)
+  if (causes.length) await supabase.from("profile_causes").insert(causes.map((cause_slug) => ({ user_id: userId, cause_slug })))
+  revalidatePath("/", "layout")
+  redirect(`/u/${data.handle}`)
 }

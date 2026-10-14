@@ -1,4 +1,6 @@
+import { Suspense } from "react"
 import { CauseFilter, OrgTypeFilter } from "@/components/cause-filter"
+import { RailSkeleton } from "@/components/skeletons"
 import { OlderPosts } from "@/components/older-posts"
 import { decodeCursor } from "@/lib/cursor"
 import { feedHref } from "@/lib/feed-href"
@@ -22,17 +24,13 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
   const orgIds = followingOnly && userId ? await getFollowedOrgIds(userId) : undefined
   // Following a foundation also brings in its grantees' grant reports (its portfolio).
   const reportGrantIds = orgIds?.length ? await getConfirmedGrantIds(await foundationsAmong(orgIds)) : []
-  const [viewer, causes, page, suggested, needs, events] = await Promise.all([
-    getViewer(userId),
+  const [causes, page] = await Promise.all([
     getCauses(),
     orgIds && orgIds.length === 0 ? Promise.resolve({ posts: [], next: null }) : getFeedPage({ cause, orgIds, orgType, reportGrantIds, before: cursor ?? undefined }),
-    getSuggestedOrgs({ userId, cause }),
-    getOpenNeeds({ cause, limit: 3 }),
-    getUpcomingEvents({ cause, limit: 3 }),
   ])
   const { posts, next } = page
   const ids = posts.map((p) => p.id)
-  const [movedIds, savedIds, grantsByPost, rsvpIds] = await Promise.all([getMovedPostIds(userId, ids), getSavedPostIds(userId, ids), getGrantsForPosts(ids), getMyRsvpIds(userId, events.map((e) => e.id))])
+  const [movedIds, savedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getSavedPostIds(userId, ids), getGrantsForPosts(ids)])
   const context = followingOnly ? portfolioContext(posts, new Set(orgIds)) : undefined
 
   const empty = followingOnly
@@ -41,14 +39,13 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
       : "You don't follow anyone yet. Pick nonprofits and foundations from Add to your feed."
     : "No stories for this cause yet. Try another cause."
 
+  // Side columns load in parallel with the feed and stream in on their own.
   return (
     <ThreeColumn
-      left={<div className="sticky top-20">{viewer ? <ViewerCard viewer={viewer} /> : <JoinCard />}</div>}
+      left={<div className="sticky top-20"><Suspense fallback={<RailSkeleton rows={2} />}><LeftRail userId={userId} /></Suspense></div>}
       right={
         <div className="sticky top-20 space-y-3">
-          <SuggestedOrgs title={cause ? "Organizations in this cause" : "Add to your feed"} orgs={suggested} signedIn={!!userId} />
-          <WaysToHelp needs={needs} cause={cause} />
-          <UpcomingEvents events={events} rsvpIds={rsvpIds} signedIn={!!userId} cause={cause} />
+          <Suspense fallback={<RailSkeleton rows={4} />}><RightRail userId={userId} cause={cause} /></Suspense>
           <p className="px-4 text-xs leading-relaxed text-muted-foreground">
             Your feed: newest first, never ranked by popularity.
           </p>
@@ -71,6 +68,23 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
         isFirstPage={!cursor}
       />
     </ThreeColumn>
+  )
+}
+
+async function LeftRail({ userId }: { userId: string | null }) {
+  const viewer = await getViewer(userId)
+  return viewer ? <ViewerCard viewer={viewer} /> : <JoinCard />
+}
+
+async function RightRail({ userId, cause }: { userId: string | null; cause?: string }) {
+  const [suggested, needs, events] = await Promise.all([getSuggestedOrgs({ userId, cause }), getOpenNeeds({ cause, limit: 3 }), getUpcomingEvents({ cause, limit: 3 })])
+  const rsvpIds = await getMyRsvpIds(userId, events.map((e) => e.id))
+  return (
+    <>
+      <SuggestedOrgs title={cause ? "Organizations in this cause" : "Add to your feed"} orgs={suggested} signedIn={!!userId} />
+      <WaysToHelp needs={needs} cause={cause} />
+      <UpcomingEvents events={events} rsvpIds={rsvpIds} signedIn={!!userId} cause={cause} />
+    </>
   )
 }
 

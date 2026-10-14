@@ -1,5 +1,5 @@
 import { ArrowRight } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { formatUsd } from "@/lib/grants"
 import type { Grant } from "@/lib/types"
 import { cn } from "@/lib/utils"

@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { total, type Series } from "@/lib/analytics"
 import type { TopPost } from "@/lib/queries"
 

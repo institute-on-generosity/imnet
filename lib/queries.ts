@@ -62,7 +62,7 @@ export async function getOrgBySlug(slug: string) {
   const supabase = await createClient()
   const { data: org } = await supabase
     .from("orgs")
-    .select("id, slug, name, ein, website, mission, what_gifts_fund, logo_url, everyorg_slug, status, org_type")
+    .select("id, slug, name, ein, website, mission, what_gifts_fund, logo_url, everyorg_slug, status, org_type, cover_url, about, location, founded_year, team_size, programs")
     .eq("slug", slug)
     .maybeSingle<Org>()
   if (!org) return null
@@ -95,11 +95,12 @@ export async function getPost(id: string): Promise<Post | null> {
   return data as unknown as Post | null
 }
 
-export async function getFollowedOrgIds(userId: string): Promise<string[]> {
+// Cached per request (feeds, cards and headers all ask).
+export const getFollowedOrgIds = cache(async (userId: string): Promise<string[]> => {
   const supabase = await createClient()
   const { data } = await supabase.from("follows").select("org_id").eq("user_id", userId)
   return (data ?? []).map((f) => f.org_id)
-}
+})
 
 export function postVideoUrl(path: string) {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-videos/${path}`
@@ -141,7 +142,7 @@ export type Viewer = {
   causes: Cause[]
 }
 
-export async function getViewer(userId: string | null): Promise<Viewer | null> {
+export const getViewer = cache(async (userId: string | null): Promise<Viewer | null> => {
   if (!userId) return null
   const supabase = await createClient()
   const [{ data: profile }, { count }, { data: causes }] = await Promise.all([
@@ -155,7 +156,7 @@ export async function getViewer(userId: string | null): Promise<Viewer | null> {
     following: count ?? 0,
     causes: ((causes ?? []) as unknown as { cause: Cause }[]).map((c) => c.cause),
   }
-}
+})
 
 // Orgs to follow: verified, not already followed, optionally within one cause.
 // Alphabetical, not popularity-ranked (design principle #4).
@@ -604,4 +605,20 @@ export async function searchPosts(q: string) {
     .order("created_at", { ascending: false })
     .limit(20)
   return (data ?? []) as unknown as { id: string; body: string; kind: string; created_at: string; org: OrgSummary }[]
+}
+
+export type EventDetail = OrgEvent & { org: OrgSummary & { cover_url: string | null; mission: string | null }; causes: string[] }
+
+// One event with its host (visible orgs only, under RLS); null when missing.
+export async function getEvent(id: string): Promise<EventDetail | null> {
+  if (!/^[0-9a-f-]{36}$/.test(id)) return null
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("org_events")
+    .select(`${EVENT_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type, cover_url, mission, org_causes(cause_slug))`)
+    .eq("id", id)
+    .maybeSingle()
+  if (!data) return null
+  const { org_causes, ...org } = (data as unknown as { org: EventDetail["org"] & { org_causes: { cause_slug: string }[] } }).org
+  return { ...(data as unknown as OrgEvent), org, causes: org_causes.map((c) => c.cause_slug) }
 }

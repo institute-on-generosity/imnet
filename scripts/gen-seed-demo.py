@@ -13,6 +13,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import demo_more_orgs as more  # noqa: E402
+import demo_profiles as prof  # noqa: E402
+import demo_media as media  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "supabase", "seed_demo.sql")
@@ -557,6 +559,64 @@ update profiles set donor_badge = true where id::text like '00000000-0000-4000-c
 out.append("""update profiles set avatar_url = '/avatars/' || handle
  where id::text like '00000000-0000-4000-c000-%' or handle = 'dana_demo';
 """)
+
+# --- Full profiles (F-073): covers, details, more posts; people's locations, About and covers -----------
+r4 = random.Random(20261023)
+for n, (loc, founded, team, programs, about) in prof.DETAILS.items():
+    out.append(f"update orgs set cover_url = '{oid(n)}/cover.webp', location = {q(loc)}, founded_year = {founded}, team_size = {q(team)}, "
+               f"programs = {arr(programs)}, about = {q(about)} where id = '{oid(n)}';")
+out.append("insert into posts (org_id, kind, body, created_at) values")
+out.append(",\n".join(f"  ('{oid(n)}', '{kind}', {q(body)}, now() - interval '{days * 24:.0f} hours')"
+                      for n, posts in prof.EXTRA_POSTS.items() for kind, body, days in posts) + ";")
+COVERS = ["mountain-lake", "city-night", "beach-sunset", "autumn-road", "canyon", "snowy-peaks", "lavender", "bridge-fog",
+          "vineyard-dusk", "waterfall", "tulips", "aurora", "terraces", "coast-lighthouse", "blossom", "prairie"]
+CITIES = ["Portland, ME", "Tacoma, WA", "Milwaukee, WI", "Columbus, OH", "Denver, CO", "Baltimore, MD", "Oakland, CA", "Austin, TX",
+          "Minneapolis, MN", "Providence, RI", "Asheville, NC", "Boise, ID", "Richmond, VA", "Madison, WI", "Kansas City, MO",
+          "Philadelphia, PA", "Pittsburgh, PA", "Sacramento, CA", "Louisville, KY", "Savannah, GA", "Chicago, IL", "Seattle, WA",
+          "Albuquerque, NM", "Burlington, VT", "St. Louis, MO", "Spokane, WA", "Charleston, SC", "Ann Arbor, MI", "Raleigh, NC", "Eugene, OR"]
+ABOUTS = [
+    "I started giving monthly after a neighbor's kitchen fed my family during a hard winter. Now I volunteer there too.",
+    "Teacher for 22 years. I give to the programs I wish my students had, and I like seeing the reports.",
+    "My partner and I pick three local organizations each year and give to them all year. This is where we keep track.",
+    "Retired nurse. I care about care that's close to home: clinics, dental vans, peer support.",
+    "I came here as a refugee in 2009. The welcome center that helped my family is still the first place I give.",
+    "Software engineer, weekend tree planter. I give where I can see the results on my own street.",
+    "I volunteer at the shelter on Sundays and give to the groups our guests talk about.",
+    "Small business owner. One percent of every sale goes to the neighborhood, and I like knowing exactly where.",
+    "Grandparent of five. Each grandchild picks an organization every birthday and we give together.",
+    "Grad student. My gifts are small, but I give every month and follow every post.",
+    "I give through my community foundation because the neighbors on the committee know our town better than I do.",
+    "Former foster kid. Youth shelters and mentors are where my giving goes.",
+]
+out.append("-- People: most have a location, many an About, two in three a cover from the shared set.")
+for uid in people:
+    loc = r4.choice(CITIES) if r4.random() < 0.85 else None
+    about = r4.choice(ABOUTS) if r4.random() < 0.4 else None
+    cover = f"covers/{r4.choice(COVERS)}.webp" if r4.random() < 0.67 else None
+    sets = [f"location = {q(loc)}" if loc else None, f"about = {q(about)}" if about else None, f"cover_url = '{cover}'" if cover else None]
+    sets = [x for x in sets if x]
+    if sets:
+        out.append(f"update profiles set {', '.join(sets)} where id = '{uid}';")
+out.append("""update profiles set location = 'Milwaukee, WI', cover_url = 'covers/mountain-lake.webp',
+  about = 'I give monthly to the Lakeshore Community Fund and directly to Harbor Table. I''m here to see what the money became: the grants, the reports, the people doing the work.'
+  where handle = 'dana_demo';
+update profiles set donor_badge = true where handle = 'dana_demo';
+insert into gifts (user_id, org_id, amount_usd, given_on, note) select id, '00000000-0000-4000-a000-000000000011', 40, current_date - 45, 'Welcome kits drive' from profiles where handle = 'dana_demo';""")
+out.append("")
+
+# --- More photo and video posts (scripts/demo_media.py) ------------------------------------
+rows = []
+for n, kind, body, days, files in media.PHOTO_POSTS:
+    paths = [f"{oid(n)}/{f}" for f in files]
+    rows.append(f"  ('{oid(n)}', '{kind}', {q(body)}, {arr(paths)}, {arr([credits[p]['alt'] for p in paths])}, "
+                f"{arr([credits[p]['credit'] for p in paths])}, true, now() - interval '{days * 24:.0f} hours')")
+out.append("insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, beneficiary_consent, created_at) values")
+out.append(",\n".join(rows) + ";")
+out.append("insert into posts (org_id, kind, body, video_path, video_poster_path, video_alt, video_credit, created_at) values")
+out.append(",\n".join(
+    f"  ('{oid(n)}', '{kind}', {q(body)}, '{oid(n)}/{stem}.webm', '{oid(n)}/{stem}.jpg', {q(alt)}, {q(credit)}, now() - interval '{days * 24:.0f} hours')"
+    for n, kind, body, days, stem, alt, credit in media.VIDEO_POSTS) + ";")
+out.append("")
 
 # Private reactions and saves, and 30 days of analytics
 out.append(f"""-- "Moved" and saves: random donors on random posts (private; only totals show to staff).

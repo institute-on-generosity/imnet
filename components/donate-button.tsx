@@ -1,7 +1,7 @@
 "use client"
 
 import { HeartHandshake, NotebookPen } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { useState } from "react"
 import { logEvent } from "@/app/actions"
 import { buttonVariants } from "@/components/ui/button"

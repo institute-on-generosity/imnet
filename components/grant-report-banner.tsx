@@ -1,5 +1,5 @@
 import { Landmark } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { formatUsd } from "@/lib/grants"
 import type { ReportGrant } from "@/lib/types"
 

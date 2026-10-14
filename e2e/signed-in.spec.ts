@@ -164,8 +164,8 @@ test("F-036: the dashboard nudges a report on the confirmed grant; the report re
   await expect(page.getByText("Posted.")).toBeVisible()
   await expect(page.getByRole("heading", { name: "Share how your grants are going" })).toHaveCount(0)
 
-  await page.goto("/o/lakeshore-community-foundation")
-  await expect(page.getByRole("link", { name: new RegExp(`Latest report: Dinner supplies arrived.*Report ${id}`) })).toBeVisible()
+  await page.goto("/o/lakeshore-community-foundation?tab=portfolio")
+  await expect(page.locator("article").filter({ hasText: `Report ${id}` }).first()).toBeVisible()
 })
 
 test("F-037: following a foundation brings its grantees' reports into Following, with context", async () => {
@@ -562,6 +562,40 @@ test("F-067 / B-022: staff see 30-day charts and top posts; totals match the dat
   const [{ n }] = await sql`select count(*)::int n from events where org_id = ${FOUNDATION} and type = 'view'
     and created_at >= (((now() at time zone 'UTC')::date - 29)::timestamp at time zone 'UTC')`
   await expect(page.locator("figure").filter({ hasText: "Views" }).first()).toContainText(n.toLocaleString("en-US"))
+})
+
+test("F-073: edit your profile: headline, location, About, causes and a cover from the set", async () => {
+  const [{ handle }] = await sql`select handle from profiles where id = ${userId}`
+  await page.goto(`/u/${handle}`)
+  await page.getByRole("link", { name: "Edit profile" }).click()
+  await expect(page).toHaveURL(/\/settings\/profile/)
+  await page.getByLabel("Headline").fill(`Weekend volunteer ${id}`)
+  await page.getByLabel("Location").fill("Tacoma, WA")
+  await page.getByLabel("About").fill(`I give where I live. ${id}`)
+  await page.getByRole("radio", { name: "Lavender field" }).click()
+  await page.locator("label", { hasText: "Animals" }).click()
+  await page.getByRole("button", { name: "Save profile" }).click()
+  await expect(page).toHaveURL(new RegExp(`/u/${handle}$`))
+  await expect(page.getByText(`Weekend volunteer ${id}`)).toBeVisible()
+  await expect(page.getByText("Tacoma, WA")).toBeVisible()
+  await expect(page.getByText(`I give where I live. ${id}`)).toBeVisible()
+  await expect(page.locator('main img[src$="covers/lavender.webp"]')).toBeVisible()
+  await expect(page.getByRole("list", { name: "Causes I care about" }).getByRole("link", { name: "Animals" })).toBeVisible()
+})
+
+test("F-073: staff add location, founding year, team and programs; they show on the profile", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await page.getByLabel("Location").fill("Springfield, IL")
+  await page.getByLabel("Founded").fill("2019")
+  await page.getByLabel("Team").fill("2 staff · 40 volunteers")
+  await page.getByLabel("Programs (comma separated, up to 8)").fill("Soup night, Pantry")
+  await page.getByRole("button", { name: "Save profile" }).click()
+  await expect(page.getByText("Profile saved.")).toBeVisible()
+  await page.goto(`/o/${slug}?tab=about`)
+  await expect(page.getByText("Springfield, IL").first()).toBeVisible()
+  await expect(page.getByText("2 staff · 40 volunteers").first()).toBeVisible()
+  await expect(page.getByRole("listitem").filter({ hasText: "Soup night" })).toBeVisible()
 })
 
 test("F-015: staff can't open another org's dashboard", async () => {

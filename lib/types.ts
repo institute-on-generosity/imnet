@@ -18,6 +18,12 @@ export type Org = OrgSummary & {
   what_gifts_fund: string | null
   everyorg_slug: string | null
   status: "pending" | "verified" | "suspended"
+  cover_url: string | null
+  about: string | null
+  location: string | null
+  founded_year: number | null
+  team_size: string | null
+  programs: string[]
 }
 
 export type Post = {

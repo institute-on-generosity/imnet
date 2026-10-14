@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { formatUsd, grantTotals } from "@/lib/grants"
 import type { Grant, GrantReport, Org } from "@/lib/types"
 import { OrgMark } from "./org-mark"
@@ -49,7 +49,6 @@ export function GrantsPanel({ org, grants }: { org: Pick<Org, "org_type" | "name
                   <p className="text-sm text-muted-foreground">
                     {[g.amount_usd && formatUsd(g.amount_usd), g.purpose, year(g.awarded_on)].filter(Boolean).join(", ")}
                   </p>
-                  {g.reports.length > 0 && <LatestReport report={latest(g.reports)} />}
                 </div>
               </li>
             )

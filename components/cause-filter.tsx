@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { feedHref } from "@/lib/feed-href"
 import { cn } from "@/lib/utils"
 import type { Cause, OrgType } from "@/lib/types"

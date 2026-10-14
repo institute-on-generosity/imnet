@@ -58,6 +58,7 @@ Reset the local database to the demo data: `npx supabase db reset && npx supabas
 | `npm run test:e2e` | Browser tests (Playwright) against local Supabase; starts the dev server if needed |
 | `npm run cleanup:uploads` | Delete photos uploaded but never posted (`-- --dry-run` to list). Needs `SUPABASE_SECRET_KEY` |
 | `npm run build` | Production build |
+| `npm run preview` | Production build on port 3100: the fast, prefetching version (use for demos; stop `npm run dev` first) |
 | `npm run db:push` | Apply migrations + seed to a linked hosted project (later) |
 | `npm run db:types` | Generate `lib/database.types.ts` |
 

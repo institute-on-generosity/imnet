@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { Cause, Org } from "@/lib/types"
+import { CoverPicker } from "./cover-picker"
 import { LogoPicker } from "./logo-picker"
 
 export function ProfileForm({ org, causes, selected }: { org: Org; causes: Cause[]; selected: string[] }) {
@@ -37,6 +38,7 @@ export function ProfileForm({ org, causes, selected }: { org: Org; causes: Cause
         </Button>
         {draftNote && <span className="text-sm text-muted-foreground">{draftNote}</span>}
       </div>
+      <CoverPicker key={`cover-${state?.message ?? ""}`} org={org} />
       <LogoPicker key={state?.message ?? "logo"} org={org} />
       <div className="space-y-1">
         <Label htmlFor="name">Name</Label>
@@ -49,6 +51,28 @@ export function ProfileForm({ org, causes, selected }: { org: Org; causes: Cause
       <div className="space-y-1">
         <Label htmlFor="what_gifts_fund">What gifts fund</Label>
         <Textarea id="what_gifts_fund" name="what_gifts_fund" value={funds} onChange={(e) => setFunds(e.target.value)} />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="about">About (shown on your About tab)</Label>
+        <Textarea id="about" name="about" rows={4} maxLength={2000} defaultValue={state?.values?.about ?? org.about ?? ""} placeholder="Your story: how you started, how you work, what makes you different." />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="space-y-1">
+          <Label htmlFor="location">Location</Label>
+          <Input id="location" name="location" maxLength={80} defaultValue={state?.values?.location ?? org.location ?? ""} placeholder="Portland, ME" />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="founded_year">Founded</Label>
+          <Input id="founded_year" name="founded_year" inputMode="numeric" defaultValue={state?.values?.founded_year ?? org.founded_year ?? ""} placeholder="2011" />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="team_size">Team</Label>
+          <Input id="team_size" name="team_size" maxLength={80} defaultValue={state?.values?.team_size ?? org.team_size ?? ""} placeholder="14 staff · 320 volunteers" />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="programs">Programs (comma separated, up to 8)</Label>
+        <Input id="programs" name="programs" defaultValue={state?.values?.programs ?? org.programs.join(", ")} placeholder="Community dinners, Pantry Saturdays, Pantry garden" />
       </div>
       <div className="space-y-1">
         <Label htmlFor="everyorg_slug">Every.org slug (for the Donate button)</Label>
