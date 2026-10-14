@@ -184,7 +184,11 @@ test("F-041: feeds page with 'Show older posts'; every post appears exactly once
 test("F-047: shared posts and profiles have branded preview images", async ({ page, request }) => {
   await page.goto("/o/harbor-table?tab=posts")
   await page.locator("article").filter({ hasText: "The new walk-in freezer is in." }).getByRole("link", { name: "Open post" }).click()
-  const og = await page.locator('meta[property="og:image"]').getAttribute("content")
+  await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/)
+  // Link previews come from the server HTML a crawler fetches (not the client-side DOM).
+  const html = await (await request.get(page.url())).text()
+  const og = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1]
+  expect(html.match(/<meta property="og:image" /g)).toHaveLength(1)
   expect(og).toMatch(/\/p\/[0-9a-f-]{36}\/opengraph-image/)
   const img = await request.get(og!)
   expect(img.status()).toBe(200)
