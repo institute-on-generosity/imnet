@@ -120,6 +120,7 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-044 Edit and delete posts.** Dashboard "Your posts": staff edit a post's text (pencil) or delete it (trash, with confirmation). Edited posts show "Edited" with the time on hover; the database stamps `edited_at` whenever the text changes, so edits are never silent. Only the org's staff can edit or delete. Test: `supabase/tests/rls.test.ts`, `e2e/signed-in.spec.ts`
 - **F-045 Logo upload.** In the profile editor, staff upload a logo (JPG, PNG, WebP under 5 MB) or remove it; it replaces the monogram everywhere. The upload goes to the org's own folder and the server derives `logo_url` from that path, so a logo can never point at an outside host. The upload cleanup (F-031) keeps logos in use. Test: `lib/logo.test.ts`, `supabase/tests/rls.test.ts`, `e2e/signed-in.spec.ts`
 - **F-046 Saved posts.** A bookmark icon on every post saves it privately (no counts anywhere); `/saved` lists saved posts newest-saved first, linked from the profile card. Uses the keepalive signal (B-013). Test: `supabase/tests/rls.test.ts`, `e2e/signed-in.spec.ts`
+- **F-047 Share-preview images.** Shared post and org links get a branded 1200x630 card (org name, post type, opening text, first photo; foundations on navy). Built from public data only (RLS), so unpublished posts have no preview. Test: `e2e/public.spec.ts`
 
 ### Fixes
 

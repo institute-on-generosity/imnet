@@ -181,6 +181,19 @@ test("F-041: feeds page with 'Show older posts'; every post appears exactly once
   }
 })
 
+test("F-047: shared posts and profiles have branded preview images", async ({ page, request }) => {
+  await page.goto("/o/harbor-table?tab=posts")
+  await page.locator("article").filter({ hasText: "The new walk-in freezer is in." }).getByRole("link", { name: "Open post" }).click()
+  const og = await page.locator('meta[property="og:image"]').getAttribute("content")
+  expect(og).toMatch(/\/p\/[0-9a-f-]{36}\/opengraph-image/)
+  const img = await request.get(og!)
+  expect(img.status()).toBe(200)
+  expect(img.headers()["content-type"]).toBe("image/png")
+
+  const orgImg = await request.get("/o/lakeshore-community-foundation/opengraph-image")
+  expect(orgImg.headers()["content-type"]).toBe("image/png")
+})
+
 test("F-003 / F-024 / F-021: org profile tabs and footnoted impact stats", async ({ page }) => {
   await page.goto("/o/open-door-homes")
   await expect(page.getByRole("heading", { name: "Open Door Homes (Demo)" })).toBeVisible()
