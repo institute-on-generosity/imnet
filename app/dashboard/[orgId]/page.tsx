@@ -7,6 +7,7 @@ import { createClient, getUserId } from "@/lib/supabase/server"
 import { Composer } from "./composer"
 import { ImpactStatsEditor } from "./impact-stats-editor"
 import { PostManager } from "./post-manager"
+import { TeamCard } from "./team-card"
 import { GrantsNeedingReport } from "./grants-needing-report"
 import { GrantsToConfirm } from "./grants-to-confirm"
 import { OpenCallsForYou } from "./open-calls-for-you"
@@ -76,6 +77,11 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
       </Card>
 
       <Card>
+        <CardHeader><CardTitle>Team</CardTitle></CardHeader>
+        <CardContent><TeamCard orgId={org.id} me={userId} {...await getTeam(org.id)} /></CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
         <CardContent>
           <ProfileForm org={org} causes={causes} selected={(orgCauses ?? []).map((c) => c.cause_slug)} />
@@ -100,5 +106,17 @@ async function getStats(orgId: string): Promise<ImpactStat[]> {
   const supabase = await createClient()
   const { data } = await supabase.from("impact_stats").select("id, label, value, source_url, as_of").eq("org_id", orgId).order("sort")
   return data ?? []
+}
+
+async function getTeam(orgId: string) {
+  const supabase = await createClient()
+  const [{ data: members }, { data: invites }] = await Promise.all([
+    supabase.from("org_members").select("user_id, profile:profiles(handle, display_name)").eq("org_id", orgId).order("created_at"),
+    supabase.from("org_invites").select("id, email, token").eq("org_id", orgId).is("accepted_at", null).order("created_at"),
+  ])
+  return {
+    members: ((members ?? []) as unknown as { user_id: string; profile: { handle: string; display_name: string | null } }[]).map((m) => ({ user_id: m.user_id, ...m.profile })),
+    invites: invites ?? [],
+  }
 }
 

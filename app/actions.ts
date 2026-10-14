@@ -12,6 +12,7 @@ import { parseStatFields } from "@/lib/impact-stat-fields"
 import { logoPathIsValid, logoPublicUrl } from "@/lib/logo"
 import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
 import { todayISO } from "@/lib/open-calls"
+import { safeNext } from "@/lib/safe-next"
 import { escapeLike } from "@/lib/search"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
@@ -34,10 +35,11 @@ async function requireUser() {
 export async function sendMagicLink(_: ActionState, form: FormData): Promise<ActionState> {
   const email = z.email().safeParse(form.get("email"))
   if (!email.success) return fail(form, "Enter a valid email.")
+  const next = safeNext(form.get("next"))
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithOtp({
     email: email.data,
-    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm` },
+    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm${next === "/" ? "" : `?next=${encodeURIComponent(next)}`}` },
   })
   if (error) return fail(form, error.message)
   return { ok: true, message: "Check your email for a sign-in link." }
@@ -233,6 +235,43 @@ export async function deletePost(postId: string) {
   const supabase = await createClient()
   await supabase.from("posts").delete().eq("id", postId)
   revalidatePath("/", "layout")
+}
+
+// ---------------------------------------------------------------------------
+// Team
+// ---------------------------------------------------------------------------
+export async function createInvite(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  const userId = await requireUser()
+  const email = z.email("Enter your colleague's email.").safeParse(String(form.get("email") ?? "").trim())
+  if (!email.success) return fail(form, email.error.issues[0].message)
+  const supabase = await createClient()
+  const { error } = await supabase.from("org_invites").insert({ org_id: orgId, email: email.data, invited_by: userId })
+  if (error) return fail(form, error.code === "23505" ? "That email already has an invite." : error.message)
+  revalidatePath(`/dashboard/${orgId}`)
+  return { ok: true, message: "Invite created. Copy the link and send it to them." }
+}
+
+export async function revokeInvite(inviteId: string, orgId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("org_invites").delete().eq("id", inviteId)
+  revalidatePath(`/dashboard/${orgId}`)
+}
+
+export async function removeMember(orgId: string, userId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("remove_org_member", { target_org: orgId, target_user: userId })
+  if (error) throw error
+  revalidatePath(`/dashboard/${orgId}`)
+}
+
+export async function acceptInvite(token: string) {
+  await requireUser()
+  const supabase = await createClient()
+  const { data: orgId, error } = await supabase.rpc("accept_org_invite", { invite_token: token })
+  if (error) redirect(`/invite/${token}?error=${encodeURIComponent(error.message)}`)
+  redirect(`/dashboard/${orgId}`)
 }
 
 // ---------------------------------------------------------------------------

@@ -312,6 +312,39 @@ test("F-046: save a post with the bookmark; it's on /saved; unsave removes it", 
   await expect(page.getByText("Nothing saved yet.")).toBeVisible()
 })
 
+test("F-048 / B-015: invite a colleague by link; they sign in, come back to the invite, and join", async ({ browser }) => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  const colleague = `sam.${id}@${domain}`
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await page.getByLabel("Colleague's email").fill(colleague)
+  await page.getByRole("button", { name: "Invite" }).click()
+  await expect(page.getByText("Invite created.")).toBeVisible()
+  const link = await page.locator("[data-invite-link]").getAttribute("data-invite-link")
+
+  // The colleague, in their own browser, opens the link signed out.
+  const other = await (await browser.newContext()).newPage()
+  await other.goto(link!)
+  await expect(other.getByRole("heading", { name: `Join ${orgName}` })).toBeVisible()
+  await other.getByRole("link", { name: "Sign in to join" }).click()
+  await expect(other).toHaveURL(/\/login\?next=/)
+  await signIn(other, colleague)
+  await expect(other).toHaveURL(new RegExp(`/invite/`))
+  await other.getByRole("button", { name: `Join ${orgName}` }).click()
+  await expect(other).toHaveURL(new RegExp(`/dashboard/${kitchen.id}`))
+  await other.close()
+
+  await page.reload()
+  const row = page.locator("li").filter({ hasText: colleague.split("@")[0].replace(".", "") })
+  await expect(row).toHaveCount(1)
+  await row.getByRole("button", { name: /Remove @/ }).click()
+  await expect(row).toHaveCount(0)
+  await sql`delete from auth.users where email = ${colleague}`
+
+  // A crafted sign-in link can't send anyone off-site.
+  await page.goto("/login?next=//evil.example")
+  expect(await page.locator('input[name="next"]').inputValue()).toBe("/")
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

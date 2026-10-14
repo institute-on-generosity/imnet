@@ -25,12 +25,15 @@ async function magicLink(email: string) {
 }
 
 export async function signIn(page: Page, email: string) {
-  await page.goto("/login")
+  // Reuse a login page we were sent to (it may carry ?next=); otherwise open one.
+  if (!new URL(page.url() === "about:blank" ? "http://x/" : page.url()).pathname.startsWith("/login")) await page.goto("/login")
   await page.getByPlaceholder("you@example.com").fill(email)
   await page.getByRole("button", { name: "Email me a link" }).click()
   await expect(page.getByText("Check your email for a sign-in link.")).toBeVisible()
   await page.goto(await magicLink(email))
   await expect(page.getByRole("link", { name: "Me", exact: true })).toBeVisible()
+  // Wait for the sign-in redirect chain to settle on the page we were sent to.
+  await page.waitForLoadState("networkidle")
   const [user] = await sql`select id from auth.users where email = ${email}`
   return user.id as string
 }

@@ -372,3 +372,32 @@ describe("open calls", () => {
   })
 })
 
+describe("team invites", () => {
+  const NEWBIE = "10000000-0000-4000-8000-0000000000f7"
+  const STRANGER = "10000000-0000-4000-8000-0000000000f8"
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${NEWBIE}', 'new.colleague@harbor.example.org'), ('${STRANGER}', 'someone@else.example.com') on conflict do nothing`)
+  })
+
+  it("F-048: only staff invite; only the invited email can accept; invites are single-use", async () => {
+    expect((await t.as(DONOR, `insert into org_invites (org_id, email, invited_by) values ('${ORG_1}', 'x@y.org', '${DONOR}')`)).error).toMatch(/row-level security/)
+    const inv = await t.as(STAFF, `insert into org_invites (org_id, email, invited_by) values ('${ORG_1}', 'New.Colleague@harbor.example.org', '${STAFF}') returning token`)
+    const token = inv.rows![0].token
+
+    // Others can't list the org's invites; anyone with the link sees only the org name.
+    expect((await t.as(DONOR, `select token from org_invites`)).rows).toHaveLength(0)
+    expect((await t.as(null, `select org_name from invite_preview('${token}')`)).rows).toEqual([{ org_name: "Harbor Table (Demo)" }])
+
+    expect((await t.as(STRANGER, `select accept_org_invite('${token}')`)).error).toMatch(/different email/)
+    expect((await t.as(NEWBIE, `select accept_org_invite('${token}')`)).error).toBeUndefined()
+    expect(await t.owner(`select 1 from org_members where org_id = '${ORG_1}' and user_id = '${NEWBIE}'`)).toHaveLength(1)
+    expect((await t.as(NEWBIE, `select accept_org_invite('${token}')`)).error).toMatch(/already used/)
+  })
+
+  it("F-048: staff can remove a colleague, never the last member; outsiders can't remove anyone", async () => {
+    expect((await t.as(DONOR, `select remove_org_member('${ORG_1}', '${NEWBIE}')`)).error).toMatch(/not your organization/)
+    expect((await t.as(STAFF, `select remove_org_member('${ORG_1}', '${NEWBIE}')`)).error).toBeUndefined()
+    expect((await t.as(STAFF, `select remove_org_member('${ORG_1}', '${STAFF}')`)).error).toMatch(/at least one member/)
+  })
+})
+

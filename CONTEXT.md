@@ -6,6 +6,7 @@ Domain language for imnet. Use these terms in code, docs and UI. Table names in 
 - **Donor**: anyone with an account. Browses, follows, shares, marks posts that moved them. Row in `profiles`.
 - **Beginner donor**: a donor still discovering causes. Same account type; a product audience, not a role.
 - **Staff**: a donor who is a member of an org (`org_members`). Can post and edit that org's profile.
+- **Invite**: a single-use link for a colleague to join an org as staff (`org_invites`). Only the invited email can accept.
 - **Admin**: imnet team (`profiles.is_admin`). Approves claims, handles reports.
 - **Beneficiary**: a person an org serves. Never a user. Appears in posts only with consent.
 - **Individual fundraiser**: a person raising money for themselves. Deferred past Phase I (decisions/0004).
@@ -121,6 +122,7 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-045 Logo upload.** In the profile editor, staff upload a logo (JPG, PNG, WebP under 5 MB) or remove it; it replaces the monogram everywhere. The upload goes to the org's own folder and the server derives `logo_url` from that path, so a logo can never point at an outside host. The upload cleanup (F-031) keeps logos in use. Test: `lib/logo.test.ts`, `supabase/tests/rls.test.ts`, `e2e/signed-in.spec.ts`
 - **F-046 Saved posts.** A bookmark icon on every post saves it privately (no counts anywhere); `/saved` lists saved posts newest-saved first, linked from the profile card. Uses the keepalive signal (B-013). Test: `supabase/tests/rls.test.ts`, `e2e/signed-in.spec.ts`
 - **F-047 Share-preview images.** Shared post and org links get a branded 1200x630 card (org name, post type, opening text, first photo; foundations on navy). Built from public data only (RLS), so unpublished posts have no preview. Test: `e2e/public.spec.ts`
+- **F-048 Team invites.** Dashboard "Team": staff see members, invite a colleague by email (copy the invite link to send it; imnet doesn't email yet), revoke pending invites, and remove a colleague or leave. The invite page shows only the org name; signing in from it returns you to it. Only the invited email can accept, each invite works once, outsiders can't list invites, and an org always keeps at least one member. Test: `supabase/tests/rls.test.ts`, `e2e/signed-in.spec.ts`
 
 ### Fixes
 
@@ -142,3 +144,4 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **B-012 Dashboard card titles weren't headings.** shadcn's `CardTitle` renders a `<div>`, so screen-reader users couldn't jump between dashboard and admin sections. It now renders an `<h2>`. Test: `e2e/signed-in.spec.ts`
 - **B-013 Follows and "Moved me" could be lost if you left the page right after clicking.** The buttons update instantly, but the save (a server action) didn't start until after the update, so leaving the page at once cancelled it. They now send an immediate request to `/api/signals` (same-origin JSON only, origin-checked), idempotent ("follow = on", not "toggle"), with `keepalive` so it can also finish when the tab closes. Test: `lib/signal-request.test.ts`, `e2e/signed-in.spec.ts` (the leave-immediately pattern failed with the old server actions)
 - **B-014 Posts weren't marked up as articles.** Post cards rendered as generic `<section>` boxes, so screen readers couldn't treat the feed as a list of distinct items (and nested sections confused tests). Post cards are now `<article>`. Test: `e2e/*` (locate posts by `article`)
+- **B-015 Open redirect after sign-in.** The sign-in callback accepted any `next` starting with "/", including "//evil.com", which browsers treat as another site. It was latent (our sign-in never set `next`), but invite links needed `next` and a wildcard redirect URL, which would have made it exploitable. `safeNext()` now allows only same-site paths, in both the login form and the callback. Test: `lib/safe-next.test.ts`, `e2e/signed-in.spec.ts`
