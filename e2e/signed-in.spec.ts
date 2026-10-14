@@ -418,9 +418,9 @@ test("F-053: a donor thanks an org privately; its staff see the note and can rem
 
 test("F-052: log a gift in the private giving journal; totals by year; nobody else can open it", async () => {
   await page.goto("/giving")
-  await page.getByLabel("Organization", { exact: true }).selectOption({ label: "Harbor Table" })
+  await page.locator("#gift-org").selectOption({ label: "Harbor Table" })
   await page.getByLabel("Amount ($)").fill("75")
-  await page.getByLabel("Note (optional)").fill(`Gift ${id}`)
+  await page.locator("#gift-note").fill(`Gift ${id}`)
   await page.getByRole("button", { name: "Log gift" }).click()
   const year = new Date().toISOString().slice(0, 4)
   const panel = page.getByRole("region", { name: year })
@@ -451,7 +451,7 @@ test("F-055: after Donate, a quiet link logs the gift with the org preselected",
   await (await popup).close()
   await page.getByRole("link", { name: "Gave? Log it" }).click()
   await expect(page).toHaveURL(/\/giving\?org=/)
-  await expect(page.getByLabel("Organization", { exact: true })).toHaveValue(kitchen.id)
+  await expect(page.locator("#gift-org")).toHaveValue(kitchen.id)
 })
 
 test("F-056: a foundation sees its confirmed grants with no report yet", async () => {
@@ -635,6 +635,26 @@ test("F-079: a donor posts from Home with a spotlight; it shows on their profile
   await onProfile.getByRole("button", { name: "More actions" }).click()
   await page.getByRole("menuitem", { name: "Delete post" }).click()
   await expect.poll(async () => (await sql`select count(*)::int n from posts where body like ${`%${id}%`} and org_id is null`)[0].n).toBe(0)
+})
+
+test("F-081: log volunteer hours privately; opt in to show them on the profile", async () => {
+  await page.goto("/giving")
+  await page.locator("#hours-org").selectOption({ label: "Harbor Table" })
+  await page.getByRole("textbox", { name: "Hours", exact: true }).fill("3.5")
+  await page.locator("#hours-note").fill(`Dinner crew ${id}`)
+  await page.getByRole("button", { name: "Log hours" }).click()
+  await expect(page.getByRole("region", { name: "Volunteer hours" }).getByText(`Dinner crew ${id}`)).toBeVisible()
+
+  const [{ handle }] = await sql`select handle from profiles where id = ${userId}`
+  const anon = await page.context().browser()!.newPage()
+  await anon.goto(`/u/${handle}`)
+  await expect(anon.getByRole("region", { name: "Volunteering" })).toHaveCount(0)
+  await page.getByLabel(/Show my volunteer hours on my profile/).check()
+  await expect.poll(async () => (await sql`select show_volunteer_hours s from profiles where id = ${userId}`)[0].s).toBe(true)
+  await anon.goto(`/u/${handle}`)
+  await expect(anon.getByRole("region", { name: "Volunteering" }).getByRole("listitem").filter({ hasText: "Harbor Table" })).toContainText("3.5 hours")
+  await expect(anon.getByText(`Dinner crew ${id}`)).toHaveCount(0) // notes stay private
+  await anon.close()
 })
 
 test("F-015: staff can't open another org's dashboard", async () => {

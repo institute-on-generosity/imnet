@@ -3,14 +3,17 @@ import { redirect } from "next/navigation"
 import { Panel, TwoColumn } from "@/components/shell"
 import { summarize } from "@/lib/gifts"
 import { formatUsd } from "@/lib/grants"
-import { getFollowedOrgs, getGifts, getOrgName, getSinceYourGifts } from "@/lib/queries"
+import { getFollowedOrgs, getGifts, getHours, getOrgName, getSinceYourGifts } from "@/lib/queries"
+import { hoursLabel } from "@/lib/volunteer"
+import { DeleteHours, HoursForm } from "./hours-form"
 import { todayISO } from "@/lib/open-calls"
 import { createClient, getUserId } from "@/lib/supabase/server"
-import { DonorBadgeToggle, GivingTotalsToggle } from "./donor-badge-toggle"
+import { DonorBadgeToggle, GivingTotalsToggle, VolunteerHoursToggle } from "./donor-badge-toggle"
 import { DeleteGift, GiftForm } from "./gift-form"
 import { SinceYourGifts } from "./since-your-gifts"
 
 export const metadata = { title: "Giving journal" }
+
 
 const day = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 
@@ -19,21 +22,22 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
   const { org } = await searchParams
   const userId = await getUserId()
   if (!userId) redirect(`/login?next=${encodeURIComponent(typeof org === "string" ? `/giving?org=${org}` : "/giving")}`)
-  const [gifts, followed, preselect] = await Promise.all([getGifts(userId), getFollowedOrgs(userId), typeof org === "string" ? getOrgName(org) : null])
+  const [gifts, followed, preselect, hours] = await Promise.all([getGifts(userId), getFollowedOrgs(userId), typeof org === "string" ? getOrgName(org) : null, getHours(userId)])
   // Coming from a Donate click: offer that org even if you don't follow it.
   const orgs = preselect && !followed.some((o) => o.id === preselect.id) ? [preselect, ...followed] : followed
   const years = summarize(gifts)
   const supabase = await createClient()
-  const [since, { data: profile }] = await Promise.all([getSinceYourGifts(gifts), supabase.from("profiles").select("donor_badge, show_giving_totals").eq("id", userId).single()])
+  const [since, { data: profile }] = await Promise.all([getSinceYourGifts(gifts), supabase.from("profiles").select("donor_badge, show_giving_totals, show_volunteer_hours").eq("id", userId).single()])
 
   return (
     <TwoColumn>
       <Panel className="p-4">
         <h1 className="font-sans text-lg font-semibold tracking-normal">Giving journal</h1>
-        <p className="text-sm text-muted-foreground">Only you see this. Handy at tax time.</p>
+        <p className="text-sm text-muted-foreground">Your gifts and volunteer hours. Only you see this unless you choose to share totals.</p>
         <div className="mt-3 space-y-3 border-t pt-3">
           <DonorBadgeToggle on={!!profile?.donor_badge} />
           <GivingTotalsToggle on={!!profile?.show_giving_totals} />
+          <VolunteerHoursToggle on={!!profile?.show_volunteer_hours} />
         </div>
       </Panel>
 
@@ -43,6 +47,30 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
           <p className="text-sm text-muted-foreground">Follow an organization to log gifts to it. <Link href="/" className="text-leaf underline">Explore</Link></p>
         ) : (
           <GiftForm orgs={orgs} today={todayISO()} preselect={preselect?.id} />
+        )}
+      </Panel>
+
+      <Panel aria-labelledby="hours" className="p-4">
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 id="hours" className="font-semibold">Volunteer hours</h2>
+          {hours.length > 0 && <p className="text-sm text-muted-foreground">{hoursLabel(hours.reduce((a, h) => a + h.hours, 0))} logged</p>}
+        </div>
+        {orgs.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Follow an organization to log hours with it.</p>
+        ) : (
+          <HoursForm orgs={orgs} today={todayISO()} />
+        )}
+        {hours.length > 0 && (
+          <ul className="mt-4 divide-y border-t text-sm">
+            {hours.slice(0, 12).map((h) => (
+              <li key={h.id} className="flex items-center gap-3 py-2">
+                <span className="w-24 shrink-0 text-muted-foreground">{day(h.served_on)}</span>
+                <span className="min-w-0 flex-1 truncate">{h.org.name}{h.note && <span className="text-muted-foreground">: {h.note}</span>}</span>
+                <span className="tabular-nums">{hoursLabel(h.hours)}</span>
+                <DeleteHours id={h.id} label={`${hoursLabel(h.hours)} with ${h.org.name}`} />
+              </li>
+            ))}
+          </ul>
         )}
       </Panel>
 

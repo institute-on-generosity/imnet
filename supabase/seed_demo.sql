@@ -13198,6 +13198,26 @@ insert into posts (org_id, kind, body, video_path, video_poster_path, video_alt,
   ('00000000-0000-4000-a000-000000000040', 'update', 'Evening at a restored marsh we helped fund. The cattails came back on their own.', '00000000-0000-4000-a000-000000000040/autumn-cattails-at-sunset-in-east-kelown.webm', '00000000-0000-4000-a000-000000000040/autumn-cattails-at-sunset-in-east-kelown.jpg', 'Cattails swaying at sunset in a marsh', 'Extemporalist, CC0, via Wikimedia Commons', now() - interval '173 hours'),
   ('00000000-0000-4000-a000-000000000041', 'update', 'The pump track our teen committee funded is open. Riders of every age, all afternoon.', '00000000-0000-4000-a000-000000000041/freizeitsportzentrum-20230508-c0754.webm', '00000000-0000-4000-a000-000000000041/freizeitsportzentrum-20230508-c0754.jpg', 'An empty paved pump track with banked curves in a park', 'PantheraLeo1359531, CC BY 4.0, via Wikimedia Commons', now() - interval '77 hours');
 
+-- 1 to 14 shifts of 1.5 to 4 hours over the past year, at orgs each person follows (about 35% of people).
+insert into volunteer_hours (user_id, org_id, hours, served_on, note)
+select f.user_id, f.org_id,
+       (array[1.5, 2, 2, 2.5, 3, 3, 3.5, 4])[1 + abs(hashtext(f.user_id::text || f.org_id::text || g::text)) % 8],
+       current_date - (abs(hashtext(g::text || f.user_id::text || f.org_id::text)) % 360),
+       (array['Saturday shift', null, 'Sorting', null, 'Event setup', null, 'Weekly shift', null])[1 + abs(hashtext(g::text || f.org_id::text)) % 8]
+  from follows f join orgs o on o.id = f.org_id and o.org_type = 'nonprofit'
+  cross join generate_series(1, 1 + abs(hashtext(f.user_id::text || f.org_id::text || 'n')) % 14) g
+ where f.user_id::text like '00000000-0000-4000-c000-%' and abs(hashtext(f.user_id::text || 'volunteers')) % 100 < 35
+   and abs(hashtext(f.user_id::text || f.org_id::text || 'vol')) % 3 = 0;
+update profiles p set show_volunteer_hours = true
+ where abs(hashtext(p.id::text || 'showhours')) % 2 = 0 and exists (select 1 from volunteer_hours v where v.user_id = p.id);
+insert into volunteer_hours (user_id, org_id, hours, served_on, note)
+select id, '00000000-0000-4000-a000-000000000001', h, current_date - d, n from profiles,
+  (values (4.0, 6, 'Saturday dinner crew'), (3.5, 20, 'Saturday dinner crew'), (4.0, 34, 'Holiday meal packing'), (2.0, 55, 'Pantry restock'), (4.0, 90, 'Saturday dinner crew')) v(h, d, n)
+ where handle = 'dana_demo';
+insert into volunteer_hours (user_id, org_id, hours, served_on, note)
+select id, '00000000-0000-4000-a000-000000000011', 3.0, current_date - 12, 'Welcome potluck setup' from profiles where handle = 'dana_demo';
+update profiles set show_volunteer_hours = true where handle = 'dana_demo';
+
 -- "Moved" and saves: random donors on random posts (private; only totals show to staff).
 insert into moved (user_id, post_id)
 select d.id, p.id from posts p cross join lateral (

@@ -1,7 +1,7 @@
 "use client"
 
 import { useOptimistic, useTransition } from "react"
-import { setDonorBadge, setGivingTotals } from "@/app/actions"
+import { setDonorBadge, setGivingTotals, setVolunteerHours } from "@/app/actions"
 
 // Opt-in: show "Donor" on your comments on posts from organizations you've logged gifts to.
 export function DonorBadgeToggle({ on: initial }: { on: boolean }) {
@@ -38,6 +38,26 @@ export function GivingTotalsToggle({ on: initial }: { on: boolean }) {
       <span>
         Show my <span className="font-semibold">giving totals</span> on my profile
         <span className="block text-xs text-muted-foreground">The total, the amount to each organization and the causes they work on, and you may appear among those organizations&apos; top supporters. Individual gifts and dates stay private.</span>
+      </span>
+    </label>
+  )
+}
+
+// Opt-in: show volunteer hours (total and per organization) on my profile.
+export function VolunteerHoursToggle({ on: initial }: { on: boolean }) {
+  const [on, setOn] = useOptimistic(initial)
+  const [, start] = useTransition()
+  return (
+    <label id="volunteer-hours-toggle" className="flex scroll-mt-20 items-start gap-2 text-sm">
+      <input
+        type="checkbox"
+        checked={on}
+        onChange={(e) => start(async () => { setOn(e.target.checked); await setVolunteerHours(e.target.checked) })}
+        className="mt-0.5 size-4 accent-[var(--leaf)]"
+      />
+      <span>
+        Show my <span className="font-semibold">volunteer hours</span> on my profile
+        <span className="block text-xs text-muted-foreground">The total and the hours at each organization. Days and notes stay private.</span>
       </span>
     </label>
   )

@@ -4,6 +4,7 @@ import { type DayRow, fillDays, type Series, total } from "@/lib/analytics"
 import type { Comment } from "@/lib/comments"
 import type { EventWithOrg, OrgEvent } from "@/lib/events"
 import type { Gift } from "@/lib/gifts"
+import type { HoursEntry } from "@/lib/volunteer"
 import { MET_SHOWN_DAYS, type Need, type NeedWithOrg } from "@/lib/needs"
 import { escapeLike, orFilterTerm, wordStartPattern } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
@@ -671,4 +672,27 @@ export async function getPersonPosts(userId: string, limit = 20): Promise<Post[]
     .order("created_at", { ascending: false })
     .limit(limit)
   return (data ?? []) as unknown as Post[]
+}
+
+// The viewer's own volunteer log (private), newest first.
+export async function getHours(userId: string): Promise<HoursEntry[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("volunteer_hours")
+    .select("id, hours, served_on, note, org:orgs(id, slug, name)")
+    .eq("user_id", userId)
+    .order("served_on", { ascending: false })
+    .order("created_at", { ascending: false })
+  return ((data ?? []) as unknown as HoursEntry[]).map((h) => ({ ...h, hours: Number(h.hours) }))
+}
+
+export type VolunteerSummary = { total: number; since: string; byOrg: (OrgSummary & { hours: number })[] }
+
+// A person's opted-in volunteer hours by organization; null when not shared.
+export async function getVolunteerSummary(userId: string): Promise<VolunteerSummary | null> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("volunteer_summary", { target: userId })
+  const rows = ((data ?? []) as (OrgSummary & { hours: number; since: string })[]).map((r) => ({ ...r, hours: Number(r.hours) }))
+  if (rows.length === 0) return null
+  return { total: rows.reduce((a, r) => a + r.hours, 0), since: rows.map((r) => r.since).sort()[0], byOrg: rows }
 }

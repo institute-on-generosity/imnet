@@ -16,6 +16,7 @@ import { logoPathIsValid } from "@/lib/logo"
 import { orgCoverPathIsValid, personCoverPath } from "@/lib/cover"
 import { parseNeedFields } from "@/lib/needs"
 import { parseFoundedYear, parsePrograms } from "@/lib/profile-fields"
+import { parseHoursFields } from "@/lib/volunteer"
 import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
 import { todayISO } from "@/lib/open-calls"
 import { safeNext } from "@/lib/safe-next"
@@ -668,5 +669,36 @@ export async function deleteMyPost(postId: string) {
   const userId = await requireUser()
   const supabase = await createClient()
   await supabase.from("posts").delete().match({ id: postId, author_id: userId }).is("org_id", null)
+  revalidatePath("/", "layout")
+}
+
+// ---------------------------------------------------------------------------
+// Volunteer hours (F-081): private log; optional totals on the profile
+// ---------------------------------------------------------------------------
+export async function addHours(_: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const parsed = parseHoursFields(
+    { orgId: String(form.get("org_id") ?? ""), hours: String(form.get("hours") ?? ""), servedOn: String(form.get("served_on") ?? ""), note: String(form.get("note") ?? "") },
+    todayISO(),
+  )
+  if ("error" in parsed) return fail(form, parsed.error)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("volunteer_hours").insert(parsed.fields).select("id").single()
+  if (error) return fail(form, error.message)
+  revalidatePath("/giving")
+  return { ok: true, id: data.id, message: "Logged." }
+}
+
+export async function deleteHours(id: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("volunteer_hours").delete().eq("id", id)
+  revalidatePath("/giving")
+}
+
+export async function setVolunteerHours(on: boolean) {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("profiles").update({ show_volunteer_hours: on }).eq("id", userId)
   revalidatePath("/", "layout")
 }

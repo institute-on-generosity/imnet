@@ -733,3 +733,18 @@ describe("donor posts", () => {
     expect((await t.as(DONOR, `delete from posts where id = '${id}' returning id`)).rows).toHaveLength(1)
   })
 })
+
+describe("volunteer hours", () => {
+  it("F-081: hours are private until opted in; then totals per org show; nobody logs for someone else", async () => {
+    const V = "10000000-0000-4000-8000-0000000000ea"
+    await t.owner(`insert into auth.users (id, email) values ('${V}', 'volunteer@example.com') on conflict do nothing`)
+    expect((await t.as(V, `insert into volunteer_hours (org_id, hours, served_on) values ('${ORG_1}', 3, current_date - 2), ('${ORG_1}', 2.5, current_date - 1), ('${ORG_2}', 4, current_date)`)).error).toBeUndefined()
+    expect((await t.as(V, `insert into volunteer_hours (org_id, hours, served_on) values ('${ORG_1}', 30, current_date)`)).error).toMatch(/check constraint/)
+    expect((await t.as(V, `insert into volunteer_hours (org_id, hours, served_on) values ('${ORG_1}', 2, current_date + 1)`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into volunteer_hours (user_id, org_id, hours, served_on) values ('${V}', '${ORG_1}', 2, current_date)`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `select id from volunteer_hours where user_id = '${V}'`)).rows).toHaveLength(0)
+    expect((await t.as(null, `select * from volunteer_summary('${V}')`)).rows).toHaveLength(0)
+    await t.as(V, `update profiles set show_volunteer_hours = true where id = '${V}'`)
+    expect((await t.as(null, `select name, hours::float from volunteer_summary('${V}')`)).rows).toEqual([{ name: "Harbor Table", hours: 5.5 }, { name: "Open Door Homes", hours: 4 }])
+  })
+})

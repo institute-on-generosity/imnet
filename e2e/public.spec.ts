@@ -437,3 +437,11 @@ test("F-079: the Donors tab shows posts by people, with spotlighted organization
   await expect(page.locator("article header a[href^='/o/']")).toHaveCount(0)
   await expect(page.getByRole("navigation", { name: "Filter by cause" })).toHaveCount(0)
 })
+
+test("F-081: an opted-in donor's profile shows volunteer hours by organization", async ({ page }) => {
+  await page.goto("/u/dana_demo")
+  const panel = page.getByRole("region", { name: "Volunteering" })
+  await expect(panel.getByText("20.5 hours")).toBeVisible()
+  await expect(panel.getByRole("listitem").filter({ hasText: "Harbor Table" })).toContainText("17.5 hours")
+  await expect(panel.getByRole("listitem").filter({ hasText: "Bridge Welcome Center" })).toContainText("3 hours")
+})

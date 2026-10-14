@@ -5,9 +5,10 @@ import { OrgMark } from "@/components/org-mark"
 import { PersonAvatar } from "@/components/person-avatar"
 import { FoundationMark } from "@/components/org-type-badge"
 import { GivingBecame } from "@/components/giving-became"
-import { getActivity, getDonorOrgs, getGivingSummary, getMovedPostIds, getOrgGrants, getPersonPosts, getSavedPostIds } from "@/lib/queries"
+import { getActivity, getDonorOrgs, getGivingSummary, getMovedPostIds, getVolunteerSummary, getOrgGrants, getPersonPosts, getSavedPostIds } from "@/lib/queries"
 import { Feed } from "@/components/post-card"
 import { GivingSummaryPanel } from "@/components/giving-summary"
+import { VolunteerSummaryPanel } from "@/components/volunteer-summary"
 import { CalendarDays, HandHeart, MapPin, Pencil } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { personCoverSrc } from "@/lib/cover"
@@ -48,12 +49,13 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   const name = profile.display_name ?? `@${profile.handle}`
   const viewerId = await getUserId()
   const isOwn = viewerId === profile.id
-  const [funds, gaveTo, activity, totals, posts] = await Promise.all([
+  const [funds, gaveTo, activity, totals, posts, volunteering] = await Promise.all([
     Promise.all(supports.filter((o) => o.org_type === "foundation").map(async (foundation) => ({ foundation, grants: await getOrgGrants(foundation) }))),
     getDonorOrgs(profile.id),
     getActivity(profile.id),
     getGivingSummary(profile.id),
     getPersonPosts(profile.id),
+    getVolunteerSummary(profile.id),
   ])
   const shownPosts = tab === "activity" ? posts : posts.slice(0, 2)
   const postIds = shownPosts.map((p) => p.id)
@@ -118,6 +120,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
         </Panel>
       )}
       {tab === "about" && totals && <GivingSummaryPanel summary={totals} isOwn={isOwn} />}
+      {tab === "about" && volunteering && <VolunteerSummaryPanel summary={volunteering} isOwn={isOwn} />}
       {tab === "about" && <GivingBecame funds={funds} isOwn={isOwn} />}
       {tab === "about" && <div className="space-y-3 lg:hidden">{giving("main")}</div>}
 
