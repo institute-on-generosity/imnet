@@ -345,6 +345,31 @@ test("F-048 / B-015: invite a colleague by link; they sign in, come back to the 
   expect(await page.locator('input[name="next"]').inputValue()).toBe("/")
 })
 
+test("F-049: the bell shows a quiet dot for new items; opening the inbox clears it", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  await page.goto("/notifications") // clear anything earlier tests created
+  await expect(page.getByRole("heading", { name: "Notifications" })).toBeVisible()
+  await expect.poll(async () => (await sql`select notifications_seen_at from profiles where id = ${userId}`)[0].notifications_seen_at).not.toBeNull()
+
+  const RIVERSIDE = "00000000-0000-4000-a000-000000000006"
+  const [grant] = await sql`insert into grants (foundation_id, grantee_id, amount_usd, purpose) values (${RIVERSIDE}, ${kitchen.id}, 3000, 'Stoves') returning id`
+  try {
+    await page.goto("/")
+    const bell = page.getByRole("link", { name: /Notifications/ })
+    await expect(bell).toContainText("(new)")
+    await expect(bell).not.toContainText(/\d/) // a dot, never a number
+
+    await bell.click()
+    await expect(page.getByText("Riverside Family Foundation (Demo) recorded a $3,000 grant to you.")).toBeVisible()
+    await expect.poll(async () => {
+      await page.goto("/")
+      return page.getByRole("link", { name: /Notifications/ }).innerText()
+    }).not.toContain("(new)")
+  } finally {
+    await sql`delete from grants where id = ${grant.id}`
+  }
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

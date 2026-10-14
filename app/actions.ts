@@ -237,6 +237,13 @@ export async function deletePost(postId: string) {
   revalidatePath("/", "layout")
 }
 
+export async function markNotificationsSeen() {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("profiles").update({ notifications_seen_at: new Date().toISOString() }).eq("id", userId)
+  revalidatePath("/", "layout")
+}
+
 // ---------------------------------------------------------------------------
 // Team
 // ---------------------------------------------------------------------------

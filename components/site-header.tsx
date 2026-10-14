@@ -2,6 +2,7 @@ import { LogOut, Search } from "lucide-react"
 import Link from "next/link"
 import { signOut } from "@/app/actions"
 import { buttonVariants } from "@/components/ui/button"
+import { hasUnread } from "@/lib/notifications"
 import { createClient, getUserId } from "@/lib/supabase/server"
 import { IconTip } from "./icon-tip"
 import { NavLinks } from "./nav-links"
@@ -10,10 +11,12 @@ import { CONTAINER } from "./shell"
 export async function SiteHeader() {
   const userId = await getUserId()
   let handle: string | null = null
+  let unread = false
   if (userId) {
     const supabase = await createClient()
     const { data } = await supabase.from("profiles").select("handle").eq("id", userId).single()
     handle = data?.handle ?? null
+    unread = await hasUnread(userId)
   }
 
   return (
@@ -40,6 +43,7 @@ export async function SiteHeader() {
                   { href: "/", label: "Home", icon: "home", exact: true },
                   { href: "/following", label: "Following", icon: "following" },
                   { href: "/calls", label: "Open calls", icon: "calls" },
+                  { href: "/notifications", label: "Notifications", icon: "notifications", dot: unread },
                   { href: "/dashboard", label: "For nonprofits", icon: "nonprofits" },
                   ...(handle ? [{ href: `/u/${handle}`, label: "Me", icon: "me" as const, exact: true }] : []),
                 ]}
