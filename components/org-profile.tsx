@@ -85,7 +85,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
           <div className="relative -mt-12 sm:-mt-14"><OrgMark org={org} size="xl" /></div>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
             <h1 className="text-3xl font-semibold">{org.name}</h1>
-            <OrgTypeBadge type={org.org_type} className="px-2.5 py-1 text-xs" />
+            <OrgTypeBadge type={org.org_type} className="py-1 pr-2.5 pl-2 text-xs" />
           </div>
           {org.mission && <p className="mt-1.5 line-clamp-2 max-w-prose text-lg leading-snug text-foreground/80">{org.mission}</p>}
           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">

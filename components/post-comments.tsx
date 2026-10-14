@@ -97,7 +97,7 @@ export function CommentItem({ comment: c, org, viewer, isStaff, postId, onChange
                 <Link href={href} className="truncate font-semibold hover:text-leaf hover:underline">{name}</Link>
                 {c.as_org && <span className="shrink-0 rounded bg-muted-foreground/80 px-1 py-px text-[10px] font-semibold text-background">Author</span>}
                 {c.donor && (
-                  <span title={`Has given to ${org.name} (self-reported)`} className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-marigold-soft px-1.5 py-px text-[10px] font-semibold text-amber-800 dark:text-amber-300">
+                  <span title={`Has given to ${org.name} (self-reported)`} className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-marigold-soft py-px pr-1.5 pl-1 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
                     <HandHeart className="size-3" aria-hidden />Donor<span className="sr-only">: has given to {org.name} (self-reported)</span>
                   </span>
                 )}

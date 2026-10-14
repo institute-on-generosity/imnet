@@ -119,7 +119,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
                   {a.parent_id ? "Replied" : "Commented"} on a post by{" "}
                   <Link href={`/o/${a.post.org.slug}`} className="font-medium text-foreground hover:underline">{a.post.org.name}</Link>
                   {" "}• <time dateTime={a.created_at}>{ago(a.created_at)}</time>
-                  {a.donor && <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-marigold-soft px-1.5 py-px text-[10px] font-semibold text-amber-800"><HandHeart className="size-3" aria-hidden />Donor</span>}
+                  {a.donor && <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-marigold-soft py-px pr-1.5 pl-1 text-[10px] font-semibold text-amber-800"><HandHeart className="size-3" aria-hidden />Donor</span>}
                 </p>
                 <p className="mt-1 whitespace-pre-line">{a.body}</p>
                 <Link href={`/p/${a.post.id}#comments`} className="mt-2 flex items-center gap-2 rounded-lg border bg-muted/40 p-2 text-sm hover:bg-muted">

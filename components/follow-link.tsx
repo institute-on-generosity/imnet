@@ -15,7 +15,7 @@ export function FollowLink({ orgId, orgName, following }: { orgId: string; orgNa
       aria-pressed={on}
       aria-label={`${on ? "Following" : "Follow"} ${orgName}`}
       onClick={() => start(async () => { setOn(!on); await sendSignal({ kind: "follow", id: orgId, on: !on }).catch(() => {}) })}
-      className={cn("inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold transition-colors", on ? "text-muted-foreground hover:bg-muted" : "text-leaf hover:bg-leaf-soft")}
+      className={cn("inline-flex shrink-0 items-center gap-1 rounded-md py-1 pr-2 pl-1.5 text-sm font-semibold transition-colors", on ? "text-muted-foreground hover:bg-muted" : "text-leaf hover:bg-leaf-soft")}
     >
       {on ? <Check className="size-4" aria-hidden /> : <Plus className="size-4" aria-hidden />}
       {on ? "Following" : "Follow"}

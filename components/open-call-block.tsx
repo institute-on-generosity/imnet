@@ -32,7 +32,7 @@ export async function OpenCallBlock({ post }: { post: Pick<Post, "call_deadline"
       <p className="text-muted-foreground">{causes.length ? `For: ${causes.join(", ")}` : "Open to all causes"}</p>
       {status !== "closed" && (
         <a href={post.call_apply_url} target="_blank" rel="noopener noreferrer" className={buttonVariants({ size: "sm" })}>
-          Apply <ExternalLink aria-hidden />
+          Apply <ExternalLink data-icon="inline-end" aria-hidden />
         </a>
       )}
     </div>

@@ -37,7 +37,7 @@ export function LogoPicker({ org }: { org: Org }) {
       <OrgMark org={{ ...org, logo_url: removed ? null : preview }} size="lg" />
       <input type="hidden" name="logo_path" value={path} />
       {removed && <input type="hidden" name="remove_logo" value="on" />}
-      <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm hover:bg-muted">
+      <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border py-1.5 pr-3 pl-2.5 text-sm hover:bg-muted">
         <ImageUp className="size-4" aria-hidden />
         {busy ? "Uploading..." : preview && !removed ? "Change logo" : "Upload logo"}
         <input type="file" accept={IMAGE_TYPES.join(",")} className="sr-only" disabled={busy} onChange={(e) => void upload(e.target.files?.[0])} />
