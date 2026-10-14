@@ -1,11 +1,13 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCauses, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgEventCounts, getReportableGrants } from "@/lib/queries"
+import { getCauses, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgEventCounts, getOrgNeeds, getReportableGrants, getThanks } from "@/lib/queries"
 import type { ImpactStat, Org } from "@/lib/types"
 import { createClient, getUserId } from "@/lib/supabase/server"
 import { Composer } from "./composer"
 import { ImpactStatsEditor } from "./impact-stats-editor"
+import { NeedsEditor } from "./needs-editor"
+import { ThanksCard } from "./thanks-card"
 import { PostManager } from "./post-manager"
 import { TeamCard } from "./team-card"
 import { GrantsNeedingReport } from "./grants-needing-report"
@@ -67,6 +69,16 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
       <Card>
         <CardHeader><CardTitle>Your posts</CardTitle></CardHeader>
         <CardContent><PostManager posts={await getOrgPostsForStaff(org.id)} /></CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Notes from supporters</CardTitle></CardHeader>
+        <CardContent><ThanksCard orgId={org.id} notes={await getThanks(org.id)} /></CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Current needs</CardTitle></CardHeader>
+        <CardContent><NeedsEditor orgId={org.id} needs={await getOrgNeeds(org.id)} /></CardContent>
       </Card>
 
       <Card>

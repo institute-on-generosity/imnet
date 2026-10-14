@@ -1,5 +1,7 @@
 import { cache } from "react"
 import { type Cursor, encodeCursor, olderThan } from "@/lib/cursor"
+import type { Gift } from "@/lib/gifts"
+import { MET_SHOWN_DAYS, type Need } from "@/lib/needs"
 import { escapeLike } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
 import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
@@ -333,3 +335,48 @@ export async function getSavedPosts(userId: string): Promise<Post[]> {
   return ((data ?? []) as unknown as { post: Post }[]).map((r) => r.post)
 }
 
+
+// Open needs (newest first), then needs met in the last month.
+export async function getOrgNeeds(orgId: string): Promise<Need[]> {
+  const supabase = await createClient()
+  const since = new Date(Date.now() - MET_SHOWN_DAYS * 86_400_000).toISOString()
+  const { data } = await supabase
+    .from("org_needs")
+    .select("id, kind, title, detail, help_url, met_at, created_at")
+    .eq("org_id", orgId)
+    .or(`met_at.is.null,met_at.gte.${since}`)
+    .order("created_at", { ascending: false })
+  const needs = (data ?? []) as Need[]
+  return [...needs.filter((n) => !n.met_at), ...needs.filter((n) => n.met_at)]
+}
+
+// Thank-you notes to an org (staff only under RLS), newest first.
+export async function getThanks(orgId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("thanks")
+    .select("id, body, created_at, author:profiles(handle, display_name)")
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false })
+    .limit(30)
+  return (data ?? []) as unknown as { id: string; body: string; created_at: string; author: { handle: string; display_name: string | null } }[]
+}
+
+// The viewer's own gift log (private under RLS), newest first.
+export async function getGifts(userId: string): Promise<Gift[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("gifts")
+    .select("id, amount_usd, given_on, note, org:orgs(id, slug, name)")
+    .eq("user_id", userId)
+    .order("given_on", { ascending: false })
+    .order("created_at", { ascending: false })
+  return (data ?? []) as unknown as Gift[]
+}
+
+// Orgs a donor can log a gift to: the ones they follow, alphabetical.
+export async function getFollowedOrgs(userId: string): Promise<{ id: string; name: string }[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("follows").select("org:orgs!inner(id, name)").eq("user_id", userId)
+  return ((data ?? []) as unknown as { org: { id: string; name: string } }[]).map((f) => f.org).sort((a, b) => a.name.localeCompare(b.name))
+}

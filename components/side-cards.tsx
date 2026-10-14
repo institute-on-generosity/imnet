@@ -1,4 +1,4 @@
-import { Bookmark, Plus } from "lucide-react"
+import { Bookmark, NotebookPen, Plus } from "lucide-react"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import type { OrgSummaryWithMission, Viewer } from "@/lib/queries"
@@ -29,6 +29,9 @@ export function ViewerCard({ viewer }: { viewer: Viewer }) {
       </dl>
       <Link href="/saved" className="flex items-center gap-2 border-t px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
         <Bookmark className="size-4" aria-hidden /> Saved posts
+      </Link>
+      <Link href="/giving" className="flex items-center gap-2 border-t px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+        <NotebookPen className="size-4" aria-hidden /> Giving journal
       </Link>
       {viewer.causes.length > 0 && (
         <div className="border-t px-4 py-3">

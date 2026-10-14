@@ -435,3 +435,53 @@ describe("team invites", () => {
   })
 })
 
+
+describe("needs, gifts and thank-you notes", () => {
+  const OTHER = "10000000-0000-4000-8000-0000000000e1" // a second donor
+
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${OTHER}', 'other.donor@example.com') on conflict do nothing`)
+  })
+
+  it("F-051: anyone sees an org's needs; only its staff add or change them; a way to help is required", async () => {
+    const add = (who: string, url = "https://harbor.example.org/volunteer") =>
+      t.as(who, `insert into org_needs (org_id, kind, title, help_url) values ('${ORG_1}', 'volunteer', 'Saturday dishwashers', '${url}') returning id`)
+    expect((await add(DONOR)).error).toMatch(/row-level security/)
+    expect((await add(STAFF, "javascript:alert(1)")).error).toMatch(/check constraint/)
+    const need = await add(STAFF, "mailto:help@harbor.example.org")
+    expect(need.error).toBeUndefined()
+    const id = need.rows![0].id
+
+    expect((await t.as(null, `select title from org_needs where id = '${id}'`)).rows).toHaveLength(1)
+    expect((await t.as(DONOR, `update org_needs set met_at = now() where id = '${id}' returning id`)).rows).toHaveLength(0)
+    expect((await t.as(STAFF, `update org_needs set met_at = now() where id = '${id}' returning id`)).rows).toHaveLength(1)
+  })
+
+  it("F-052: a gift log is private to its donor and can't be backdated into the future", async () => {
+    const mine = await t.as(DONOR, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 50, current_date) returning id`)
+    expect(mine.error).toBeUndefined()
+    expect((await t.as(DONOR, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 50, current_date + 1)`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 0, current_date)`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into gifts (user_id, org_id, amount_usd, given_on) values ('${OTHER}', '${ORG_1}', 5, current_date)`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_PENDING}', 5, current_date)`)).error).toMatch(/row-level security/)
+
+    expect((await t.as(OTHER, `select id from gifts`)).rows).toHaveLength(0)
+    expect((await t.as(STAFF, `select id from gifts`)).rows).toHaveLength(0)
+    expect((await t.as(null, `select id from gifts`)).rows ?? []).toHaveLength(0)
+  })
+
+  it("F-053: a thank-you note is seen only by its author and the org's staff", async () => {
+    expect((await t.as(null, `insert into thanks (org_id, body) values ('${ORG_1}', 'hi')`)).error).toBeDefined()
+    expect((await t.as(DONOR, `insert into thanks (org_id, body) values ('${ORG_1}', '   ')`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into thanks (org_id, body) values ('${ORG_PENDING}', 'hi')`)).error).toMatch(/row-level security/)
+    const note = await t.as(DONOR, `insert into thanks (org_id, body) values ('${ORG_1}', 'Thank you for the Tuesday dinners') returning id`)
+    expect(note.error).toBeUndefined()
+    const id = note.rows![0].id
+
+    expect((await t.as(STAFF, `select body from thanks where id = '${id}'`)).rows).toHaveLength(1)
+    expect((await t.as(OTHER, `select body from thanks where id = '${id}'`)).rows).toHaveLength(0)
+    expect((await t.as(null, `select body from thanks where id = '${id}'`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(DONOR, `update thanks set body = 'changed' where id = '${id}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(STAFF, `delete from thanks where id = '${id}' returning id`)).rows).toHaveLength(1)
+  })
+})

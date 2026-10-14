@@ -9,6 +9,8 @@ import { Feed } from "@/components/post-card"
 import { ShareButton } from "@/components/share-button"
 import { Panel, TwoColumn } from "@/components/shell"
 import { GrantsPanel } from "@/components/grants-panel"
+import { NeedsPanel } from "@/components/needs-panel"
+import { ThanksButton } from "@/components/thanks-button"
 import { SuggestedOrgs } from "@/components/side-cards"
 import { SupporterToggle } from "@/components/supporter-toggle"
 import { TrackView } from "@/components/track-view"
@@ -17,6 +19,7 @@ import { footnotes } from "@/lib/footnotes"
 import { backers, backersLabel } from "@/lib/grants"
 import { ORG_TAB_LABEL, tabsFor, type OrgTab } from "@/lib/org-tabs"
 import type { OrgSummaryWithMission } from "@/lib/queries"
+import type { Need } from "@/lib/needs"
 import type { Cause, Grant, ImpactStat, Org, Post } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -39,9 +42,10 @@ type Props = {
   grants: Grant[]
   grantsByPost: Map<string, Grant[]>
   tab: OrgTab
+  needs: Need[]
 }
 
-export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, savedIds, grants, grantsByPost, tab }: Props) {
+export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, savedIds, grants, grantsByPost, tab, needs }: Props) {
   const base = `/o/${org.slug}`
   return (
     <TwoColumn right={<SuggestedOrgs title="Similar organizations" orgs={similar} signedIn={signedIn} />}>
@@ -78,6 +82,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
             {org.everyorg_slug && <DonateButton orgId={org.id} everyorgSlug={org.everyorg_slug} />}
             <ShareButton path={base} title={org.name} orgId={org.id} variant="pill" />
             {signedIn && follow.following && <SupporterToggle orgId={org.id} orgType={org.org_type} supporter={follow.supporter} />}
+            {signedIn && <ThanksButton orgId={org.id} orgName={org.name} />}
           </div>
         </div>
         <nav aria-label={`${org.name} sections`} className="flex border-t px-2 sm:px-4">
@@ -99,6 +104,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
 
       {tab === "home" && (
         <>
+          <NeedsPanel needs={needs} />
           <GiftsFund org={org} />
           <ImpactLedger stats={stats} />
           <GrantsPanel org={org} grants={grants} />

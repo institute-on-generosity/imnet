@@ -1082,6 +1082,37 @@ insert into org_members (org_id, user_id) values ('00000000-0000-4000-a000-00000
 insert into org_members (org_id, user_id) values ('00000000-0000-4000-a000-000000000015', '00000000-0000-4000-c000-000000000005') on conflict do nothing;
 insert into org_members (org_id, user_id) values ('00000000-0000-4000-a000-000000000015', '00000000-0000-4000-c000-000000000099') on conflict do nothing;
 
+insert into org_needs (org_id, kind, title, detail, help_url, met_at, created_at) values
+  ('00000000-0000-4000-a000-000000000001', 'volunteer', 'Saturday dinner crew', 'Four-hour shifts, 3 to 7 pm. No experience needed.', 'https://example.org/harbor-table/volunteer', null, now() - interval '10 days'),
+  ('00000000-0000-4000-a000-000000000001', 'item', 'Large stockpots and sheet pans', 'Gently used is fine. Drop off weekdays 9 to 5.', 'mailto:kitchen@example.org', null, now() - interval '11 days'),
+  ('00000000-0000-4000-a000-000000000001', 'funding', 'Walk-in cooler repair', null, 'https://example.org/harbor-table/give', now() - interval '6 days', now() - interval '18 days'),
+  ('00000000-0000-4000-a000-000000000002', 'volunteer', 'Weekend roof crew', 'Saturdays, 8 am. Tools and lunch provided.', 'https://example.org/open-door/build', null, now() - interval '13 days'),
+  ('00000000-0000-4000-a000-000000000002', 'item', 'Twin bed frames', null, 'mailto:homes@example.org', null, now() - interval '14 days'),
+  ('00000000-0000-4000-a000-000000000003', 'item', 'Picture books in Spanish and Vietnamese', 'New or like new, ages 3 to 8.', 'https://example.org/riverbend/books', null, now() - interval '15 days'),
+  ('00000000-0000-4000-a000-000000000003', 'volunteer', 'Reading buddies, Tuesday afternoons', null, 'https://example.org/riverbend/buddies', now() - interval '12 days', now() - interval '28 days'),
+  ('00000000-0000-4000-a000-000000000004', 'volunteer', 'Trail crew, first Saturday monthly', 'Gloves and tools provided.', 'https://example.org/greenway/crew', null, now() - interval '17 days'),
+  ('00000000-0000-4000-a000-000000000007', 'item', 'Blankets and towels', 'Clean, any size. Drop off at the front desk.', 'mailto:shelter@example.org', null, now() - interval '18 days'),
+  ('00000000-0000-4000-a000-000000000007', 'volunteer', 'Dog walkers, weekday mornings', null, 'https://example.org/paws/walk', null, now() - interval '19 days'),
+  ('00000000-0000-4000-a000-000000000008', 'volunteer', 'Planting day, Nov 7', 'Bring water. We bring shovels and saplings.', 'https://example.org/rooted/plant', null, now() - interval '20 days'),
+  ('00000000-0000-4000-a000-000000000009', 'item', 'Exterior paint, any color', null, 'mailto:studio@example.org', now() - interval '4 days', now() - interval '25 days'),
+  ('00000000-0000-4000-a000-000000000010', 'item', 'Cleats, kids sizes 1 to 6', null, 'https://example.org/northside/gear', null, now() - interval '22 days'),
+  ('00000000-0000-4000-a000-000000000011', 'volunteer', 'Airport welcome drivers', 'Background check required.', 'https://example.org/bridge/drive', null, now() - interval '23 days'),
+  ('00000000-0000-4000-a000-000000000011', 'item', 'Kitchen starter kits', 'Pots, pans, utensils for newly arrived families.', 'mailto:welcome@example.org', null, now() - interval '24 days'),
+  ('00000000-0000-4000-a000-000000000013', 'item', 'Chapter books for ages 8 to 12', null, 'https://example.org/open-shelves/donate', null, now() - interval '25 days'),
+  ('00000000-0000-4000-a000-000000000014', 'funding', 'Blood-pressure cuffs for 20 health workers', null, 'https://example.org/health-corps/give', null, now() - interval '26 days');
+
+insert into thanks (org_id, user_id, body, created_at) values ('00000000-0000-4000-a000-000000000001', '00000000-0000-4000-c000-000000000000', 'My dad ate at your Tuesday dinners last winter. He still talks about the soup. Thank you.', now() - interval '2 days');
+insert into thanks (org_id, user_id, body, created_at) values ('00000000-0000-4000-a000-000000000001', '00000000-0000-4000-c000-000000000007', 'Volunteered once and saw how much care goes into every plate. Keep going.', now() - interval '5 days');
+insert into thanks (org_id, user_id, body, created_at) values ('00000000-0000-4000-a000-000000000003', '00000000-0000-4000-c000-000000000014', 'My daughter''s reading buddy changed how she feels about books.', now() - interval '8 days');
+insert into thanks (org_id, user_id, body, created_at) values ('00000000-0000-4000-a000-000000000007', '00000000-0000-4000-c000-000000000021', 'We adopted Biscuit from you in June. He''s asleep on my feet right now.', now() - interval '11 days');
+insert into thanks (org_id, user_id, body, created_at) values ('00000000-0000-4000-a000-000000000011', '00000000-0000-4000-c000-000000000028', 'You met my cousin at the airport at 2 am. That meant everything to our family.', now() - interval '14 days');
+
+insert into gifts (user_id, org_id, amount_usd, given_on, note) values ('00000000-0000-4000-b000-000000000001', '00000000-0000-4000-a000-000000000005', 500, current_date - 300, 'Year-end gift');
+insert into gifts (user_id, org_id, amount_usd, given_on, note) values ('00000000-0000-4000-b000-000000000001', '00000000-0000-4000-a000-000000000001', 100, current_date - 240, null);
+insert into gifts (user_id, org_id, amount_usd, given_on, note) values ('00000000-0000-4000-b000-000000000001', '00000000-0000-4000-a000-000000000001', 50, current_date - 120, 'Holiday meals drive');
+insert into gifts (user_id, org_id, amount_usd, given_on, note) values ('00000000-0000-4000-b000-000000000001', '00000000-0000-4000-a000-000000000005', 250, current_date - 60, null);
+insert into gifts (user_id, org_id, amount_usd, given_on, note) values ('00000000-0000-4000-b000-000000000001', '00000000-0000-4000-a000-000000000001', 25, current_date - 20, 'Monthly');
+
 -- "Moved" and saves: random donors on random posts (private; only totals show to staff).
 insert into moved (user_id, post_id)
 select d.id, p.id from posts p cross join lateral (

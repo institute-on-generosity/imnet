@@ -7,9 +7,11 @@ import { draftProfileFromWebsite, fetchWebsiteText, suggestCauses } from "@/lib/
 import { toEmbed } from "@/lib/embeds"
 import { formValues } from "@/lib/form-values"
 import { validateImages } from "@/lib/post-images"
+import { parseGiftFields } from "@/lib/gifts"
 import { parseGrantFields } from "@/lib/grants"
 import { parseStatFields } from "@/lib/impact-stat-fields"
 import { logoPathIsValid } from "@/lib/logo"
+import { parseNeedFields } from "@/lib/needs"
 import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
 import { todayISO } from "@/lib/open-calls"
 import { safeNext } from "@/lib/safe-next"
@@ -391,4 +393,87 @@ export async function rejectClaim(claimId: string) {
     .update({ status: "rejected", reviewed_by: userId, reviewed_at: new Date().toISOString() })
     .eq("id", claimId)
   revalidatePath("/admin")
+}
+
+// ---------------------------------------------------------------------------
+// Needs (F-051)
+// ---------------------------------------------------------------------------
+export async function addNeed(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const parsed = parseNeedFields({
+    kind: String(form.get("kind") ?? ""),
+    title: String(form.get("title") ?? ""),
+    detail: String(form.get("detail") ?? ""),
+    helpUrl: String(form.get("help_url") ?? ""),
+  })
+  if ("error" in parsed) return fail(form, parsed.error)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("org_needs").insert({ ...parsed.fields, org_id: orgId }).select("id").single()
+  if (error) return fail(form, error.message)
+  revalidatePath("/", "layout")
+  return { ok: true, id: data.id, message: "Added." }
+}
+
+export async function setNeedMet(needId: string, met: boolean) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("org_needs").update({ met_at: met ? new Date().toISOString() : null }).eq("id", needId)
+  revalidatePath("/", "layout")
+}
+
+export async function deleteNeed(needId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("org_needs").delete().eq("id", needId)
+  revalidatePath("/", "layout")
+}
+
+// ---------------------------------------------------------------------------
+// Giving journal (F-052): private to the donor
+// ---------------------------------------------------------------------------
+export async function addGift(_: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const parsed = parseGiftFields(
+    {
+      orgId: String(form.get("org_id") ?? ""),
+      amount: String(form.get("amount") ?? ""),
+      givenOn: String(form.get("given_on") ?? ""),
+      note: String(form.get("note") ?? ""),
+    },
+    todayISO(),
+  )
+  if ("error" in parsed) return fail(form, parsed.error)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("gifts").insert(parsed.fields).select("id").single()
+  if (error) return fail(form, error.message)
+  revalidatePath("/giving")
+  return { ok: true, id: data.id, message: "Logged." }
+}
+
+export async function deleteGift(giftId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("gifts").delete().eq("id", giftId)
+  revalidatePath("/giving")
+}
+
+// ---------------------------------------------------------------------------
+// Thank-you notes (F-053): seen only by the author and the org's staff
+// ---------------------------------------------------------------------------
+export async function sendThanks(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const body = z.string().trim().min(1, "Write a short note first.").max(500, "Keep it under 500 characters.").safeParse(form.get("body"))
+  if (!body.success) return fail(form, body.error.issues[0].message)
+  const supabase = await createClient()
+  const { error } = await supabase.from("thanks").insert({ org_id: orgId, body: body.data })
+  if (error) return fail(form, error.message)
+  revalidatePath(`/dashboard/${orgId}`)
+  return { ok: true, message: "Sent. Only their team will see it." }
+}
+
+export async function deleteThanks(noteId: string, orgId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("thanks").delete().eq("id", noteId)
+  revalidatePath(`/dashboard/${orgId}`)
 }

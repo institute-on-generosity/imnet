@@ -369,6 +369,63 @@ test("F-049: the bell shows a quiet dot for new items; opening the inbox clears 
   }
 })
 
+test("F-051: staff post a need with a way to help; it shows on the profile; marking it met says so", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  const need = `Soup pots ${id}`
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await page.getByLabel("Kind").selectOption("item")
+  await page.getByLabel("What you need").fill(need)
+  await page.getByLabel("How to help: link or email").fill(`pots@${domain}`)
+  await page.getByRole("button", { name: "Add need" }).click()
+  await expect(page.getByRole("button", { name: `Mark "${need}" met` })).toBeVisible()
+
+  await page.goto(`/o/${slug}`)
+  const panel = page.getByRole("region", { name: "Current needs" })
+  await expect(panel.getByRole("link", { name: `Help with ${need}` })).toHaveAttribute("href", `mailto:pots@${domain}`)
+
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await page.getByRole("button", { name: `Mark "${need}" met` }).click()
+  await expect(page.getByRole("button", { name: `Reopen "${need}"` })).toBeVisible()
+  await page.goto(`/o/${slug}`)
+  await expect(panel.getByText(/Met .*Thank you\./)).toBeVisible()
+  await expect(panel.getByRole("link", { name: `Help with ${need}` })).toHaveCount(0)
+})
+
+test("F-053: a donor thanks an org privately; its staff see the note and can remove it", async () => {
+  await page.goto("/o/harbor-table")
+  await page.getByRole("button", { name: "Send a thank-you note" }).click()
+  await page.getByLabel("Thank Harbor Table's team").fill(`Thank you for the dinners ${id}`)
+  await page.getByRole("button", { name: "Send note" }).click()
+  await expect(page.getByText("Sent. Only their team will see it.")).toBeVisible()
+  await expect.poll(async () => (await sql`select count(*)::int n from thanks where user_id = ${userId}`)[0].n).toBe(1)
+
+  // A note to this user's own org, from a demo donor, appears on its dashboard.
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  await sql`insert into thanks (org_id, user_id, body) values (${kitchen.id}, '00000000-0000-4000-c000-000000000000', ${`You fed my family ${id}`})`
+  await page.goto(`/dashboard/${kitchen.id}`)
+  const note = page.getByRole("listitem").filter({ hasText: `You fed my family ${id}` })
+  await expect(note).toBeVisible()
+  await note.getByRole("button", { name: "Remove note" }).click()
+  await expect(note).toHaveCount(0)
+})
+
+test("F-052: log a gift in the private giving journal; totals by year; nobody else can open it", async () => {
+  await page.goto("/giving")
+  await page.getByLabel("Organization", { exact: true }).selectOption({ label: "Harbor Table" })
+  await page.getByLabel("Amount ($)").fill("75")
+  await page.getByLabel("Note (optional)").fill(`Gift ${id}`)
+  await page.getByRole("button", { name: "Log gift" }).click()
+  const year = new Date().toISOString().slice(0, 4)
+  const panel = page.getByRole("region", { name: year })
+  await expect(panel.getByText(`Gift ${id}`)).toBeVisible()
+  await expect(panel.getByText("$75").first()).toBeVisible()
+
+  const anon = await page.context().browser()!.newPage()
+  await anon.goto("/giving")
+  await expect(anon).toHaveURL(/\/login/)
+  await anon.close()
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

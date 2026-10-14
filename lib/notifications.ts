@@ -3,7 +3,7 @@ import { formatUsd } from "@/lib/grants"
 import { formatDeadline } from "@/lib/open-calls"
 import { createClient } from "@/lib/supabase/server"
 
-export type Notification = { key: string; at: string; text: string; href: string; kind: "grant" | "report" | "call" | "team" | "claim" }
+export type Notification = { key: string; at: string; text: string; href: string; kind: "grant" | "report" | "call" | "team" | "claim" | "thanks" }
 
 const SINCE_DAYS = 60
 const name = (o: { name: string } | null | undefined) => o?.name ?? "An organization"
@@ -19,7 +19,7 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
   const foundations = orgs.filter((o) => o.org_type === "foundation").map((o) => o.id)
   const items: Notification[] = []
 
-  const [toConfirm, confirmed, reports, calls, claims, joined] = await Promise.all([
+  const [toConfirm, confirmed, reports, calls, claims, joined, notes] = await Promise.all([
     nonprofits.length
       ? supabase.from("grants").select("id, amount_usd, created_at, grantee_id, foundation:orgs!grants_foundation_id_fkey(name)").in("grantee_id", nonprofits).is("confirmed_at", null).gte("created_at", since)
       : null,
@@ -34,6 +34,7 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
     orgs.length
       ? supabase.from("org_invites").select("id, email, accepted_at, org_id").in("org_id", orgs.map((o) => o.id)).not("accepted_at", "is", null).neq("accepted_by", userId).gte("accepted_at", since)
       : null,
+    orgs.length ? supabase.from("thanks").select("id, org_id, created_at").in("org_id", orgs.map((o) => o.id)).neq("user_id", userId).gte("created_at", since) : null,
   ])
 
   for (const g of (toConfirm?.data ?? []) as unknown as { id: string; amount_usd: number | null; created_at: string; grantee_id: string; foundation: { name: string } }[]) {
@@ -52,6 +53,10 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
   }
   for (const i of joined?.data ?? []) {
     items.push({ key: `joined-${i.id}`, at: i.accepted_at!, kind: "team", text: `${i.email} joined your team.`, href: `/dashboard/${i.org_id}` })
+  }
+  for (const t of notes?.data ?? []) {
+    const org = orgs.find((o) => o.id === t.org_id)
+    items.push({ key: `thanks-${t.id}`, at: t.created_at, kind: "thanks", text: `A supporter sent ${org ? name(org) : "your team"} a thank-you note.`, href: `/dashboard/${t.org_id}` })
   }
   return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30)
 }

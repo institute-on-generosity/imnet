@@ -233,6 +233,52 @@ for n in ALL_ORGS:
         out.append(f"insert into org_members (org_id, user_id) values ('{oid(n)}', '{uid}') on conflict do nothing;")
 out.append("")
 
+# Current needs (F-051): concrete asks, a few recently met
+NEEDS = [
+    (1, "volunteer", "Saturday dinner crew", "Four-hour shifts, 3 to 7 pm. No experience needed.", "https://example.org/harbor-table/volunteer", None),
+    (1, "item", "Large stockpots and sheet pans", "Gently used is fine. Drop off weekdays 9 to 5.", "mailto:kitchen@example.org", None),
+    (1, "funding", "Walk-in cooler repair", None, "https://example.org/harbor-table/give", 6),
+    (2, "volunteer", "Weekend roof crew", "Saturdays, 8 am. Tools and lunch provided.", "https://example.org/open-door/build", None),
+    (2, "item", "Twin bed frames", None, "mailto:homes@example.org", None),
+    (3, "item", "Picture books in Spanish and Vietnamese", "New or like new, ages 3 to 8.", "https://example.org/riverbend/books", None),
+    (3, "volunteer", "Reading buddies, Tuesday afternoons", None, "https://example.org/riverbend/buddies", 12),
+    (4, "volunteer", "Trail crew, first Saturday monthly", "Gloves and tools provided.", "https://example.org/greenway/crew", None),
+    (7, "item", "Blankets and towels", "Clean, any size. Drop off at the front desk.", "mailto:shelter@example.org", None),
+    (7, "volunteer", "Dog walkers, weekday mornings", None, "https://example.org/paws/walk", None),
+    (8, "volunteer", "Planting day, Nov 7", "Bring water. We bring shovels and saplings.", "https://example.org/rooted/plant", None),
+    (9, "item", "Exterior paint, any color", None, "mailto:studio@example.org", 4),
+    (10, "item", "Cleats, kids sizes 1 to 6", None, "https://example.org/northside/gear", None),
+    (11, "volunteer", "Airport welcome drivers", "Background check required.", "https://example.org/bridge/drive", None),
+    (11, "item", "Kitchen starter kits", "Pots, pans, utensils for newly arrived families.", "mailto:welcome@example.org", None),
+    (13, "item", "Chapter books for ages 8 to 12", None, "https://example.org/open-shelves/donate", None),
+    (14, "funding", "Blood-pressure cuffs for 20 health workers", None, "https://example.org/health-corps/give", None),
+]
+out.append("insert into org_needs (org_id, kind, title, detail, help_url, met_at, created_at) values")
+def met_sql(met):
+    return f"now() - interval '{met} days'" if met else "null"
+out.append(",\n".join(
+    f"  ('{oid(o)}', '{k}', {q(t)}, {q(d) if d else 'null'}, {q(u)}, {met_sql(met)}, now() - interval '{(met or 0) + 10 + i} days')"
+    for i, (o, k, t, d, u, met) in enumerate(NEEDS)) + ";")
+out.append("")
+
+# Thank-you notes (F-053): private, seen only by each org's staff
+THANKS = [
+    (1, "My dad ate at your Tuesday dinners last winter. He still talks about the soup. Thank you."),
+    (1, "Volunteered once and saw how much care goes into every plate. Keep going."),
+    (3, "My daughter's reading buddy changed how she feels about books."),
+    (7, "We adopted Biscuit from you in June. He's asleep on my feet right now."),
+    (11, "You met my cousin at the airport at 2 am. That meant everything to our family."),
+]
+for i, (o, body) in enumerate(THANKS):
+    out.append(f"insert into thanks (org_id, user_id, body, created_at) values ('{oid(o)}', '{donors[i * 7]}', {q(body)}, now() - interval '{2 + i * 3} days');")
+out.append("")
+
+# Giving journal (F-052) for the demo donor: private
+DANA = "00000000-0000-4000-b000-000000000001"
+for o, amt, days, note in [(5, 500, 300, "Year-end gift"), (1, 100, 240, None), (1, 50, 120, "Holiday meals drive"), (5, 250, 60, None), (1, 25, 20, "Monthly")]:
+    out.append(f"insert into gifts (user_id, org_id, amount_usd, given_on, note) values ('{DANA}', '{oid(o)}', {amt}, current_date - {days}, {q(note) if note else 'null'});")
+out.append("")
+
 # Private reactions and saves, and 30 days of analytics
 out.append(f"""-- "Moved" and saves: random donors on random posts (private; only totals show to staff).
 insert into moved (user_id, post_id)

@@ -227,3 +227,13 @@ test("F-002: Following requires sign-in", async ({ page }) => {
   await page.goto("/following")
   await expect(page).toHaveURL(/\/login$/)
 })
+
+test("F-051: a profile lists current needs with a way to help; met needs say so", async ({ page }) => {
+  await page.goto("/o/harbor-table")
+  const panel = page.getByRole("region", { name: "Current needs" })
+  await expect(panel.getByRole("link", { name: "Help with Saturday dinner crew" })).toHaveAttribute("href", "https://example.org/harbor-table/volunteer")
+  await expect(panel.getByText("Walk-in cooler repair")).toBeVisible()
+  await expect(panel.getByText(/Met .*Thank you\./)).toBeVisible()
+  // Signed-out visitors can't send thank-you notes.
+  await expect(page.getByRole("button", { name: "Send a thank-you note" })).toHaveCount(0)
+})
