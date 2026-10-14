@@ -634,3 +634,19 @@ describe("avatars", () => {
     expect((await t.as(DONOR, `update profiles set avatar_url = '/avatars/dana' where id = '${DONOR}' returning avatar_url`)).rows).toEqual([{ avatar_url: "/avatars/dana" }])
   })
 })
+
+describe("full profiles", () => {
+  it("F-073: org covers must be in the org's own folder; only staff edit details", async () => {
+    expect((await t.as(STAFF, `update orgs set cover_url = 'https://evil.example/x.jpg' where id = '${ORG_1}'`)).error).toMatch(/check constraint/)
+    expect((await t.as(STAFF, `update orgs set cover_url = '${ORG_2}/cover.webp' where id = '${ORG_1}'`)).error).toMatch(/check constraint/)
+    expect((await t.as(STAFF, `update orgs set cover_url = '${ORG_1}/cover.webp', location = 'Portland, ME', founded_year = 2009, programs = '{Dinners,Pantry}' where id = '${ORG_1}' returning id`)).rows).toHaveLength(1)
+    expect((await t.as(DONOR, `update orgs set location = 'Nowhere' where id = '${ORG_1}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(STAFF, `update orgs set founded_year = 3000 where id = '${ORG_1}'`)).error).toMatch(/check constraint/)
+  })
+
+  it("F-073: a person's cover comes only from the shared set; they edit only their own profile", async () => {
+    expect((await t.as(DONOR, `update profiles set cover_url = 'https://evil.example/x.jpg' where id = '${DONOR}'`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `update profiles set cover_url = 'covers/lavender.webp', location = 'Tacoma, WA', about = 'Hi' where id = '${DONOR}' returning id`)).rows).toHaveLength(1)
+    expect((await t.as(DONOR, `update profiles set about = 'hacked' where id = '${STAFF}' returning id`)).rows ?? []).toHaveLength(0)
+  })
+})

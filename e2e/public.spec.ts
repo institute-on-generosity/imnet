@@ -116,6 +116,8 @@ test("F-037: a foundation's Portfolio tab shows its grantees' reports; nonprofit
 
 test("F-039: /calls lists open calls soonest deadline first; closed calls drop off but say Closed on their post", async ({ page }) => {
   await page.goto("/calls")
+  // List pages stream in behind a loading skeleton; wait for the content before reading it.
+  await expect(page.getByText("Youth reading micro-grants").first()).toBeVisible()
   const text = await page.locator("main").innerText()
   expect(text.indexOf("Youth reading micro-grants")).toBeGreaterThan(-1)
   expect(text.indexOf("Youth reading micro-grants")).toBeLessThan(text.indexOf("Spring Community Fund grants are open"))
@@ -357,4 +359,25 @@ test("F-070: people have illustrated avatars served from our own route", async (
   const res = await request.get("/avatars/dana_demo")
   expect(res.headers()["content-type"]).toContain("image/svg+xml")
   expect((await request.get("/avatars/" + encodeURIComponent("<script>"))).status()).toBe(404)
+})
+
+test("F-073: profiles look complete: cover photos, location, founded, team, programs, About", async ({ page }) => {
+  await page.goto("/o/harbor-table")
+  await expect(page.locator('main img[src$="00000000-0000-4000-a000-000000000001/cover.webp"]')).toBeVisible()
+  await expect(page.getByText("Portland, ME").first()).toBeVisible()
+  await expect(page.getByText("Founded 2011")).toBeVisible()
+  await page.getByRole("link", { name: "About", exact: true }).click()
+  await expect(page.getByText("14 staff · 320 volunteers").first()).toBeVisible()
+  await expect(page.getByRole("listitem").filter({ hasText: "Pantry Saturdays" })).toBeVisible()
+
+  await page.goto("/o/lakeshore-community-foundation")
+  await expect(page.locator('main img[src$="/cover.webp"]')).toBeVisible()
+  await expect(page.getByText("Milwaukee, WI").first()).toBeVisible()
+
+  await page.goto("/u/dana_demo")
+  await expect(page.locator('main img[src$="covers/mountain-lake.webp"]')).toBeVisible()
+  await expect(page.getByText("Milwaukee, WI").first()).toBeVisible()
+  await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Has given to" })).toBeVisible()
+  await expect(page.getByRole("link", { name: "Edit profile" })).toHaveCount(0) // not yours
 })

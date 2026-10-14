@@ -6,7 +6,9 @@ import { PersonAvatar } from "@/components/person-avatar"
 import { FoundationMark } from "@/components/org-type-badge"
 import { GivingBecame } from "@/components/giving-became"
 import { getActivity, getDonorOrgs, getOrgGrants } from "@/lib/queries"
-import { CalendarDays, HandHeart } from "lucide-react"
+import { CalendarDays, HandHeart, MapPin, Pencil } from "lucide-react"
+import { buttonVariants } from "@/components/ui/button"
+import { personCoverSrc } from "@/lib/cover"
 import { ago } from "@/lib/comments"
 import { cn } from "@/lib/utils"
 import type { OrgSummary } from "@/lib/types"
@@ -17,7 +19,7 @@ async function getProfile(handle: string) {
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, handle, display_name, bio, created_at, avatar_url")
+    .select("id, handle, display_name, bio, created_at, avatar_url, location, about, cover_url")
     .eq("handle", handle)
     .maybeSingle()
   if (!profile) return null
@@ -67,14 +69,25 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   return (
     <TwoColumn right={<div className="hidden space-y-3 lg:block">{giving("rail")}</div>}>
       <Panel className="overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-leaf-soft via-leaf-soft to-marigold-soft sm:h-32" />
+        {personCoverSrc(profile.cover_url) ? (
+          <div className="aspect-[3/1] bg-muted sm:aspect-[4/1]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={personCoverSrc(profile.cover_url)!} alt="" fetchPriority="high" className="size-full object-cover" />
+          </div>
+        ) : (
+          <div className="aspect-[3/1] bg-gradient-to-r from-leaf-soft via-leaf-soft to-marigold-soft sm:aspect-[4/1]" />
+        )}
         <div className="px-4 pb-5 sm:px-6">
-          <PersonAvatar name={name} avatarUrl={profile.avatar_url} size="xl" className="-mt-12 block border-4 border-card bg-card sm:-mt-14" />
+          <div className="flex items-end justify-between gap-3">
+            <PersonAvatar name={name} avatarUrl={profile.avatar_url} size="xl" className="-mt-12 block border-4 border-card bg-card sm:-mt-14" />
+            {isOwn && <Link href="/settings/profile" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3" })}><Pencil aria-hidden />Edit profile</Link>}
+          </div>
           <h1 className="mt-3 text-3xl font-semibold">{name}</h1>
           {profile.bio && <p className="mt-1 max-w-prose text-lg leading-snug text-foreground/80">{profile.bio}</p>}
           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
             <span>@{profile.handle}</span>
             <span aria-hidden>•</span>
+            {profile.location && <><span className="inline-flex items-center gap-1"><MapPin className="size-4" aria-hidden />{profile.location}</span><span aria-hidden>•</span></>}
             <span className="inline-flex items-center gap-1"><CalendarDays className="size-4" aria-hidden />Joined {joined}</span>
             {gaveTo.length > 0 && (
               <>
@@ -101,6 +114,12 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
         </nav>
       </Panel>
 
+      {tab === "about" && profile.about && (
+        <Panel aria-labelledby="about-me" className="p-4 sm:p-6">
+          <h2 id="about-me" className="font-sans text-lg font-semibold tracking-normal">About</h2>
+          <p className="story mt-2 whitespace-pre-line">{profile.about}</p>
+        </Panel>
+      )}
       {tab === "about" && <GivingBecame funds={funds} isOwn={isOwn} />}
       {tab === "about" && <div className="space-y-3 lg:hidden">{giving("main")}</div>}
 

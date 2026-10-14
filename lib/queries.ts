@@ -62,7 +62,7 @@ export async function getOrgBySlug(slug: string) {
   const supabase = await createClient()
   const { data: org } = await supabase
     .from("orgs")
-    .select("id, slug, name, ein, website, mission, what_gifts_fund, logo_url, everyorg_slug, status, org_type")
+    .select("id, slug, name, ein, website, mission, what_gifts_fund, logo_url, everyorg_slug, status, org_type, cover_url, about, location, founded_year, team_size, programs")
     .eq("slug", slug)
     .maybeSingle<Org>()
   if (!org) return null

@@ -10,6 +10,7 @@ import { ShareButton } from "@/components/share-button"
 import { Panel, TwoColumn } from "@/components/shell"
 import { GrantsPanel } from "@/components/grants-panel"
 import { FundersCard, ImpactCard, OrgFacts } from "@/components/rail-cards"
+import { orgCoverSrc } from "@/lib/cover"
 import { EventsPanel } from "@/components/events-panel"
 import { NeedsPanel } from "@/components/needs-panel"
 import { ThanksButton } from "@/components/thanks-button"
@@ -72,15 +73,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
       <TrackView orgId={org.id} />
 
       <Panel className="overflow-hidden">
-        {org.org_type === "foundation" ? (
-          <div className="relative h-28 bg-primary sm:h-36">
-            <div aria-hidden className="absolute inset-0 opacity-40 [background:repeating-linear-gradient(135deg,transparent_0_14px,var(--marigold)_14px_15px)]" />
-          </div>
-        ) : (
-          <div className="relative h-28 bg-leaf sm:h-36">
-            <div aria-hidden className="absolute inset-0 opacity-15 [background:repeating-linear-gradient(135deg,transparent_0_14px,white_14px_15px)]" />
-          </div>
-        )}
+        <Cover org={org} />
         <div className="px-4 pb-4 sm:px-6">
           <div className="relative -mt-12 sm:-mt-14"><OrgMark org={org} size="xl" /></div>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -91,6 +84,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
             {causes[0] && <span>{causes.slice(0, 2).map((c) => c.name).join(", ")}{causes.length > 2 && ` +${causes.length - 2}`}</span>}
             {causes[0] && <span aria-hidden>•</span>}
+            {org.location && <><span>{org.location}</span><span aria-hidden>•</span></>}
             <span>{followers.toLocaleString("en-US")} {followers === 1 ? "follower" : "followers"}</span>
             <span aria-hidden>•</span>
             <span className="inline-flex items-center gap-1"><BadgeCheck className="size-4 text-leaf" aria-hidden />Verified</span>
@@ -149,12 +143,22 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
         <>
           <Panel className="p-4 sm:p-6">
             <h2 className="font-sans text-lg font-semibold tracking-normal">Overview</h2>
-            {org.mission && <p className="story mt-2">{org.mission}</p>}
+            {org.mission && <p className="story mt-2 font-medium">{org.mission}</p>}
+            {org.about && <p className="story mt-3 whitespace-pre-line text-foreground/85">{org.about}</p>}
             <dl className="mt-5 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-[10rem_1fr]">
               {org.website && (
                 <>
                   <dt className="font-semibold">Website</dt>
                   <dd><a href={org.website} target="_blank" rel="noopener noreferrer" className="text-leaf hover:underline">{host(org.website)}</a></dd>
+                </>
+              )}
+              {org.location && (<><dt className="font-semibold">Location</dt><dd>{org.location}</dd></>)}
+              {org.founded_year && (<><dt className="font-semibold">Founded</dt><dd>{org.founded_year}</dd></>)}
+              {org.team_size && (<><dt className="font-semibold">Team</dt><dd>{org.team_size}</dd></>)}
+              {org.programs.length > 0 && (
+                <>
+                  <dt className="font-semibold">Programs</dt>
+                  <dd><ul className="flex flex-wrap gap-1.5">{org.programs.map((p) => <li key={p} className="rounded-full border px-2.5 py-0.5">{p}</li>)}</ul></dd>
                 </>
               )}
               {org.ein && (
@@ -204,6 +208,28 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
         </>
       )}
     </TwoColumn>
+  )
+}
+
+// Cover photo (wide, like LinkedIn's), or the type's patterned banner when there's none.
+function Cover({ org }: { org: Org }) {
+  const src = orgCoverSrc(org.cover_url)
+  if (src) {
+    return (
+      <div className="relative aspect-[3/1] bg-muted sm:aspect-[4/1]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="" fetchPriority="high" className="size-full object-cover" />
+      </div>
+    )
+  }
+  return org.org_type === "foundation" ? (
+    <div className="relative aspect-[3/1] bg-primary sm:aspect-[4/1]">
+      <div aria-hidden className="absolute inset-0 opacity-40 [background:repeating-linear-gradient(135deg,transparent_0_14px,var(--marigold)_14px_15px)]" />
+    </div>
+  ) : (
+    <div className="relative aspect-[3/1] bg-leaf sm:aspect-[4/1]">
+      <div aria-hidden className="absolute inset-0 opacity-15 [background:repeating-linear-gradient(135deg,transparent_0_14px,white_14px_15px)]" />
+    </div>
   )
 }
 
