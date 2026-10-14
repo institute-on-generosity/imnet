@@ -20,7 +20,7 @@ export function OrgMark({ org, size = "md" }: { org: Pick<OrgSummary, "name" | "
   const src = logoSrc(org.logo_url)
   if (src) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt="" className={cn(SIZES[size], "shrink-0 bg-card object-cover")} />
+    return <img src={src} alt="" className={cn(SIZES[size], "shrink-0 bg-card object-cover ring-1 ring-border")} />
   }
   return (
     <span aria-hidden className={cn(SIZES[size], TYPE[org.org_type ?? "nonprofit"], "grid shrink-0 place-items-center font-heading")}>
