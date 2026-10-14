@@ -75,8 +75,9 @@ export function PostComments({ postId, org, initial }: { postId: string; org: Or
   )
 }
 
-function CommentItem({ comment: c, org, viewer, isStaff, postId, onChange, onReply, small }: {
-  comment: Comment | Thread; org: OrgSummary; viewer: Viewer; isStaff: boolean; postId: string; onChange: () => void; onReply: () => void; small?: boolean
+// preview: the feed's one-comment preview (body clamped, no actions; clicking opens the thread).
+export function CommentItem({ comment: c, org, viewer, isStaff, postId, onChange, onReply, small, preview }: {
+  comment: Comment | Thread; org: OrgSummary; viewer: Viewer; isStaff: boolean; postId: string; onChange: () => void; onReply: () => void; small?: boolean; preview?: boolean
 }) {
   const [, start] = useTransition()
   const name = c.as_org ? org.name : (c.author.display_name ?? `@${c.author.handle}`)
@@ -100,16 +101,16 @@ function CommentItem({ comment: c, org, viewer, isStaff, postId, onChange, onRep
             </div>
             <time dateTime={c.created_at} className="shrink-0 text-xs text-muted-foreground">{ago(c.created_at)}</time>
           </div>
-          <p className="mt-1.5 text-sm whitespace-pre-line break-words">{c.body}</p>
+          <p className={cn("mt-1.5 text-sm whitespace-pre-line break-words", preview && "line-clamp-2")}>{c.body}</p>
         </div>
-        <div className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+        {!preview && <div className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
           {viewer && <button type="button" onClick={onReply} className="rounded px-2 py-1 hover:bg-muted">Reply</button>}
           {canDelete && (
             <button type="button" onClick={() => start(async () => { await deleteComment(c.id, postId); onChange() })} className="rounded px-2 py-1 hover:bg-muted hover:text-destructive">
               Delete<span className="sr-only"> comment</span>
             </button>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   )

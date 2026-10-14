@@ -522,3 +522,12 @@ export async function isOrgStaff(userId: string | null, orgId: string): Promise<
   const { data } = await supabase.from("org_members").select("user_id").match({ org_id: orgId, user_id: userId }).maybeSingle()
   return !!data
 }
+
+// Feed comment preview: newest top-level comment per post, for a page of posts at once.
+export async function getLatestComments(postIds: string[]): Promise<Map<string, Comment & { more: boolean }>> {
+  if (postIds.length === 0) return new Map()
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("latest_comments", { post_ids: postIds })
+  type Row = Omit<Comment, "author"> & { post_id: string; handle: string; display_name: string | null; bio: string | null; more: boolean }
+  return new Map(((data ?? []) as Row[]).map(({ handle, display_name, bio, post_id, ...c }) => [post_id, { ...c, author: { handle, display_name, bio } }]))
+}

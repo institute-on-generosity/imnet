@@ -7,15 +7,16 @@ import { logEvent } from "@/app/actions"
 import { sendSignal } from "@/lib/send-signal"
 import type { OrgSummary } from "@/lib/types"
 import { cn } from "@/lib/utils"
-import { PostComments, type CommentsData } from "./post-comments"
+import type { Comment } from "@/lib/comments"
+import { CommentItem, PostComments, type CommentsData } from "./post-comments"
 
 const BAR = "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted sm:flex-row sm:gap-1.5 sm:text-sm"
 
-type Props = { postId: string; org: OrgSummary; moved: boolean; saved: boolean; signedIn: boolean; full?: boolean; comments?: CommentsData }
+type Props = { postId: string; org: OrgSummary; moved: boolean; saved: boolean; signedIn: boolean; full?: boolean; comments?: CommentsData; preview?: Comment & { more: boolean } }
 
 // LinkedIn's action bar (Moved · Comment · Share · Save) with the comment thread below it.
 // "Moved" and Save are private; there are no counts.
-export function PostActions({ postId, org, moved, saved, signedIn, full, comments }: Props) {
+export function PostActions({ postId, org, moved, saved, signedIn, full, comments, preview }: Props) {
   const [open, setOpen] = useState(!!full)
   const [isMoved, setMoved] = useOptimistic(moved)
   const [isSaved, setSaved] = useOptimistic(saved)
@@ -71,6 +72,18 @@ export function PostActions({ postId, org, moved, saved, signedIn, full, comment
         )}
       </div>
       {open && <PostComments postId={postId} org={org} initial={comments} />}
+      {!open && preview && (
+        // LinkedIn's comment preview: the newest comment; tap it (or the link) for the whole thread.
+        <div className="px-4 pt-1 pb-3">
+          {/* Clicking the bubble is a mouse shortcut; keyboard users use the button below (no nested controls). */}
+          <div onClick={() => setOpen(true)} className="cursor-pointer">
+            <CommentItem comment={preview} org={org} viewer={null} isStaff={false} postId={postId} onChange={() => {}} onReply={() => {}} preview />
+          </div>
+          <button type="button" onClick={() => setOpen(true)} className="mt-1 ml-10 rounded-md px-2 py-1 text-sm font-semibold text-muted-foreground hover:bg-muted">
+            {preview.more ? "See more comments" : "Add a comment"}
+          </button>
+        </div>
+      )}
     </>
   )
 }

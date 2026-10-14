@@ -296,3 +296,14 @@ test("F-062 / F-063: LinkedIn-style posts: header, action bar, inline comments w
   // No counts anywhere.
   await expect(page.getByText(/\d+ (comments?|replies|reactions?|likes?)\b/)).toHaveCount(0)
 })
+
+test("F-064: feed posts preview their newest comment; 'See more comments' opens the thread", async ({ page }) => {
+  await page.goto("/o/harbor-table?tab=posts")
+  const card = page.locator("article").filter({ hasText: "The new walk-in freezer is in." }).first()
+  const [post] = await sql`select id from posts where body like 'The new walk-in freezer is in.%'`
+  const [latest] = await sql`select body from comments where post_id = ${post.id} and parent_id is null order by created_at desc limit 1`
+  await expect(card.getByText(latest.body, { exact: true })).toBeVisible()
+  await expect(card.getByRole("region", { name: "Comments" })).toHaveCount(0)
+  await card.getByRole("button", { name: "See more comments" }).click()
+  await expect(card.getByRole("region", { name: "Comments" })).toBeVisible()
+})

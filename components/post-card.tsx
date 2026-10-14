@@ -1,7 +1,8 @@
 import { Earth } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { getFollowedOrgIds, getFollowerCounts } from "@/lib/queries"
+import { getFollowedOrgIds, getFollowerCounts, getLatestComments } from "@/lib/queries"
+import type { Comment } from "@/lib/comments"
 import { getUserId } from "@/lib/supabase/server"
 import type { Grant, OrgSummary, Post } from "@/lib/types"
 import { ExpandableText } from "./expandable-text"
@@ -33,12 +34,12 @@ const followersLabel = (n: number) => `${n.toLocaleString("en-US")} ${n === 1 ? 
 // following: undefined hides the header's Follow button (signed out, or on the org's own page).
 type CardProps = {
   post: Post; full?: boolean; moved?: boolean; saved?: boolean; signedIn?: boolean; grants?: Grant[]; context?: OrgSummary
-  followers?: number; following?: boolean; comments?: CommentsData
+  followers?: number; following?: boolean; comments?: CommentsData; preview?: Comment & { more: boolean }
 }
 
 // A LinkedIn post: author header (followers, time, Follow, ⋯), text with "…more", media,
 // then the Moved · Comment · Share · Save bar and an inline comment thread. No counts.
-export function PostCard({ post, full = false, moved = false, saved = false, signedIn = false, grants = [], context, followers, following, comments }: CardProps) {
+export function PostCard({ post, full = false, moved = false, saved = false, signedIn = false, grants = [], context, followers, following, comments, preview }: CardProps) {
   return (
     <article className="rounded-xl border bg-card">
       {context && (
@@ -90,7 +91,7 @@ export function PostCard({ post, full = false, moved = false, saved = false, sig
       <GrantChips grants={grants} />
 
       <div className="mt-2">
-        <PostActions postId={post.id} org={post.org} moved={moved} saved={saved} signedIn={signedIn} full={full} comments={comments} />
+        <PostActions postId={post.id} org={post.org} moved={moved} saved={saved} signedIn={signedIn} full={full} comments={comments} preview={preview} />
       </div>
     </article>
   )
@@ -102,7 +103,11 @@ type FeedProps = { posts: Post[]; empty: React.ReactNode; movedIds?: Set<string>
 export async function Feed({ posts, empty, movedIds, savedIds, signedIn = false, grantsByPost, context, hideFollow }: FeedProps & { hideFollow?: boolean }) {
   if (posts.length === 0) return <Panel className="p-6 text-muted-foreground">{empty}</Panel>
   const userId = signedIn ? await getUserId() : null
-  const [counts, followed] = await Promise.all([getFollowerCounts(posts.map((p) => p.org_id)), userId ? getFollowedOrgIds(userId) : Promise.resolve([])])
+  const [counts, followed, previews] = await Promise.all([
+    getFollowerCounts(posts.map((p) => p.org_id)),
+    userId ? getFollowedOrgIds(userId) : Promise.resolve([]),
+    getLatestComments(posts.map((p) => p.id)),
+  ])
   const followedSet = new Set(followed)
   return (
     <div className="space-y-3">
@@ -117,6 +122,7 @@ export async function Feed({ posts, empty, movedIds, savedIds, signedIn = false,
           context={context?.get(post.id)}
           followers={counts.get(post.org_id) ?? 0}
           following={userId && !hideFollow ? followedSet.has(post.org_id) : undefined}
+          preview={previews.get(post.id)}
         />
       ))}
     </div>

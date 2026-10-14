@@ -569,3 +569,17 @@ describe("comment replies", () => {
     expect(await t.owner(`select 1 from comments where parent_id = '${top}'`)).toHaveLength(0)
   })
 })
+
+describe("comment preview", () => {
+  it("F-064: latest_comments returns the newest top-level comment per visible post only", async () => {
+    const a = (await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'preview a') returning id`))[0].id
+    const hidden = (await t.owner(`insert into posts (org_id, body, published) values ('${ORG_1}', 'preview hidden', false) returning id`))[0].id
+    await t.owner(`insert into comments (post_id, user_id, body, created_at) values
+      ('${a}', '${DONOR}', 'older', now() - interval '2 hours'), ('${a}', '${STAFF}', 'newest', now() - interval '1 hour'),
+      ('${hidden}', '${DONOR}', 'secret', now())`)
+    const top = (await t.owner(`select id from comments where body = 'older'`))[0].id
+    await t.owner(`insert into comments (post_id, parent_id, user_id, body) values ('${a}', '${top}', '${STAFF}', 'a reply is never the preview')`)
+    const rows = (await t.as(null, `select post_id, body, more from latest_comments(array['${a}', '${hidden}']::uuid[])`)).rows
+    expect(rows).toEqual([{ post_id: a, body: "newest", more: true }])
+  })
+})
