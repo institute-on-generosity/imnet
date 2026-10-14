@@ -347,9 +347,8 @@ test("F-048 / B-015: invite a colleague by link; they sign in, come back to the 
 
 test("F-049: the bell shows a quiet dot for new items; opening the inbox clears it", async () => {
   const [kitchen] = await sql`select id from orgs where slug = ${slug}`
-  await page.goto("/notifications") // clear anything earlier tests created
-  await expect(page.getByRole("heading", { name: "Notifications" })).toBeVisible()
-  await expect.poll(async () => (await sql`select notifications_seen_at from profiles where id = ${userId}`)[0].notifications_seen_at).not.toBeNull()
+  // Start from "inbox read a minute ago" (deterministic; dev mode runs effects twice, which races).
+  await sql`update profiles set notifications_seen_at = now() - interval '1 minute' where id = ${userId}`
 
   const RIVERSIDE = "00000000-0000-4000-a000-000000000006"
   const [grant] = await sql`insert into grants (foundation_id, grantee_id, amount_usd, purpose) values (${RIVERSIDE}, ${kitchen.id}, 3000, 'Stoves') returning id`
