@@ -1,10 +1,24 @@
 import { MapPin } from "lucide-react"
 import Link from "next/link"
 import type { EventWithOrg, OrgEvent } from "@/lib/events"
+import { cn } from "@/lib/utils"
 import { LocalTime } from "./local-time"
 import { OrgMark } from "./org-mark"
 import { Panel } from "./shell"
 import { ToggleSignal } from "./toggle-signal"
+
+// Calendar tile. Line boxes are trimmed to the glyphs (tight leading) so the month and day are
+// centred by their ink, not by the serif font's tall ascender space, then pb-0.5 lifts them 1px to
+// the optical centre (just above the geometric one). mt-[3px] on the tile lines
+// its top edge up with the title's cap height.
+function DateTile({ iso, className }: { iso: string; className?: string }) {
+  return (
+    <span aria-hidden className={cn("flex size-12 shrink-0 flex-col items-center justify-center gap-px rounded-lg border bg-muted/40 pb-0.5", className)}>
+      <span className="text-[10px] leading-[8px] font-semibold tracking-wide text-leaf uppercase"><LocalTime iso={iso} format="month" /></span>
+      <span className="font-heading text-lg leading-[14px] font-semibold"><LocalTime iso={iso} format="day" /></span>
+    </span>
+  )
+}
 
 type RowProps = { event: OrgEvent | EventWithOrg; going: boolean; signedIn: boolean; compact?: boolean }
 
@@ -14,16 +28,11 @@ export function EventRow({ event: e, going, signedIn, compact }: RowProps) {
     // Sidebar: fixed date tile, title, then time and host on one line, with a small RSVP below.
     return (
       <li className="flex gap-3 py-3">
-        <span aria-hidden className="flex size-11 shrink-0 flex-col items-center justify-center rounded-lg border bg-muted/40 leading-none">
-          <span className="text-[10px] font-semibold text-leaf uppercase"><LocalTime iso={e.starts_at} format="month" /></span>
-          <span className="mt-0.5 font-heading text-lg font-semibold"><LocalTime iso={e.starts_at} format="day" /></span>
-        </span>
+        <DateTile iso={e.starts_at} className="mt-[3px]" />
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-sm leading-snug font-semibold">{e.title}</p>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            <LocalTime iso={e.starts_at} format="time" />
-            {org && <> · <Link href={`/o/${org.slug}`} className="hover:underline">{org.name}</Link></>}
-          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground"><LocalTime iso={e.starts_at} format="time" /></p>
+          {org && <Link href={`/o/${org.slug}`} className="block truncate text-xs text-muted-foreground hover:underline">{org.name}</Link>}
           <div className="mt-1.5"><ToggleSignal kind="rsvp" id={e.id} on={going} signedIn={signedIn} label={`to ${e.title}`} size="sm" /></div>
         </div>
       </li>
@@ -34,10 +43,7 @@ export function EventRow({ event: e, going, signedIn, compact }: RowProps) {
       {org ? (
         <OrgMark org={org} />
       ) : (
-        <span aria-hidden className="flex size-12 shrink-0 flex-col items-center justify-center rounded-lg border bg-muted/40 leading-none">
-          <span className="text-[10px] font-semibold text-leaf uppercase"><LocalTime iso={e.starts_at} format="month" /></span>
-          <span className="mt-0.5 font-heading text-lg font-semibold"><LocalTime iso={e.starts_at} format="day" /></span>
-        </span>
+        <DateTile iso={e.starts_at} className="mt-[3px]" />
       )}
       <div className="min-w-0 flex-1">
         <p className="font-semibold">{e.title}</p>

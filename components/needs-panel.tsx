@@ -26,15 +26,15 @@ export function NeedRow({ need: n, compact, interested = false, signedIn = false
   const org = "org" in n ? n.org : null
   const Icon = n.met_at ? CircleCheck : ICONS[n.kind]
   if (compact && org) {
-    // Sidebar: logo, title, kind and org on one line, then a small Help link (same shape as events).
+    // Sidebar: logo, title, kind, org, then a small Help link (same shape as event rows).
     return (
       <li className="flex gap-3 py-3">
-        <OrgMark org={org} size="sm" />
+        {/* Same 48px column and cap-height top (mt-[3px]) as the event date tiles, so stacked cards line up. */}
+        <span className="mt-[3px] shrink-0"><OrgMark org={org} size="md" /></span>
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-sm leading-snug font-semibold">{n.title}</p>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {NEED_KIND_LABEL[n.kind]} · <Link href={`/o/${org.slug}`} className="hover:underline">{org.name}</Link>
-          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{NEED_KIND_LABEL[n.kind]}</p>
+          <Link href={`/o/${org.slug}`} className="block truncate text-xs text-muted-foreground hover:underline">{org.name}</Link>
           <a href={n.help_url} target={n.help_url.startsWith("mailto:") ? undefined : "_blank"} rel="noopener noreferrer"
             className="mt-1.5 inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold text-leaf hover:bg-leaf-soft">
             Help<span className="sr-only"> with {n.title}</span>
