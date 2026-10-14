@@ -85,13 +85,13 @@ test("F-034 / F-035: foundation posts link confirmed grantees; profiles show Fun
   await expect(page.getByText("$18,000, Training 30 volunteer tutors")).toBeVisible()
 })
 
-test("F-036: a nonprofit's grant report links to the foundation and shows on its Grantees list", async ({ page }) => {
+test("F-036: a nonprofit's grant report links to the foundation and reaches its Portfolio", async ({ page }) => {
   await page.goto("/o/harbor-table")
   const banner = page.getByRole("link", { name: /Grant report for Lakeshore Community Foundation/ })
   await expect(banner).toContainText("$25,000 for new walk-in freezer")
 
-  await page.goto("/o/lakeshore-community-foundation")
-  await expect(page.getByRole("link", { name: /Latest report: The new walk-in freezer is in/ })).toBeVisible()
+  await page.goto("/o/lakeshore-community-foundation?tab=portfolio")
+  await expect(page.locator("article").filter({ hasText: "The new walk-in freezer is in" }).first()).toBeVisible()
 
   await page.goto("/o/lakeshore-community-foundation?tab=posts")
   await expect(page.locator("li").filter({ hasText: "for new walk-in freezer" }).getByText("Report posted")).toBeVisible()
@@ -265,7 +265,7 @@ test("F-054: Ways to help lists open needs across orgs, filters by cause, and ap
 test("F-058: events list soonest first with a cause filter; profiles and Home show upcoming events", async ({ page }) => {
   await page.goto("/events")
   await expect(page.getByRole("heading", { name: "Events" })).toBeVisible()
-  const titles = await page.locator("main li p.font-semibold").allTextContents()
+  const titles = await page.locator("main li a.font-semibold").allTextContents()
   expect(titles.indexOf("Free screening night")).toBeLessThan(titles.indexOf("Holiday meal packing night"))
 
   await page.goto("/events?cause=animals")
@@ -380,4 +380,21 @@ test("F-073: profiles look complete: cover photos, location, founded, team, prog
   await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible()
   await expect(page.getByRole("heading", { name: "Has given to" })).toBeVisible()
   await expect(page.getByRole("link", { name: "Edit profile" })).toHaveCount(0) // not yours
+})
+
+test("F-074: events open their own page: host, when, where, add to calendar, more events", async ({ page, request }) => {
+  await page.goto("/events")
+  await page.getByRole("link", { name: "Community dinner and kitchen tour", exact: true }).click()
+  await expect(page).toHaveURL(/\/e\/[0-9a-f-]{36}$/)
+  await expect(page.getByRole("heading", { level: 1, name: "Community dinner and kitchen tour" })).toBeVisible()
+  await expect(page.getByText("Event by")).toBeVisible()
+  await expect(page.getByRole("link", { name: "Open in Maps" })).toHaveAttribute("href", /google\.com\/maps\/search/)
+  await expect(page.getByRole("heading", { name: "Hosted by" })).toBeVisible()
+  await expect(page.getByRole("link", { name: /Going\? to Community dinner/ })).toBeVisible() // signed out: leads to sign-in
+  const ics = await request.get(page.url() + "/calendar.ics")
+  expect(ics.headers()["content-type"]).toContain("text/calendar")
+  expect(await ics.text()).toContain("SUMMARY:Community dinner and kitchen tour")
+  // No attendee counts.
+  await expect(page.getByText(/\d+ (attendees?|going)/i)).toHaveCount(0)
+  expect((await request.get("/e/00000000-0000-4000-a000-000000000999")).status()).toBe(404)
 })

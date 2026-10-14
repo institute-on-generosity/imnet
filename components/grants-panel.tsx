@@ -49,7 +49,6 @@ export function GrantsPanel({ org, grants }: { org: Pick<Org, "org_type" | "name
                   <p className="text-sm text-muted-foreground">
                     {[g.amount_usd && formatUsd(g.amount_usd), g.purpose, year(g.awarded_on)].filter(Boolean).join(", ")}
                   </p>
-                  {g.reports.length > 0 && <LatestReport report={latest(g.reports)} />}
                 </div>
               </li>
             )

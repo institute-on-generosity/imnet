@@ -164,8 +164,8 @@ test("F-036: the dashboard nudges a report on the confirmed grant; the report re
   await expect(page.getByText("Posted.")).toBeVisible()
   await expect(page.getByRole("heading", { name: "Share how your grants are going" })).toHaveCount(0)
 
-  await page.goto("/o/lakeshore-community-foundation")
-  await expect(page.getByRole("link", { name: new RegExp(`Latest report: Dinner supplies arrived.*Report ${id}`) })).toBeVisible()
+  await page.goto("/o/lakeshore-community-foundation?tab=portfolio")
+  await expect(page.locator("article").filter({ hasText: `Report ${id}` }).first()).toBeVisible()
 })
 
 test("F-037: following a foundation brings its grantees' reports into Following, with context", async () => {

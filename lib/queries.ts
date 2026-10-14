@@ -606,3 +606,19 @@ export async function searchPosts(q: string) {
     .limit(20)
   return (data ?? []) as unknown as { id: string; body: string; kind: string; created_at: string; org: OrgSummary }[]
 }
+
+export type EventDetail = OrgEvent & { org: OrgSummary & { cover_url: string | null; mission: string | null }; causes: string[] }
+
+// One event with its host (visible orgs only, under RLS); null when missing.
+export async function getEvent(id: string): Promise<EventDetail | null> {
+  if (!/^[0-9a-f-]{36}$/.test(id)) return null
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("org_events")
+    .select(`${EVENT_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type, cover_url, mission, org_causes(cause_slug))`)
+    .eq("id", id)
+    .maybeSingle()
+  if (!data) return null
+  const { org_causes, ...org } = (data as unknown as { org: EventDetail["org"] & { org_causes: { cause_slug: string }[] } }).org
+  return { ...(data as unknown as OrgEvent), org, causes: org_causes.map((c) => c.cause_slug) }
+}
