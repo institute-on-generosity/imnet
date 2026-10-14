@@ -10,26 +10,43 @@ type RowProps = { event: OrgEvent | EventWithOrg; going: boolean; signedIn: bool
 
 export function EventRow({ event: e, going, signedIn, compact }: RowProps) {
   const org = "org" in e ? e.org : null
+  if (compact) {
+    // Sidebar: fixed date tile, title, then time and host on one line, with a small RSVP below.
+    return (
+      <li className="flex gap-3 py-3">
+        <span aria-hidden className="flex size-11 shrink-0 flex-col items-center justify-center rounded-lg border bg-muted/40 leading-none">
+          <span className="text-[10px] font-semibold text-leaf uppercase"><LocalTime iso={e.starts_at} format="month" /></span>
+          <span className="mt-0.5 font-heading text-lg font-semibold"><LocalTime iso={e.starts_at} format="day" /></span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="line-clamp-2 text-sm leading-snug font-semibold">{e.title}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            <LocalTime iso={e.starts_at} format="time" />
+            {org && <> · <Link href={`/o/${org.slug}`} className="hover:underline">{org.name}</Link></>}
+          </p>
+          <div className="mt-1.5"><ToggleSignal kind="rsvp" id={e.id} on={going} signedIn={signedIn} label={`to ${e.title}`} size="sm" /></div>
+        </div>
+      </li>
+    )
+  }
   return (
-    <li className={compact ? "flex gap-3 py-2.5" : "flex gap-3 py-3.5"}>
-      {org && !compact ? (
+    <li className="flex gap-3 py-3.5">
+      {org ? (
         <OrgMark org={org} />
       ) : (
-        <span aria-hidden className="flex w-11 shrink-0 flex-col items-center rounded-lg border bg-muted/40 py-1 leading-none">
+        <span aria-hidden className="flex size-12 shrink-0 flex-col items-center justify-center rounded-lg border bg-muted/40 leading-none">
           <span className="text-[10px] font-semibold text-leaf uppercase"><LocalTime iso={e.starts_at} format="month" /></span>
-          <span className="font-heading text-lg font-semibold"><LocalTime iso={e.starts_at} format="day" /></span>
+          <span className="mt-0.5 font-heading text-lg font-semibold"><LocalTime iso={e.starts_at} format="day" /></span>
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <p className={compact ? "text-sm font-semibold" : "font-semibold"}>{e.title}</p>
+        <p className="font-semibold">{e.title}</p>
         <p className="text-sm text-muted-foreground">
           <LocalTime iso={e.starts_at} />
           {org && <>, <Link href={`/o/${org.slug}`} className="hover:underline">{org.name}</Link></>}
         </p>
-        {!compact && (
-          <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5 shrink-0" aria-hidden />{e.location}</p>
-        )}
-        {e.detail && !compact && <p className="mt-1 text-sm">{e.detail}</p>}
+        <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5 shrink-0" aria-hidden />{e.location}</p>
+        {e.detail && <p className="mt-1 text-sm">{e.detail}</p>}
       </div>
       <ToggleSignal kind="rsvp" id={e.id} on={going} signedIn={signedIn} label={`to ${e.title}`} />
     </li>

@@ -50,7 +50,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
           <WaysToHelp needs={needs} cause={cause} />
           <UpcomingEvents events={events} rsvpIds={rsvpIds} signedIn={!!userId} cause={cause} />
           <p className="px-4 text-xs leading-relaxed text-muted-foreground">
-            Newest first. Never ranked by popularity.
+            Your feed: newest first, never ranked by popularity.
           </p>
         </div>
       }

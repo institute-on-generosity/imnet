@@ -25,6 +25,24 @@ export function NeedsPanel({ needs, interestIds, signedIn }: { needs: Need[]; in
 export function NeedRow({ need: n, compact, interested = false, signedIn = false }: { need: Need | NeedWithOrg; compact?: boolean; interested?: boolean; signedIn?: boolean }) {
   const org = "org" in n ? n.org : null
   const Icon = n.met_at ? CircleCheck : ICONS[n.kind]
+  if (compact && org) {
+    // Sidebar: logo, title, kind and org on one line, then a small Help link (same shape as events).
+    return (
+      <li className="flex gap-3 py-3">
+        <OrgMark org={org} size="sm" />
+        <div className="min-w-0 flex-1">
+          <p className="line-clamp-2 text-sm leading-snug font-semibold">{n.title}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {NEED_KIND_LABEL[n.kind]} · <Link href={`/o/${org.slug}`} className="hover:underline">{org.name}</Link>
+          </p>
+          <a href={n.help_url} target={n.help_url.startsWith("mailto:") ? undefined : "_blank"} rel="noopener noreferrer"
+            className="mt-1.5 inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold text-leaf hover:bg-leaf-soft">
+            Help<span className="sr-only"> with {n.title}</span>
+          </a>
+        </div>
+      </li>
+    )
+  }
   return (
     // Phones: when there are two buttons, they wrap under the text instead of squeezing it.
     <li className={compact ? "flex gap-3 py-2.5" : "flex flex-wrap gap-x-3 gap-y-2 py-3.5 sm:flex-nowrap"}>
