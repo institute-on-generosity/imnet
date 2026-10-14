@@ -60,7 +60,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
           {orgs.slice(0, limit(3)).map((org) => (
             <li key={org.id}>
               <Link href={`/o/${org.slug}`} className="flex gap-3 px-4 py-3 hover:bg-muted/50">
-                <OrgMark org={org} />
+                <span className="mt-1.5 shrink-0"><OrgMark org={org} /></span>
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 font-semibold">{org.name} <OrgTypeBadge type={org.org_type} /></p>
                   {org.mission && <p className="line-clamp-2 text-sm text-muted-foreground">{org.mission}</p>}
@@ -78,7 +78,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
             return (
               <li key={p.id}>
                 <Link href={`/u/${p.handle}`} className="flex gap-3 px-4 py-3 hover:bg-muted/50">
-                  <PersonAvatar name={name} avatarUrl={p.avatar_url} size="lg" />
+                  <PersonAvatar name={name} avatarUrl={p.avatar_url} size="lg" className="mt-1.5" />
                   <div className="min-w-0">
                     <p className="font-semibold">{name}</p>
                     <p className="truncate text-sm text-muted-foreground">{p.bio ?? `@${p.handle}`}</p>
@@ -95,7 +95,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
           {posts.slice(0, limit(3)).map((p) => (
             <li key={p.id}>
               <Link href={`/p/${p.id}`} className="flex gap-3 px-4 py-3 hover:bg-muted/50">
-                <OrgMark org={p.org} />
+                <span className="mt-1 shrink-0"><OrgMark org={p.org} /></span>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">{p.org.name}</p>
                   <p className="line-clamp-2 text-sm text-muted-foreground">{p.body}</p>

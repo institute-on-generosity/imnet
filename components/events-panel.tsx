@@ -41,9 +41,9 @@ export function EventRow({ event: e, going, signedIn, compact }: RowProps) {
   return (
     <li className="flex gap-3 py-3.5">
       {org ? (
-        <OrgMark org={org} />
+        <span className="mt-1.5 shrink-0"><OrgMark org={org} /></span>
       ) : (
-        <DateTile iso={e.starts_at} className="mt-[3px]" />
+        <DateTile iso={e.starts_at} className="mt-1.5" />
       )}
       <div className="min-w-0 flex-1">
         <p className="font-semibold">{e.title}</p>

@@ -40,7 +40,7 @@ export function GrantsPanel({ org, grants }: { org: Pick<Org, "org_type" | "name
             const other = isFoundation ? g.grantee : g.foundation
             return (
               <li key={g.id} className="flex items-start gap-3 py-3">
-                <OrgMark org={other} />
+                <span className="mt-1.5 shrink-0"><OrgMark org={other} /></span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <Link href={`/o/${other.slug}`} className="truncate font-medium hover:underline">{other.name}</Link>

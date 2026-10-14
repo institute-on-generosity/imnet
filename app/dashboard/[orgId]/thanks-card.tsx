@@ -14,7 +14,7 @@ export function ThanksCard({ orgId, notes }: { orgId: string; notes: Note[] }) {
     <ul className="space-y-3">
       {notes.map((n) => (
         <li key={n.id} className="flex gap-3 rounded-lg border p-3">
-          <PersonAvatar name={n.author.display_name ?? n.author.handle} avatarUrl={n.author.avatar_url} size="md" />
+          <PersonAvatar name={n.author.display_name ?? n.author.handle} avatarUrl={n.author.avatar_url} size="md" className="mt-2" />
           <div className="min-w-0 flex-1">
             <p className="story whitespace-pre-line">{n.body}</p>
             <p className="mt-1 text-xs text-muted-foreground">

@@ -47,7 +47,7 @@ export function NeedRow({ need: n, compact, interested = false, signedIn = false
     // Phones: when there are two buttons, they wrap under the text instead of squeezing it.
     <li className={compact ? "flex gap-3 py-2.5" : "flex flex-wrap gap-x-3 gap-y-2 py-3.5 sm:flex-nowrap"}>
       {org ? (
-        <OrgMark org={org} size={compact ? "sm" : "md"} />
+        <span className="mt-1.5 shrink-0"><OrgMark org={org} size="md" /></span>
       ) : (
         <Icon className={n.met_at ? "mt-0.5 size-5 shrink-0 text-leaf" : "mt-0.5 size-5 shrink-0 text-muted-foreground"} aria-hidden />
       )}
