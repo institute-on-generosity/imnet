@@ -140,11 +140,11 @@ async function getStats(orgId: string): Promise<ImpactStat[]> {
 async function getTeam(orgId: string) {
   const supabase = await createClient()
   const [{ data: members }, { data: invites }] = await Promise.all([
-    supabase.from("org_members").select("user_id, profile:profiles(handle, display_name)").eq("org_id", orgId).order("created_at"),
+    supabase.from("org_members").select("user_id, profile:profiles(handle, display_name, avatar_url)").eq("org_id", orgId).order("created_at"),
     supabase.from("org_invites").select("id, email, token").eq("org_id", orgId).is("accepted_at", null).order("created_at"),
   ])
   return {
-    members: ((members ?? []) as unknown as { user_id: string; profile: { handle: string; display_name: string | null } }[]).map((m) => ({ user_id: m.user_id, ...m.profile })),
+    members: ((members ?? []) as unknown as { user_id: string; profile: { handle: string; display_name: string | null; avatar_url: string | null } }[]).map((m) => ({ user_id: m.user_id, ...m.profile })),
     invites: invites ?? [],
   }
 }

@@ -463,14 +463,14 @@ export async function getMyInterestIds(userId: string | null, needIds: string[])
   return new Set((data ?? []).map((r) => r.need_id))
 }
 
-type Person = { handle: string; display_name: string | null }
+type Person = { handle: string; display_name: string | null; avatar_url: string | null }
 
 // Staff view: upcoming events with who's coming (RLS: org staff only see RSVPs).
 export async function getEventsForStaff(orgId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from("org_events")
-    .select(`${EVENT_FIELDS}, rsvps:event_rsvps(person:profiles(handle, display_name))`)
+    .select(`${EVENT_FIELDS}, rsvps:event_rsvps(person:profiles(handle, display_name, avatar_url))`)
     .eq("org_id", orgId)
     .gt("starts_at", new Date(Date.now() - 86_400_000).toISOString())
     .order("starts_at")
@@ -482,7 +482,7 @@ export async function getInterestForStaff(orgId: string): Promise<Map<string, Pe
   const supabase = await createClient()
   const { data } = await supabase
     .from("need_interest")
-    .select("need_id, person:profiles(handle, display_name), need:org_needs!inner(org_id)")
+    .select("need_id, person:profiles(handle, display_name, avatar_url), need:org_needs!inner(org_id)")
     .eq("need.org_id", orgId)
     .order("created_at")
   const map = new Map<string, Person[]>()

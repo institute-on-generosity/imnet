@@ -28,8 +28,12 @@ const altText = `Volunteers setting tables for dinner ${id}`
 
 test("F-007: magic-link sign-in creates a profile", async () => {
   userId = await signIn(page, email)
-  const [profile] = await sql`select handle from profiles where id = ${userId}`
+  const [profile] = await sql`select handle, avatar_url from profiles where id = ${userId}`
   expect(profile.handle).toMatch(/^[a-z0-9_]{3,30}$/)
+  // F-071: new sign-ups get an illustrated avatar, shown on their profile card.
+  expect(profile.avatar_url).toMatch(/^\/avatars\/u[0-9a-f]{16}$/)
+  await page.goto("/")
+  await expect(page.locator(`img[src="${profile.avatar_url}"]`).first()).toBeVisible()
 })
 
 test("F-012 / F-002: follow an org; Following shows only its posts", async () => {

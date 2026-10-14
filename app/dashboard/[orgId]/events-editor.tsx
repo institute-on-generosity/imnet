@@ -5,6 +5,7 @@ import { useActionState, useSyncExternalStore } from "react"
 import { addEvent, deleteEvent } from "@/app/actions"
 import { IconTip } from "@/components/icon-tip"
 import { LocalTime } from "@/components/local-time"
+import { PeopleList } from "@/components/people-list"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,7 +14,7 @@ import type { OrgEvent } from "@/lib/events"
 
 const noop = () => () => {}
 
-type Person = { handle: string; display_name: string | null }
+type Person = { handle: string; display_name: string | null; avatar_url: string | null }
 
 // Staff add events and see who's coming (RSVPs are private to the team).
 export function EventsEditor({ orgId, events }: { orgId: string; events: (OrgEvent & { people: Person[] })[] }) {
@@ -32,7 +33,7 @@ export function EventsEditor({ orgId, events }: { orgId: string; events: (OrgEve
                 <p className="text-muted-foreground"><LocalTime iso={e.starts_at} />, {e.location}</p>
                 <details className="mt-1">
                   <summary className="cursor-pointer text-leaf">{e.people.length} going</summary>
-                  {e.people.length > 0 && <p className="mt-1 text-muted-foreground">{e.people.map((p) => p.display_name ?? `@${p.handle}`).join(", ")}</p>}
+                  {e.people.length > 0 && <PeopleList people={e.people} />}
                 </details>
               </div>
               <form action={deleteEvent.bind(null, e.id)}>

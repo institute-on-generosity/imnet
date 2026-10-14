@@ -553,10 +553,9 @@ select distinct on (c.user_id, p.org_id) c.user_id, p.org_id,
 update profiles set donor_badge = true where id::text like '00000000-0000-4000-c000-%' and abs(hashtext(id::text || 'badge')) % 3 < 2;
 """)
 
-# --- Avatars (F-070): illustrated avatars for most demo people; the rest keep their initial -----------
+# --- Avatars (F-070/F-071): every demo person has an illustrated avatar (seeded by handle) -----------
 out.append("""update profiles set avatar_url = '/avatars/' || handle
- where (id::text like '00000000-0000-4000-c000-%' and abs(hashtext(id::text || 'avatar')) % 100 < 85)
-    or handle = 'dana_demo';
+ where id::text like '00000000-0000-4000-c000-%' or handle = 'dana_demo';
 """)
 
 # Private reactions and saves, and 30 days of analytics

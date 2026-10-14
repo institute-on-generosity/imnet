@@ -4,6 +4,7 @@ import { Check, Plus, RotateCcw, Trash2 } from "lucide-react"
 import { useActionState } from "react"
 import { addNeed, deleteNeed, setNeedMet } from "@/app/actions"
 import { IconTip } from "@/components/icon-tip"
+import { PeopleList } from "@/components/people-list"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,7 +15,7 @@ import { cn } from "@/lib/utils"
 const iconBtn = "inline-flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
 
 // Concrete asks on the profile. Mark them met when they are: met needs stay up for a month.
-export function NeedsEditor({ orgId, needs, interest }: { orgId: string; needs: Need[]; interest: Record<string, { handle: string; display_name: string | null }[]> }) {
+export function NeedsEditor({ orgId, needs, interest }: { orgId: string; needs: Need[]; interest: Record<string, { handle: string; display_name: string | null; avatar_url: string | null }[]> }) {
   const [state, action, pending] = useActionState(addNeed.bind(null, orgId), null)
   const v = state?.values
   return (
@@ -29,7 +30,7 @@ export function NeedsEditor({ orgId, needs, interest }: { orgId: string; needs: 
                 {(interest[n.id]?.length ?? 0) > 0 && (
                   <details>
                     <summary className="cursor-pointer text-xs text-leaf">{interest[n.id].length} interested</summary>
-                    <p className="text-xs text-muted-foreground">{interest[n.id].map((p) => p.display_name ?? `@${p.handle}`).join(", ")}</p>
+                    <PeopleList people={interest[n.id]} />
                   </details>
                 )}
               </div>

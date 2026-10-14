@@ -4,9 +4,10 @@ import { Bell, Building2, House, Megaphone, UserRound, Users } from "lucide-reac
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { PersonAvatar } from "./person-avatar"
 
 // exact: only the href itself is "current"; otherwise any path under it.
-type Item = { href: string; label: string; icon: "home" | "following" | "calls" | "notifications" | "nonprofits" | "me"; exact?: boolean; dot?: boolean }
+type Item = { href: string; label: string; icon: "home" | "following" | "calls" | "notifications" | "nonprofits" | "me"; exact?: boolean; dot?: boolean; avatar?: string | null }
 const ICONS = { home: House, following: Users, calls: Megaphone, notifications: Bell, nonprofits: Building2, me: UserRound }
 
 // Icon-over-label nav with an underline on the current page, as on LinkedIn.
@@ -28,7 +29,8 @@ export function NavLinks({ items }: { items: Item[] }) {
               )}
             >
               <span className="relative">
-                <Icon className="size-5" aria-hidden />
+                {/* "Me" shows your avatar, as on LinkedIn. */}
+                {item.avatar ? <PersonAvatar name={item.label} avatarUrl={item.avatar} size="xs" className="size-5" /> : <Icon className="size-5" aria-hidden />}
                 {/* A quiet dot, never a number (design principle #4). */}
                 {item.dot && <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-leaf ring-2 ring-card" />}
               </span>

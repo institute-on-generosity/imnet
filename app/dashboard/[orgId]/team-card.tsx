@@ -6,8 +6,9 @@ import { createInvite, removeMember, revokeInvite } from "@/app/actions"
 import { IconTip } from "@/components/icon-tip"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PersonAvatar } from "@/components/person-avatar"
 
-type Member = { user_id: string; handle: string; display_name: string | null }
+type Member = { user_id: string; handle: string; display_name: string | null; avatar_url: string | null }
 type Invite = { id: string; email: string; token: string }
 
 export function TeamCard({ orgId, members, invites, me }: { orgId: string; members: Member[]; invites: Invite[]; me: string }) {
@@ -17,6 +18,7 @@ export function TeamCard({ orgId, members, invites, me }: { orgId: string; membe
       <ul className="divide-y rounded-lg border">
         {members.map((m) => (
           <li key={m.user_id} className="flex items-center gap-3 px-3 py-2 text-sm">
+            <PersonAvatar name={m.display_name ?? m.handle} avatarUrl={m.avatar_url} size="sm" />
             <span className="min-w-0 flex-1 truncate">
               {m.display_name ?? `@${m.handle}`} <span className="text-muted-foreground">@{m.handle}{m.user_id === me ? " (you)" : ""}</span>
             </span>

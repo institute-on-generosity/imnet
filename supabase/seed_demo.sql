@@ -11997,8 +11997,7 @@ select distinct on (c.user_id, p.org_id) c.user_id, p.org_id,
 update profiles set donor_badge = true where id::text like '00000000-0000-4000-c000-%' and abs(hashtext(id::text || 'badge')) % 3 < 2;
 
 update profiles set avatar_url = '/avatars/' || handle
- where (id::text like '00000000-0000-4000-c000-%' and abs(hashtext(id::text || 'avatar')) % 100 < 85)
-    or handle = 'dana_demo';
+ where id::text like '00000000-0000-4000-c000-%' or handle = 'dana_demo';
 
 -- "Moved" and saves: random donors on random posts (private; only totals show to staff).
 insert into moved (user_id, post_id)

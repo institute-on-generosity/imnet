@@ -11,11 +11,13 @@ import { CONTAINER } from "./shell"
 export async function SiteHeader() {
   const userId = await getUserId()
   let handle: string | null = null
+  let avatar: string | null = null
   let unread = false
   if (userId) {
     const supabase = await createClient()
-    const { data } = await supabase.from("profiles").select("handle").eq("id", userId).single()
+    const { data } = await supabase.from("profiles").select("handle, avatar_url").eq("id", userId).single()
     handle = data?.handle ?? null
+    avatar = data?.avatar_url ?? null
     unread = await hasUnread(userId)
   }
 
@@ -45,7 +47,7 @@ export async function SiteHeader() {
                   { href: "/calls", label: "Open calls", icon: "calls" },
                   { href: "/notifications", label: "Notifications", icon: "notifications", dot: unread },
                   { href: "/dashboard", label: "For nonprofits", icon: "nonprofits" },
-                  ...(handle ? [{ href: `/u/${handle}`, label: "Me", icon: "me" as const, exact: true }] : []),
+                  ...(handle ? [{ href: `/u/${handle}`, label: "Me", icon: "me" as const, exact: true, avatar }] : []),
                 ]}
               />
               <form action={signOut} className="ml-1 hidden sm:block">

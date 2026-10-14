@@ -40,8 +40,10 @@ describe("feeds and profiles", () => {
   it("F-007: sign-up creates a profile with a valid handle", async () => {
     const id = "10000000-0000-4000-8000-0000000000aa"
     await t.owner(`insert into auth.users (id, email) values ('${id}', 'New.Person+tag@example.com')`)
-    const [profile] = await t.owner(`select handle from profiles where id = '${id}'`)
+    const [profile] = await t.owner(`select handle, avatar_url from profiles where id = '${id}'`)
     expect(profile.handle).toMatch(/^[a-z0-9_]{3,30}$/)
+    // F-071: and an illustrated avatar from our own route.
+    expect(profile.avatar_url).toMatch(/^\/avatars\/u[0-9a-f]{16}$/)
   })
 })
 
