@@ -1,7 +1,6 @@
 import Link from "@/components/intent-link"
 import { formatUsd, grantTotals } from "@/lib/grants"
 import type { Grant, OrgSummary } from "@/lib/types"
-import { latest, LatestReport } from "./grants-panel"
 import { OrgMark } from "./org-mark"
 import { Panel } from "./shell"
 
@@ -37,7 +36,6 @@ export function GivingBecame({ funds, isOwn }: { funds: { foundation: OrgSummary
                       <span className="text-muted-foreground">
                         {" "}{[g.amount_usd && formatUsd(g.amount_usd), g.purpose].filter(Boolean).join(", ")}
                       </span>
-                      {g.reports.length > 0 && <LatestReport report={latest(g.reports)} />}
                     </li>
                   ))}
                 </ul>

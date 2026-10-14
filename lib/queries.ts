@@ -622,3 +622,18 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
   const { org_causes, ...org } = (data as unknown as { org: EventDetail["org"] & { org_causes: { cause_slug: string }[] } }).org
   return { ...(data as unknown as OrgEvent), org, causes: org_causes.map((c) => c.cause_slug) }
 }
+
+export type GivingSummary = { total: number; orgs: number; since: string; causes: { slug: string; name: string; amount: number }[] }
+
+// A donor's opted-in giving totals (self-reported, from their journal); null when not shared.
+export async function getGivingSummary(userId: string): Promise<GivingSummary | null> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("giving_summary", { target: userId })
+  type Row = { cause_slug: string; cause_name: string; amount: number; total: number; orgs: number; since: string }
+  const rows = (data ?? []) as Row[]
+  if (rows.length === 0) return null
+  return {
+    total: Number(rows[0].total), orgs: Number(rows[0].orgs), since: rows[0].since,
+    causes: rows.map((r) => ({ slug: r.cause_slug, name: r.cause_name, amount: Number(r.amount) })),
+  }
+}

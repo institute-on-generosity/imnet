@@ -398,3 +398,14 @@ test("F-074: events open their own page: host, when, where, add to calendar, mor
   await expect(page.getByText(/\d+ (attendees?|going)/i)).toHaveCount(0)
   expect((await request.get("/e/00000000-0000-4000-a000-000000000999")).status()).toBe(404)
 })
+
+test("F-076: an opted-in donor's profile shows total giving and the split by cause", async ({ page }) => {
+  await page.goto("/u/dana_demo")
+  const panel = page.getByRole("region", { name: "Giving" })
+  await expect(panel.getByText(/^\$[\d,]+$/).first()).toBeVisible()
+  await expect(panel.getByText(/given to \d+ organizations? since/)).toBeVisible()
+  await expect(panel.getByRole("link", { name: "Hunger & Food" })).toBeVisible()
+  await expect(panel.getByText(/Self-reported/)).toBeVisible()
+  // What their giving became no longer repeats grant reports.
+  await expect(page.getByText(/Latest report/)).toHaveCount(0)
+})

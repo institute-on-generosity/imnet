@@ -199,7 +199,8 @@ test("F-038: 'I give through this fund' shows what that giving became on the don
   await page.goto(`/u/${handle}`)
   await expect(page.getByRole("heading", { name: "What my giving became" })).toBeVisible()
   const fund = page.getByRole("region", { name: "Grants from Lakeshore Community Foundation" })
-  await expect(fund.getByRole("link", { name: /Latest report: The new walk-in freezer is in/ })).toBeVisible()
+  await expect(fund.getByRole("link", { name: "Harbor Table" })).toBeVisible()
+  await expect(fund.getByText(/Latest report/)).toHaveCount(0)
 
   // Visitors see it too, worded for someone else.
   const anon = await page.context().browser()!.newPage()
@@ -429,6 +430,15 @@ test("F-052: log a gift in the private giving journal; totals by year; nobody el
   const anon = await page.context().browser()!.newPage()
   await anon.goto("/giving")
   await expect(anon).toHaveURL(/\/login/)
+
+  // F-076: totals appear on the profile only after opting in.
+  const [{ handle }] = await sql`select handle from profiles where id = ${userId}`
+  await anon.goto(`/u/${handle}`)
+  await expect(anon.getByRole("region", { name: "Giving" })).toHaveCount(0)
+  await page.getByLabel(/Show my giving totals on my profile/).check()
+  await expect.poll(async () => (await sql`select show_giving_totals s from profiles where id = ${userId}`)[0].s).toBe(true)
+  await anon.goto(`/u/${handle}`)
+  await expect(anon.getByRole("region", { name: "Giving" }).getByText("$75", { exact: true })).toBeVisible()
   await anon.close()
 })
 

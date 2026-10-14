@@ -5,7 +5,8 @@ import { OrgMark } from "@/components/org-mark"
 import { PersonAvatar } from "@/components/person-avatar"
 import { FoundationMark } from "@/components/org-type-badge"
 import { GivingBecame } from "@/components/giving-became"
-import { getActivity, getDonorOrgs, getOrgGrants } from "@/lib/queries"
+import { getActivity, getDonorOrgs, getGivingSummary, getOrgGrants } from "@/lib/queries"
+import { GivingSummaryPanel } from "@/components/giving-summary"
 import { CalendarDays, HandHeart, MapPin, Pencil } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { personCoverSrc } from "@/lib/cover"
@@ -49,10 +50,11 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   const { profile, supports, causes } = data
   const name = profile.display_name ?? `@${profile.handle}`
   const isOwn = (await getUserId()) === profile.id
-  const [funds, gaveTo, activity] = await Promise.all([
+  const [funds, gaveTo, activity, totals] = await Promise.all([
     Promise.all(supports.filter((o) => o.org_type === "foundation").map(async (foundation) => ({ foundation, grants: await getOrgGrants(foundation) }))),
     getDonorOrgs(profile.id),
     getActivity(profile.id),
+    getGivingSummary(profile.id),
   ])
   const joined = new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
   const base = `/u/${profile.handle}`
@@ -120,6 +122,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
           <p className="story mt-2 whitespace-pre-line">{profile.about}</p>
         </Panel>
       )}
+      {tab === "about" && totals && <GivingSummaryPanel summary={totals} isOwn={isOwn} />}
       {tab === "about" && <GivingBecame funds={funds} isOwn={isOwn} />}
       {tab === "about" && <div className="space-y-3 lg:hidden">{giving("main")}</div>}
 

@@ -491,6 +491,13 @@ export async function setDonorBadge(on: boolean) {
   revalidatePath("/", "layout")
 }
 
+export async function setGivingTotals(on: boolean) {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("profiles").update({ show_giving_totals: on }).eq("id", userId)
+  revalidatePath("/", "layout")
+}
+
 export async function deleteGift(giftId: string) {
   await requireUser()
   const supabase = await createClient()

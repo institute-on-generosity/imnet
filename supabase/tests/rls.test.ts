@@ -650,3 +650,22 @@ describe("full profiles", () => {
     expect((await t.as(DONOR, `update profiles set about = 'hacked' where id = '${STAFF}' returning id`)).rows ?? []).toHaveLength(0)
   })
 })
+
+describe("giving totals", () => {
+  it("F-076: totals by cause only when opted in; gifts split evenly across an org's causes", async () => {
+    const G = "10000000-0000-4000-8000-0000000000e6"
+    await t.owner(`insert into auth.users (id, email) values ('${G}', 'totals@example.com') on conflict do nothing`)
+    await t.owner(`delete from org_causes where org_id in ('${ORG_1}', '${ORG_2}')`)
+    await t.owner(`insert into org_causes (org_id, cause_slug) values ('${ORG_1}', 'hunger'), ('${ORG_1}', 'health'), ('${ORG_2}', 'housing')`)
+    await t.as(G, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 100, current_date - 10), ('${ORG_1}', 100, current_date - 10), ('${ORG_2}', 50, current_date - 3)`)
+    expect((await t.as(null, `select * from giving_summary('${G}')`)).rows).toHaveLength(0)
+    await t.as(G, `update profiles set show_giving_totals = true where id = '${G}'`)
+    const rows = (await t.as(null, `select cause_slug, amount::int, total::int, orgs::int from giving_summary('${G}')`)).rows!
+    expect(rows).toEqual([
+      { cause_slug: "health", amount: 100, total: 250, orgs: 2 },
+      { cause_slug: "hunger", amount: 100, total: 250, orgs: 2 },
+      { cause_slug: "housing", amount: 50, total: 250, orgs: 2 },
+    ].sort((a, b) => b.amount - a.amount || 0))
+    expect((await t.as(DONOR, `update profiles set show_giving_totals = true where id = '${G}' returning id`)).rows ?? []).toHaveLength(0)
+  })
+})

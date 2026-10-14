@@ -600,7 +600,8 @@ for uid in people:
 out.append("""update profiles set location = 'Milwaukee, WI', cover_url = 'covers/mountain-lake.webp',
   about = 'I give monthly to the Lakeshore Community Fund and directly to Harbor Table. I''m here to see what the money became: the grants, the reports, the people doing the work.'
   where handle = 'dana_demo';
-update profiles set donor_badge = true where handle = 'dana_demo';
+update profiles set donor_badge = true, show_giving_totals = true where handle = 'dana_demo';
+update profiles p set show_giving_totals = true where p.id::text like '00000000-0000-4000-c000-%' and abs(hashtext(p.id::text || 'totals')) % 10 < 4 and exists (select 1 from gifts g where g.user_id = p.id);
 insert into gifts (user_id, org_id, amount_usd, given_on, note) select id, '00000000-0000-4000-a000-000000000011', 40, current_date - 45, 'Welcome kits drive' from profiles where handle = 'dana_demo';""")
 out.append("")
 
