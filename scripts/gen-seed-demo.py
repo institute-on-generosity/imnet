@@ -14,6 +14,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import demo_more_orgs as more  # noqa: E402
 import demo_profiles as prof  # noqa: E402
+import demo_media as media  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "supabase", "seed_demo.sql")
@@ -601,6 +602,20 @@ out.append("""update profiles set location = 'Milwaukee, WI', cover_url = 'cover
   where handle = 'dana_demo';
 update profiles set donor_badge = true where handle = 'dana_demo';
 insert into gifts (user_id, org_id, amount_usd, given_on, note) select id, '00000000-0000-4000-a000-000000000011', 40, current_date - 45, 'Welcome kits drive' from profiles where handle = 'dana_demo';""")
+out.append("")
+
+# --- More photo and video posts (scripts/demo_media.py) ------------------------------------
+rows = []
+for n, kind, body, days, files in media.PHOTO_POSTS:
+    paths = [f"{oid(n)}/{f}" for f in files]
+    rows.append(f"  ('{oid(n)}', '{kind}', {q(body)}, {arr(paths)}, {arr([credits[p]['alt'] for p in paths])}, "
+                f"{arr([credits[p]['credit'] for p in paths])}, true, now() - interval '{days * 24:.0f} hours')")
+out.append("insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, beneficiary_consent, created_at) values")
+out.append(",\n".join(rows) + ";")
+out.append("insert into posts (org_id, kind, body, video_path, video_poster_path, video_alt, video_credit, created_at) values")
+out.append(",\n".join(
+    f"  ('{oid(n)}', '{kind}', {q(body)}, '{oid(n)}/{stem}.webm', '{oid(n)}/{stem}.jpg', {q(alt)}, {q(credit)}, now() - interval '{days * 24:.0f} hours')"
+    for n, kind, body, days, stem, alt, credit in media.VIDEO_POSTS) + ";")
 out.append("")
 
 # Private reactions and saves, and 30 days of analytics
