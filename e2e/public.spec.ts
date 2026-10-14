@@ -73,7 +73,9 @@ test("F-034 / F-035: foundation posts link confirmed grantees; profiles show Fun
   await chips.first().getByRole("link").click()
   await expect(page).toHaveURL(/\/o\/harbor-table$/)
 
+  // Compact funders card beside the story; full details on About.
   await expect(page.getByRole("heading", { name: "Funded by" })).toBeVisible()
+  await page.getByRole("link", { name: "See grant details" }).first().click()
   await expect(page.getByText("$25,000, New walk-in freezer")).toBeVisible()
 
   await page.goto("/o/lakeshore-community-foundation")
@@ -109,7 +111,7 @@ test("F-037: a foundation's Portfolio tab shows its grantees' reports; nonprofit
   await page.goto("/o/harbor-table")
   await expect(page.getByRole("link", { name: "Portfolio", exact: true })).toHaveCount(0)
   await page.goto("/o/harbor-table?tab=portfolio")
-  await expect(page.getByRole("heading", { name: "Recent posts" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Posts", exact: true })).toBeVisible()
 })
 
 test("F-039: /calls lists open calls soonest deadline first; closed calls drop off but say Closed on their post", async ({ page }) => {
@@ -137,6 +139,7 @@ test("F-040: a nonprofit funded by two foundations shows as co-funded", async ({
   await page.goto("/o/harbor-table")
   await expect(page.getByRole("link", { name: /Co-funded by Lakeshore Community Foundation and 1 other/ })).toBeVisible()
   await expect(page.getByRole("heading", { name: "Funded by" })).toBeVisible()
+  await page.goto("/o/harbor-table?tab=about")
   await expect(page.getByText("$10,000, Fresh produce program")).toBeVisible()
   await page.goto("/o/riverbend-readers")
   await expect(page.getByRole("link", { name: /Backed by Lakeshore Community Foundation/ })).toBeVisible()
@@ -202,13 +205,15 @@ test("F-047: shared posts and profiles have branded preview images", async ({ pa
 test("F-003 / F-024 / F-021: org profile tabs and footnoted impact stats", async ({ page }) => {
   await page.goto("/o/open-door-homes")
   await expect(page.getByRole("heading", { name: "Open Door Homes" })).toBeVisible()
-  await expect(page.getByRole("link", { name: "Source 1" }).first()).toBeVisible()
-  await expect(page.locator("#source-1")).toContainText("example.org/open-door/outcomes")
+  // Home: impact figures beside the story, footnoted to their source.
+  await expect(page.getByRole("region", { name: "Impact so far" }).getByRole("link", { name: "example.org" })).toHaveAttribute("href", /open-door\/outcomes/)
   await page.getByRole("link", { name: "About", exact: true }).click()
   await expect(page).toHaveURL(/tab=about/)
+  await expect(page.getByRole("link", { name: "Source 1" }).first()).toBeVisible()
+  await expect(page.locator("#source-1")).toContainText("example.org/open-door/outcomes")
   await expect(page.getByText("EIN and staff email checked by imnet")).toBeVisible()
   await page.goto("/o/open-door-homes?tab=nonsense")
-  await expect(page.getByRole("heading", { name: "Recent posts" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Posts", exact: true })).toBeVisible()
 })
 
 test("F-003: unknown org is a 404", async ({ page }) => {

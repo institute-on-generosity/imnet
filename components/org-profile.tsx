@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react"
+import { BadgeCheck, HandHeart, Plus } from "lucide-react"
 import Link from "next/link"
 import { DonateButton } from "@/components/donate-button"
 import { FollowButton } from "@/components/follow-button"
@@ -9,6 +9,7 @@ import { Feed } from "@/components/post-card"
 import { ShareButton } from "@/components/share-button"
 import { Panel, TwoColumn } from "@/components/shell"
 import { GrantsPanel } from "@/components/grants-panel"
+import { FundersCard, ImpactCard, OrgFacts } from "@/components/rail-cards"
 import { EventsPanel } from "@/components/events-panel"
 import { NeedsPanel } from "@/components/needs-panel"
 import { ThanksButton } from "@/components/thanks-button"
@@ -53,7 +54,21 @@ type Props = {
 export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, savedIds, grants, grantsByPost, tab, needs, interestIds, events, rsvpIds }: Props) {
   const base = `/o/${org.slug}`
   return (
-    <TwoColumn right={<SuggestedOrgs title="Similar organizations" orgs={similar} signedIn={signedIn} />}>
+    <TwoColumn
+      right={
+        <>
+          {/* Proof beside the story. On phones these cards appear in the main column instead. */}
+          {tab === "home" && (
+            <div className="hidden space-y-3 lg:block">
+              <ImpactCard stats={stats} />
+              {org.org_type === "nonprofit" && <FundersCard grants={grants} slug={org.slug} />}
+            </div>
+          )}
+          <OrgFacts org={org} causes={causes} />
+          <SuggestedOrgs title="Similar organizations" orgs={similar} signedIn={signedIn} />
+        </>
+      }
+    >
       <TrackView orgId={org.id} />
 
       <Panel className="overflow-hidden">
@@ -72,12 +87,15 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
             <h1 className="text-3xl font-semibold">{org.name}</h1>
             <OrgTypeBadge type={org.org_type} className="px-2.5 py-1 text-xs" />
           </div>
-          {org.mission && <p className="mt-1 line-clamp-2 max-w-prose text-muted-foreground">{org.mission}</p>}
-          {org.org_type === "nonprofit" && <Backers grants={grants} />}
-          <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-            {causes.length > 0 && <span>{causes.map((c) => c.name).join(", ")}</span>}
-            <span>{followers} {followers === 1 ? "follower" : "followers"}</span>
+          {org.mission && <p className="mt-1.5 line-clamp-2 max-w-prose text-lg leading-snug text-foreground/80">{org.mission}</p>}
+          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+            {causes[0] && <span>{causes.slice(0, 2).map((c) => c.name).join(", ")}{causes.length > 2 && ` +${causes.length - 2}`}</span>}
+            {causes[0] && <span aria-hidden>•</span>}
+            <span>{followers.toLocaleString("en-US")} {followers === 1 ? "follower" : "followers"}</span>
+            <span aria-hidden>•</span>
+            <span className="inline-flex items-center gap-1"><BadgeCheck className="size-4 text-leaf" aria-hidden />Verified</span>
           </p>
+          {org.org_type === "nonprofit" && <Backers grants={grants} />}
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {signedIn ? (
               <FollowButton orgId={org.id} following={follow.following} />
@@ -109,13 +127,16 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
 
       {tab === "home" && (
         <>
+          <GiftsFund org={org} />
+          <div className="space-y-3 lg:hidden">
+            <ImpactCard stats={stats} where="main" />
+            {org.org_type === "nonprofit" && <FundersCard grants={grants} slug={org.slug} where="main" />}
+          </div>
           <NeedsPanel needs={needs} interestIds={interestIds} signedIn={signedIn} />
           <EventsPanel events={events} rsvpIds={rsvpIds} signedIn={signedIn} />
-          <GiftsFund org={org} />
-          <ImpactLedger stats={stats} />
-          <GrantsPanel org={org} grants={grants} />
-          <section aria-labelledby="recent" className="space-y-3">
-            <h2 id="recent" className="px-1 font-sans text-lg font-semibold tracking-normal">Recent posts</h2>
+          {org.org_type === "foundation" && <GrantsPanel org={org} grants={grants} />}
+          <section aria-labelledby="recent" className="space-y-3 pt-2">
+            <h2 id="recent" className="px-1 font-sans text-lg font-semibold tracking-normal">Posts</h2>
             <Feed posts={posts.slice(0, 3)} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} savedIds={savedIds} signedIn={signedIn} grantsByPost={grantsByPost} hideFollow />
             {posts.length > 3 && (
               <Link href={`${base}?tab=posts`} className={buttonVariants({ variant: "outline", className: "w-full" })}>Show all posts</Link>
@@ -186,12 +207,16 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
   )
 }
 
+// The giving pitch, first thing under the header: what a gift does here.
 function GiftsFund({ org }: { org: Org }) {
   if (!org.what_gifts_fund) return null
   return (
-    <Panel className="border-marigold/40 bg-marigold-soft p-4 sm:p-6">
-      <h2 className="font-sans text-lg font-semibold tracking-normal">What your gift funds</h2>
-      <p className="story mt-2">{org.what_gifts_fund}</p>
+    <Panel aria-labelledby="gifts-fund" className="flex gap-3 border-marigold/40 bg-marigold-soft p-4 sm:p-5">
+      <HandHeart className="mt-0.5 size-6 shrink-0 text-marigold" aria-hidden />
+      <div>
+        <h2 id="gifts-fund" className="font-sans text-sm font-semibold tracking-normal text-amber-900">What your gift funds</h2>
+        <p className="story mt-1 text-[1.0625rem] leading-relaxed">{org.what_gifts_fund}</p>
+      </div>
     </Panel>
   )
 }

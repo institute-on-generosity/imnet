@@ -26,13 +26,14 @@ export function NeedRow({ need: n, compact, interested = false, signedIn = false
   const org = "org" in n ? n.org : null
   const Icon = n.met_at ? CircleCheck : ICONS[n.kind]
   return (
-    <li className={compact ? "flex gap-3 py-2.5" : "flex gap-3 py-3.5"}>
+    // Phones: when there are two buttons, they wrap under the text instead of squeezing it.
+    <li className={compact ? "flex gap-3 py-2.5" : "flex flex-wrap gap-x-3 gap-y-2 py-3.5 sm:flex-nowrap"}>
       {org ? (
         <OrgMark org={org} size={compact ? "sm" : "md"} />
       ) : (
         <Icon className={n.met_at ? "mt-0.5 size-5 shrink-0 text-leaf" : "mt-0.5 size-5 shrink-0 text-muted-foreground"} aria-hidden />
       )}
-      <div className="min-w-0 flex-1">
+      <div className={compact ? "min-w-0 flex-1" : "min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-auto"}>
         <p className={compact ? "text-sm font-semibold" : "font-semibold"}>
           {n.title}
           <span className="sr-only"> ({NEED_KIND_LABEL[n.kind]})</span>
@@ -45,18 +46,20 @@ export function NeedRow({ need: n, compact, interested = false, signedIn = false
         {n.detail && !n.met_at && !compact && <p className="mt-0.5 text-sm text-muted-foreground">{n.detail}</p>}
         {n.met_at && <p className="mt-0.5 text-sm text-leaf">Met {day(n.met_at)}. Thank you.</p>}
       </div>
-      {!n.met_at && !compact && n.kind === "volunteer" && (
-        <ToggleSignal kind="interest" id={n.id} on={interested} signedIn={signedIn} label={`in ${n.title}`} />
-      )}
       {!n.met_at && (
-        <a
+        <div className={compact ? "flex shrink-0" : "flex shrink-0 gap-2 pl-8 sm:pl-0"}>
+          {!compact && n.kind === "volunteer" && (
+            <ToggleSignal kind="interest" id={n.id} on={interested} signedIn={signedIn} label={`in ${n.title}`} />
+          )}
+          <a
           href={n.help_url}
           target={n.help_url.startsWith("mailto:") ? undefined : "_blank"}
           rel="noopener noreferrer"
           className="h-fit shrink-0 rounded-full border px-3 py-1 text-sm font-semibold text-leaf hover:bg-leaf-soft"
         >
-          Help<span className="sr-only"> with {n.title}</span>
-        </a>
+            Help<span className="sr-only"> with {n.title}</span>
+          </a>
+        </div>
       )}
     </li>
   )

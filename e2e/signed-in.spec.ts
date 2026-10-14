@@ -142,6 +142,7 @@ test("F-034: a foundation tags a grantee; it stays private until the nonprofit c
 
   await anon.goto(`/o/${slug}`)
   await expect(anon.getByRole("heading", { name: "Funded by" })).toBeVisible()
+  await anon.goto(`/o/${slug}?tab=about`)
   await expect(anon.getByText("$7,500, Community dinner supplies")).toBeVisible()
   await anon.close()
 })
@@ -254,7 +255,8 @@ test("F-043: staff add a sourced impact figure; it shows footnoted on the profil
   await expect(page.getByRole("button", { name: 'Remove "Dinners served"' })).toBeVisible()
 
   await page.goto(`/o/${slug}`)
-  await expect(page.getByText("Dinners served")).toBeVisible()
+  await expect(page.getByRole("region", { name: "Impact so far" }).getByText("Dinners served")).toBeVisible()
+  await page.goto(`/o/${slug}?tab=about`)
   await expect(page.locator("#source-1")).toContainText("example.org/kitchen/log")
 
   await page.goto(`/dashboard/${kitchen.id}`)
