@@ -19,6 +19,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${story.variable} ${ui.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <TooltipProvider delay={300}>
+          {process.env.NEXT_PUBLIC_DEMO === "1" && (
+            <p className="bg-marigold-soft px-4 py-1.5 text-center text-xs text-foreground">
+              Demo data: the organizations, people and numbers here are fictional.
+            </p>
+          )}
           <SiteHeader />
           <main className="flex-1 pt-6 pb-20">{children}</main>
         </TooltipProvider>

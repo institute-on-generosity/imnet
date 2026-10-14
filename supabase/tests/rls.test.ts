@@ -386,7 +386,7 @@ describe("team invites", () => {
 
     // Others can't list the org's invites; anyone with the link sees only the org name.
     expect((await t.as(DONOR, `select token from org_invites`)).rows).toHaveLength(0)
-    expect((await t.as(null, `select org_name from invite_preview('${token}')`)).rows).toEqual([{ org_name: "Harbor Table (Demo)" }])
+    expect((await t.as(null, `select org_name from invite_preview('${token}')`)).rows).toEqual([{ org_name: "Harbor Table" }])
 
     expect((await t.as(STRANGER, `select accept_org_invite('${token}')`)).error).toMatch(/different email/)
     expect((await t.as(NEWBIE, `select accept_org_invite('${token}')`)).error).toBeUndefined()

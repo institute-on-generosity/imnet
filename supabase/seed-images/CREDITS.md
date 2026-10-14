@@ -1,6 +1,8 @@
 # Seed image credits
 
-Demo photos and videos for the fictional seed orgs, all openly licensed from Wikimedia Commons. They show volunteers at work and places, not the people being served.
+Demo photos and videos for the fictional seed orgs, all openly licensed from Wikimedia Commons. They show volunteers at work, animals and places, not the people being served. Org logos (`*/logo.png`) are generated from Lucide icons (ISC license) by `scripts/gen-logos.mjs`.
+
+## Photos
 
 | File | Author | License | Source |
 |---|---|---|---|
@@ -15,8 +17,16 @@ Demo photos and videos for the fictional seed orgs, all openly licensed from Wik
 | `carrying-supplies.jpg` | Nazareth College from Rochester, NY, USA | CC BY 2.0 | [Day of Service 2015 (20624556473).jpg](https://commons.wikimedia.org/wiki/File:Day_of_Service_2015_(20624556473).jpg) |
 | `packing-book-sets.jpg` | Nazareth College from Rochester, NY, USA | CC BY 2.0 | [Day of Service 2015 (20622991194).jpg](https://commons.wikimedia.org/wiki/File:Day_of_Service_2015_(20622991194).jpg) |
 | `volunteer-shirt.jpg` | Nazareth College from Rochester, NY, USA | CC BY 2.0 | [Day of Service 2015 (20624559613).jpg](https://commons.wikimedia.org/wiki/File:Day_of_Service_2015_(20624559613).jpg) |
+| `volunteer-golden.jpg` | U.S. Navy photo by Petty Officer 2nd Class Kelly M Agee | Public domain | [NSA Souda Bay participates in volunteer event at the Souda Animal Shelter (6103132).jpg](https://commons.wikimedia.org/wiki/File:NSA_Souda_Bay_participates_in_volunteer_event_at_the_Souda_Animal_Shelter_(6103132).jpg) |
+| `volunteer-two-dogs.jpg` | U.S. Navy photo by Petty Officer 2nd Class Kelly M Agee | Public domain | [Naval Support Activity Souda Bay participates in a Volunteer Event at the Souda Animal Shelter (6091043).jpg](https://commons.wikimedia.org/wiki/File:Naval_Support_Activity_Souda_Bay_participates_in_a_Volunteer_Event_at_the_Souda_Animal_Shelter_(6091043).jpg) |
+| `planting-saplings.jpg` | Christian Anold Mosha | CC BY-SA 4.0 | [DUSAFO planting trees.jpg](https://commons.wikimedia.org/wiki/File:DUSAFO_planting_trees.jpg) |
+| `carrying-trees.jpg` | USFWS/Southeast | Public domain | [Volunteers carry trees to planting sites (37287300136).jpg](https://commons.wikimedia.org/wiki/File:Volunteers_carry_trees_to_planting_sites_(37287300136).jpg) |
+| `planting-hillside.jpg` | Joshua Tree National Park | Public domain | [Volunteers planting (55066598042).jpg](https://commons.wikimedia.org/wiki/File:Volunteers_planting_(55066598042).jpg) |
+| `tunnel-mural.jpg` | University of Malta Department of Arts, Open Communities and Adult... | CC BY-SA 4.0 | [University of Malta tunnel mural.jpg](https://commons.wikimedia.org/wiki/File:University_of_Malta_tunnel_mural.jpg) |
+| `wall-painting.jpg` | Антон Хлабов | CC BY-SA 4.0 | [The End. Wall Painting.jpg](https://commons.wikimedia.org/wiki/File:The_End._Wall_Painting.jpg) |
+| `garden-hands.jpg` | Caitlin Purdome, U.S. Forest Service | Public domain | [Tlingit potato community garden - Tongass National Forest.jpg](https://commons.wikimedia.org/wiki/File:Tlingit_potato_community_garden_-_Tongass_National_Forest.jpg) |
 
-CC BY photos require attribution: the credit is stored on each post (`posts.image_credits`) and shown under the photo.
+CC BY and CC BY-SA photos require attribution: the credit is stored on each post (`posts.image_credits`) and shown under the photo.
 
 ## Videos
 
@@ -27,4 +37,3 @@ CC BY photos require attribution: the credit is stored on each post (`posts.imag
 | `fence-removal.webm` | BLM Oregon & Washington | Public domain | [National Public Lands Day 2017 at Devils Garden](https://commons.wikimedia.org/wiki/File:National_Public_Lands_Day_2017_at_Devils_Garden_(36808901483).webm) |
 
 Videos are Commons' 480p VP9 versions. Poster images (`.jpg`) are frames from each video.
-

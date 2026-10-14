@@ -175,7 +175,7 @@ test("F-037: following a foundation brings its grantees' reports into Following,
   // This user doesn't follow their own Test Kitchen org, so its report appears via Lakeshore's portfolio.
   const report = page.locator("article").filter({ hasText: `Report ${id}` })
   await expect(report.getByText("From the portfolio of")).toBeVisible()
-  await expect(report.getByRole("link", { name: "Lakeshore Community Foundation (Demo)" }).first()).toBeVisible()
+  await expect(report.getByRole("link", { name: "Lakeshore Community Foundation" }).first()).toBeVisible()
   // Harbor Table is followed directly, so its report has no portfolio line.
   const harbor = page.locator("article").filter({ hasText: "The new walk-in freezer is in." })
   await expect(harbor.getByText("From the portfolio of")).toHaveCount(0)
@@ -193,7 +193,7 @@ test("F-038: 'I give through this fund' shows what that giving became on the don
 
   await page.goto(`/u/${handle}`)
   await expect(page.getByRole("heading", { name: "What my giving became" })).toBeVisible()
-  const fund = page.getByRole("region", { name: "Grants from Lakeshore Community Foundation (Demo)" })
+  const fund = page.getByRole("region", { name: "Grants from Lakeshore Community Foundation" })
   await expect(fund.getByRole("link", { name: /Latest report: The new walk-in freezer is in/ })).toBeVisible()
 
   // Visitors see it too, worded for someone else.
@@ -359,7 +359,7 @@ test("F-049: the bell shows a quiet dot for new items; opening the inbox clears 
     await expect(bell).not.toContainText(/\d/) // a dot, never a number
 
     await bell.click()
-    await expect(page.getByText("Riverside Family Foundation (Demo) recorded a $3,000 grant to you.")).toBeVisible()
+    await expect(page.getByText("Riverside Family Foundation recorded a $3,000 grant to you.")).toBeVisible()
     await expect.poll(async () => {
       await page.goto("/")
       return page.getByRole("link", { name: /Notifications/ }).innerText()

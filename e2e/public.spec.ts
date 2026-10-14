@@ -134,7 +134,7 @@ test("F-039: /calls lists open calls soonest deadline first; closed calls drop o
 
 test("F-040: a nonprofit funded by two foundations shows as co-funded", async ({ page }) => {
   await page.goto("/o/harbor-table")
-  await expect(page.getByRole("link", { name: /Co-funded by Lakeshore Community Foundation \(Demo\) and 1 other/ })).toBeVisible()
+  await expect(page.getByRole("link", { name: /Co-funded by Lakeshore Community Foundation and 1 other/ })).toBeVisible()
   await expect(page.getByRole("heading", { name: "Funded by" })).toBeVisible()
   await expect(page.getByText("$10,000, Fresh produce program")).toBeVisible()
   await page.goto("/o/riverbend-readers")
@@ -200,7 +200,7 @@ test("F-047: shared posts and profiles have branded preview images", async ({ pa
 
 test("F-003 / F-024 / F-021: org profile tabs and footnoted impact stats", async ({ page }) => {
   await page.goto("/o/open-door-homes")
-  await expect(page.getByRole("heading", { name: "Open Door Homes (Demo)" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Open Door Homes" })).toBeVisible()
   await expect(page.getByRole("link", { name: "Source 1" }).first()).toBeVisible()
   await expect(page.locator("#source-1")).toContainText("example.org/open-door/outcomes")
   await page.getByRole("link", { name: "About", exact: true }).click()

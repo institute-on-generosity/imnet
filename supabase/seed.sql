@@ -14,22 +14,22 @@ insert into causes (slug, name) values
 on conflict do nothing;
 
 insert into orgs (id, slug, name, ein, website, mission, what_gifts_fund, status) values
-  ('00000000-0000-4000-a000-000000000001', 'harbor-table', 'Harbor Table (Demo)', '00-0000001',
+  ('00000000-0000-4000-a000-000000000001', 'harbor-table', 'Harbor Table', '00-0000001',
    'https://example.org/harbor-table',
    'Neighborhood kitchens serving hot meals with dignity, no questions asked.',
    '$25 covers a week of dinners for one neighbor. $500 keeps a kitchen open for a night.',
    'verified'),
-  ('00000000-0000-4000-a000-000000000002', 'open-door-homes', 'Open Door Homes (Demo)', '00-0000002',
+  ('00000000-0000-4000-a000-000000000002', 'open-door-homes', 'Open Door Homes', '00-0000002',
    'https://example.org/open-door',
    'Moving families from shelters into stable homes, and staying with them after move-in.',
    '$100 furnishes a child''s bedroom. $1,000 covers a family''s first month of rent.',
    'verified'),
-  ('00000000-0000-4000-a000-000000000003', 'riverbend-readers', 'Riverbend Readers (Demo)', '00-0000003',
+  ('00000000-0000-4000-a000-000000000003', 'riverbend-readers', 'Riverbend Readers', '00-0000003',
    'https://example.org/riverbend',
    'One-on-one reading tutors for early readers in rural schools.',
    '$40 buys a take-home book set. $300 trains one volunteer tutor.',
    'verified'),
-  ('00000000-0000-4000-a000-000000000004', 'greenway-stewards', 'Greenway Stewards (Demo)', '00-0000004',
+  ('00000000-0000-4000-a000-000000000004', 'greenway-stewards', 'Greenway Stewards', '00-0000004',
    'https://example.org/greenway',
    'Volunteers restoring trails, rivers and open land in our county, one Saturday at a time.',
    '$30 buys gloves and hand tools for one volunteer. $250 covers native plants for 100 feet of riverbank.',
@@ -37,7 +37,7 @@ insert into orgs (id, slug, name, ein, website, mission, what_gifts_fund, status
 on conflict do nothing;
 
 insert into orgs (id, slug, name, ein, website, mission, what_gifts_fund, status, org_type) values
-  ('00000000-0000-4000-a000-000000000005', 'lakeshore-community-foundation', 'Lakeshore Community Foundation (Demo)', '00-0000005',
+  ('00000000-0000-4000-a000-000000000005', 'lakeshore-community-foundation', 'Lakeshore Community Foundation', '00-0000005',
    'https://example.org/lakeshore',
    'A community foundation pooling local giving into grants for neighborhood nonprofits, with a focus on small groups that have no grant writer.',
    'Gifts to the Community Fund become grants. $1,000 funds a small nonprofit''s volunteer training; $10,000 funds a year of a program.',
@@ -120,7 +120,7 @@ insert into posts (org_id, kind, body, video_path, video_poster_path, video_alt,
 -- The demo foundation posts about its grants to the demo nonprofits.
 insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, beneficiary_consent, created_at) values
   ('00000000-0000-4000-a000-000000000005', 'impact_story',
-   'Fall Community Fund grants are out: $1.2M to 48 local nonprofits. Harbor Table (Demo) gets its new walk-in freezer, and Riverbend Readers (Demo) can train 30 more volunteer tutors. Thank you to the 2,100 neighbors who gave to the fund.',
+   'Fall Community Fund grants are out: $1.2M to 48 local nonprofits. Harbor Table gets its new walk-in freezer, and Riverbend Readers can train 30 more volunteer tutors. Thank you to the 2,100 neighbors who gave to the fund.',
    array['00000000-0000-4000-a000-000000000001/pantry-team.jpg']::text[], array['Volunteers in green shirts working together in a food pantry']::text[],
    array['USDAgov, public domain, via Wikimedia Commons']::text[], true,
    now() - interval '1 day 12 hours'),
@@ -160,7 +160,7 @@ select '00000000-0000-4000-a000-000000000001', 'impact_story',
 -- A demo donor (no password; can't sign in) who gives through Lakeshore and supports Harbor Table.
 insert into auth.users (id, email, aud, role)
 values ('00000000-0000-4000-b000-000000000001', 'dana.demo@example.com', 'authenticated', 'authenticated');
-update profiles set handle = 'dana_demo', display_name = 'Dana Rivera (Demo)',
+update profiles set handle = 'dana_demo', display_name = 'Dana Rivera',
        bio = 'Monthly giver to my community foundation. Learning where it all goes.'
  where id = '00000000-0000-4000-b000-000000000001';
 insert into follows (user_id, org_id, supporter) values
@@ -172,7 +172,7 @@ insert into profile_causes (user_id, cause_slug) values
 
 -- A second foundation, so Harbor Table shows as co-funded.
 insert into orgs (id, slug, name, ein, website, mission, what_gifts_fund, status, org_type) values
-  ('00000000-0000-4000-a000-000000000006', 'riverside-family-foundation', 'Riverside Family Foundation (Demo)', '00-0000006',
+  ('00000000-0000-4000-a000-000000000006', 'riverside-family-foundation', 'Riverside Family Foundation', '00-0000006',
    'https://example.org/riverside',
    'A family foundation funding food security and early literacy along the river valley.',
    'Gifts become small, fast grants: most decisions in under three weeks.',
