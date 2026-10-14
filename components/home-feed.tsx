@@ -49,14 +49,12 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
         </div>
       }
     >
-      <Panel className="space-y-3 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="font-sans text-lg font-semibold tracking-normal">
-            {followingOnly ? "From organizations you follow" : "What giving made possible"}
-          </h1>
-          <OrgTypeFilter active={orgType} cause={cause} basePath={basePath} />
+      <h1 className="sr-only">{followingOnly ? "From organizations you follow" : "What giving made possible"}</h1>
+      <Panel className="flex items-center gap-3 p-2.5">
+        <OrgTypeFilter active={orgType} cause={cause} basePath={basePath} />
+        <div className="min-w-0 flex-1">
+          <CauseFilter causes={causes} active={cause} type={orgType} basePath={basePath} />
         </div>
-        <CauseFilter causes={causes} active={cause} type={orgType} basePath={basePath} />
       </Panel>
       <Feed posts={posts} empty={empty} movedIds={movedIds} signedIn={!!userId} grantsByPost={grantsByPost} context={context} />
       <OlderPosts

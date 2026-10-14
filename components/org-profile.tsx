@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react"
 import Link from "next/link"
 import { DonateButton } from "@/components/donate-button"
 import { FollowButton } from "@/components/follow-button"
@@ -69,18 +70,14 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {signedIn ? (
-              <FollowButton orgId={org.id} slug={org.slug} following={follow.following} />
+              <FollowButton orgId={org.id} following={follow.following} />
             ) : (
-              <Link href="/login" className={buttonVariants()}>Follow</Link>
+              <Link href="/login" className={buttonVariants()}><Plus aria-hidden />Follow</Link>
             )}
             {org.everyorg_slug && <DonateButton orgId={org.id} everyorgSlug={org.everyorg_slug} />}
             <ShareButton path={base} title={org.name} orgId={org.id} variant="pill" />
+            {signedIn && follow.following && <SupporterToggle orgId={org.id} orgType={org.org_type} supporter={follow.supporter} />}
           </div>
-          {signedIn && follow.following && (
-            <div className="mt-2">
-              <SupporterToggle orgId={org.id} orgType={org.org_type} supporter={follow.supporter} />
-            </div>
-          )}
         </div>
         <nav aria-label={`${org.name} sections`} className="flex border-t px-2 sm:px-4">
           {tabsFor(org.org_type).map((t) => (
@@ -101,15 +98,6 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
 
       {tab === "home" && (
         <>
-          {org.mission && (
-            <Panel className="p-4 sm:p-6">
-              <h2 className="font-sans text-lg font-semibold tracking-normal">About</h2>
-              <p className="story mt-2 line-clamp-3">{org.mission}</p>
-              <Link href={`${base}?tab=about`} className="mt-2 inline-block text-sm font-semibold text-muted-foreground hover:text-leaf hover:underline">
-                Show all details
-              </Link>
-            </Panel>
-          )}
           <GiftsFund org={org} />
           <ImpactLedger stats={stats} />
           <GrantsPanel org={org} grants={grants} />
@@ -237,7 +225,7 @@ function Backers({ grants }: { grants: Grant[] }) {
   const funders = backers(grants)
   if (funders.length === 0) return null
   return (
-    <Link href="?tab=about" className="mt-3 flex w-fit items-center gap-2.5 rounded-full border bg-card py-1 pr-3 pl-1 text-sm hover:bg-muted">
+    <Link href="?tab=about" title={funders.map((f) => f.name).join(", ")} className="mt-3 flex w-fit items-center gap-2.5 rounded-full border bg-card py-1 pr-3 pl-1 text-sm hover:bg-muted">
       <span className="flex -space-x-2">
         {funders.slice(0, 3).map((f) => (
           <span key={f.id} className="rounded-md ring-2 ring-card">

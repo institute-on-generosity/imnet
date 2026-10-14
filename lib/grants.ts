@@ -45,11 +45,11 @@ export function backers(grants: Pick<Grant, "amount_usd" | "foundation">[]) {
   return [...byId.values()].sort((a, b) => b.total - a.total || a.foundation.name.localeCompare(b.foundation.name)).map((e) => e.foundation)
 }
 
-// "Backed by Lakeshore" / "Co-funded by Lakeshore and Riverside" / "Co-funded by Lakeshore and 2 other foundations"
+// Short on purpose (the full list is in "Funded by"): "Backed by X" / "Co-funded by X and 1 other" / "... and 2 others"
 export function backersLabel(names: string[]) {
   if (names.length === 0) return ""
   if (names.length === 1) return `Backed by ${names[0]}`
-  if (names.length === 2) return `Co-funded by ${names[0]} and ${names[1]}`
-  return `Co-funded by ${names[0]} and ${names.length - 1} other foundations`
+  const others = names.length - 1
+  return `Co-funded by ${names[0]} and ${others} ${others === 1 ? "other" : "others"}`
 }
 

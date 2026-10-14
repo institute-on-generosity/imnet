@@ -1,3 +1,4 @@
+import { PenLine } from "lucide-react"
 import Link from "next/link"
 import { OrgMark } from "@/components/org-mark"
 import { buttonVariants } from "@/components/ui/button"
@@ -20,7 +21,7 @@ export function GrantsNeedingReport({ orgId, grants }: { orgId: string; grants: 
               <p className="font-medium">{g.foundation.name}</p>
               <p className="text-muted-foreground">{[g.amount_usd && formatUsd(g.amount_usd), g.purpose].filter(Boolean).join(", ")}</p>
             </div>
-            <Link href={`/dashboard/${orgId}?report=${g.id}#composer`} className={buttonVariants({ size: "sm" })}>Write a report</Link>
+            <Link href={`/dashboard/${orgId}?report=${g.id}#composer`} className={buttonVariants({ size: "sm" })}><PenLine aria-hidden />Write a report</Link>
           </div>
         ))}
       </CardContent>

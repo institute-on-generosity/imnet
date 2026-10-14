@@ -18,3 +18,14 @@ export function OrgTypeBadge({ type, className }: { type: OrgType; className?: s
     </span>
   )
 }
+
+// Compact marker next to a foundation's name in dense places (post headers, lists).
+export function FoundationMark() {
+  return (
+    <span title="Foundation" className="inline-flex shrink-0 text-primary">
+      <Landmark className="size-3.5" aria-hidden />
+      <span className="sr-only">Foundation</span>
+    </span>
+  )
+}
+

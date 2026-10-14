@@ -1,5 +1,6 @@
 "use client"
 
+import { HeartHandshake } from "lucide-react"
 import { logEvent } from "@/app/actions"
 import { buttonVariants } from "@/components/ui/button"
 
@@ -14,6 +15,7 @@ export function DonateButton({ orgId, everyorgSlug }: { orgId: string; everyorgS
       className={buttonVariants({ variant: "outline" })}
       onClick={() => void logEvent("donate_click", orgId)}
     >
+      <HeartHandshake aria-hidden />
       Donate
     </a>
   )

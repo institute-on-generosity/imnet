@@ -48,10 +48,11 @@ test.describe("with reduced motion", () => {
 
 test("F-033: foundations and nonprofits look different, and the feed filters by type", async ({ page }) => {
   await page.goto("/")
+  // Post headers stay quiet: foundations get a small landmark marker; nonprofits none.
   const grantPost = page.locator("section").filter({ hasText: "Fall Community Fund grants are out" }).first()
-  await expect(grantPost.getByText("Foundation", { exact: true })).toBeVisible()
+  await expect(grantPost.locator('header [title="Foundation"]')).toHaveCount(1)
   const harborPost = page.locator("section").filter({ hasText: "10,000th family visit" }).first()
-  await expect(harborPost.getByText("Nonprofit", { exact: true })).toBeVisible()
+  await expect(harborPost.locator('header [title="Foundation"]')).toHaveCount(0)
 
   await page.getByRole("navigation", { name: "Filter by organization type" }).getByRole("link", { name: "Foundations" }).click()
   await expect(page).toHaveURL(/type=foundation/)
@@ -133,7 +134,9 @@ test("F-039: /calls lists open calls soonest deadline first; closed calls drop o
 
 test("F-040: a nonprofit funded by two foundations shows as co-funded", async ({ page }) => {
   await page.goto("/o/harbor-table")
-  await expect(page.getByRole("link", { name: /Co-funded by Lakeshore Community Foundation \(Demo\) and Riverside Family Foundation \(Demo\)/ })).toBeVisible()
+  await expect(page.getByRole("link", { name: /Co-funded by Lakeshore Community Foundation \(Demo\) and 1 other/ })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Funded by" })).toBeVisible()
+  await expect(page.getByText("$10,000, Fresh produce program")).toBeVisible()
   await page.goto("/o/riverbend-readers")
   await expect(page.getByRole("link", { name: /Backed by Lakeshore Community Foundation/ })).toBeVisible()
 })

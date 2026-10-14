@@ -1,5 +1,6 @@
 "use client"
 
+import { BadgeCheck } from "lucide-react"
 import { useActionState } from "react"
 import { submitClaim } from "@/app/actions"
 import { Button } from "@/components/ui/button"
@@ -34,7 +35,7 @@ export function ClaimForm() {
         <Label htmlFor="note">Anything we should know? (optional)</Label>
         <Textarea id="note" name="note" defaultValue={v?.note} />
       </div>
-      <Button type="submit" disabled={pending}>{pending ? "Submitting..." : "Submit claim"}</Button>
+      <Button type="submit" disabled={pending}><BadgeCheck aria-hidden />{pending ? "Submitting..." : "Submit claim"}</Button>
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
       {state?.message && <p className="text-sm text-muted-foreground">{state.message}</p>}
     </form>

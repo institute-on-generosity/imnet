@@ -187,8 +187,8 @@ test("F-038: 'I give through this fund' shows what that giving became on the don
   await expect(page.getByRole("heading", { name: "What my giving became" })).toHaveCount(0)
 
   await page.goto("/o/lakeshore-community-foundation")
-  await page.getByRole("button", { name: /I give through this fund: show on my profile/ }).click()
-  await expect(page.getByRole("button", { name: /I give through this fund \(on your profile\)/ })).toBeVisible()
+  await page.getByRole("button", { name: /Show "I give through this fund" on my public profile/ }).click()
+  await expect(page.getByRole("button", { name: /"I give through this fund" is on your public profile/ })).toBeVisible()
   await expect.poll(async () => (await sql`select bool_or(supporter) s from follows where user_id = ${userId}`)[0].s).toBe(true)
 
   await page.goto(`/u/${handle}`)

@@ -1,3 +1,4 @@
+import { ArrowUpRight } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import type { Grant, OrgSummary, Post } from "@/lib/types"
@@ -7,7 +8,8 @@ import { GrantReportBanner } from "./grant-report-banner"
 import { MovedButton } from "./moved-button"
 import { OpenCallBlock } from "./open-call-block"
 import { OrgMark } from "./org-mark"
-import { OrgTypeBadge } from "./org-type-badge"
+import { FoundationMark } from "./org-type-badge"
+import { IconTip } from "./icon-tip"
 import { PostKindLabel } from "./post-kind"
 import { PostMedia } from "./post-media"
 import { ShareButton } from "./share-button"
@@ -37,9 +39,9 @@ export function PostCard({ post, full = false, moved = false, signedIn = false, 
       <header className="flex items-start gap-3 px-4 pt-4">
         <Link href={`/o/${post.org.slug}`} tabIndex={-1} aria-hidden><OrgMark org={post.org} size="md" /></Link>
         <div className="min-w-0 flex-1 leading-tight">
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 items-center gap-1.5">
             <Link href={`/o/${post.org.slug}`} className="truncate font-semibold hover:text-leaf hover:underline">{post.org.name}</Link>
-            <OrgTypeBadge type={post.org.org_type} />
+            {post.org.org_type === "foundation" && <FoundationMark />}
           </div>
           <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
             <PostKindLabel kind={post.kind} />
@@ -62,13 +64,15 @@ export function PostCard({ post, full = false, moved = false, signedIn = false, 
       <PostMedia post={post} />
       <GrantChips grants={grants} />
 
-      <footer className="mt-3 flex items-center gap-1 border-t px-2 py-1">
+      <footer className="mt-2 flex items-center gap-0.5 px-2 pb-1.5">
         <MovedButton postId={post.id} moved={moved} signedIn={signedIn} />
         <ShareButton path={`/p/${post.id}`} title={`${post.org.name} on imnet`} orgId={post.org_id} postId={post.id} />
         {!full && (
-          <Link href={`/p/${post.id}`} className="ml-auto rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted">
-            Open
-          </Link>
+          <IconTip label="Open post">
+            <Link href={`/p/${post.id}`} className="ml-auto inline-flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted">
+              <ArrowUpRight className="size-5" aria-hidden />
+            </Link>
+          </IconTip>
         )}
       </footer>
     </Panel>

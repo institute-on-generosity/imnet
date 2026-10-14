@@ -1,5 +1,6 @@
 "use client"
 
+import { Mail } from "lucide-react"
 import { useActionState } from "react"
 import { sendMagicLink } from "@/app/actions"
 import { Button } from "@/components/ui/button"
@@ -11,6 +12,7 @@ export function LoginForm() {
     <form action={action} className="space-y-3">
       <Input type="email" name="email" placeholder="you@example.com" required defaultValue={state?.values?.email} />
       <Button type="submit" disabled={pending} className="w-full">
+        <Mail aria-hidden />
         {pending ? "Sending..." : "Email me a link"}
       </Button>
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}

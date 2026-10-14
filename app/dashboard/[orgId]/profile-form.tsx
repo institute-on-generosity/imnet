@@ -1,5 +1,6 @@
 "use client"
 
+import { Save, Sparkles } from "lucide-react"
 import { useActionState, useState, useTransition } from "react"
 import { draftProfile, updateOrg } from "@/app/actions"
 import { Button } from "@/components/ui/button"
@@ -31,7 +32,7 @@ export function ProfileForm({ org, causes, selected }: { org: Org; causes: Cause
     <form action={action} className="space-y-4">
       <div className="flex items-center gap-2">
         <Button type="button" variant="outline" size="sm" onClick={draft} disabled={drafting || !org.website}>
-          {drafting ? "Drafting..." : "Draft from website (AI)"}
+          <Sparkles aria-hidden />{drafting ? "Drafting..." : "Draft from website (AI)"}
         </Button>
         {draftNote && <span className="text-sm text-muted-foreground">{draftNote}</span>}
       </div>
@@ -73,7 +74,7 @@ export function ProfileForm({ org, causes, selected }: { org: Org; causes: Cause
           ))}
         </div>
       </fieldset>
-      <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Save profile"}</Button>
+      <Button type="submit" disabled={pending}><Save aria-hidden />{pending ? "Saving..." : "Save profile"}</Button>
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
       {state?.message && <p className="text-sm text-muted-foreground">{state.message}</p>}
     </form>

@@ -1,8 +1,9 @@
-import { Search } from "lucide-react"
+import { LogOut, Search } from "lucide-react"
 import Link from "next/link"
 import { signOut } from "@/app/actions"
 import { buttonVariants } from "@/components/ui/button"
 import { createClient, getUserId } from "@/lib/supabase/server"
+import { IconTip } from "./icon-tip"
 import { NavLinks } from "./nav-links"
 import { CONTAINER } from "./shell"
 
@@ -43,8 +44,12 @@ export async function SiteHeader() {
                   ...(handle ? [{ href: `/u/${handle}`, label: "Me", icon: "me" as const, exact: true }] : []),
                 ]}
               />
-              <form action={signOut} className="ml-2 hidden sm:block">
-                <button type="submit" className="text-xs text-muted-foreground hover:text-foreground">Sign out</button>
+              <form action={signOut} className="ml-1 hidden sm:block">
+                <IconTip label="Sign out">
+                  <button type="submit" className="inline-flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
+                    <LogOut className="size-4" aria-hidden />
+                  </button>
+                </IconTip>
               </form>
             </>
           ) : (

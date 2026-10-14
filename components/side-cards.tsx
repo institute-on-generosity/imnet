@@ -4,7 +4,8 @@ import { buttonVariants } from "@/components/ui/button"
 import type { OrgSummaryWithMission, Viewer } from "@/lib/queries"
 import { FollowButton } from "./follow-button"
 import { OrgMark } from "./org-mark"
-import { OrgTypeBadge } from "./org-type-badge"
+import { IconTip } from "./icon-tip"
+import { FoundationMark } from "./org-type-badge"
 import { Panel } from "./shell"
 
 // Left column: who you are on imnet.
@@ -57,20 +58,21 @@ export function SuggestedOrgs({ title, orgs, signedIn }: { title: string; orgs: 
   return (
     <Panel className="p-4">
       <h2 className="font-sans text-base font-semibold tracking-normal">{title}</h2>
-      <ul className="mt-3 space-y-4">
+      <ul className="mt-3 space-y-3">
         {orgs.map((org) => (
-          <li key={org.id} className="flex gap-3">
+          <li key={org.id} className="flex items-center gap-3">
             <OrgMark org={org} />
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <Link href={`/o/${org.slug}`} className="block truncate font-medium hover:underline">{org.name}</Link>
-              <OrgTypeBadge type={org.org_type} />
-              {org.mission && <p className="line-clamp-2 text-xs text-muted-foreground">{org.mission}</p>}
-              {signedIn ? (
-                <FollowButton orgId={org.id} slug={org.slug} following={false} compact />
-              ) : (
-                <Link href="/login" className={buttonVariants({ variant: "outline", size: "sm" })}><Plus aria-hidden />Follow</Link>
-              )}
+            <div className="flex min-w-0 flex-1 items-center gap-1.5">
+              <Link href={`/o/${org.slug}`} className="truncate text-sm font-medium hover:underline" title={org.mission ?? undefined}>{org.name}</Link>
+              {org.org_type === "foundation" && <FoundationMark />}
             </div>
+            {signedIn ? (
+              <FollowButton orgId={org.id} orgName={org.name} following={false} variant="icon" />
+            ) : (
+              <IconTip label={`Follow ${org.name} (sign in)`}>
+                <Link href="/login" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border hover:bg-muted"><Plus className="size-4" aria-hidden /></Link>
+              </IconTip>
+            )}
           </li>
         ))}
       </ul>

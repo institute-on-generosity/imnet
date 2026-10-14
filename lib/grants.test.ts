@@ -53,8 +53,8 @@ describe("backers", () => {
     expect(list.map((x) => x.name)).toEqual(["Lakeshore", "Riverside"])
     expect(backersLabel([])).toBe("")
     expect(backersLabel(["Lakeshore"])).toBe("Backed by Lakeshore")
-    expect(backersLabel(["Lakeshore", "Riverside"])).toBe("Co-funded by Lakeshore and Riverside")
-    expect(backersLabel(["A", "B", "C"])).toBe("Co-funded by A and 2 other foundations")
+    expect(backersLabel(["Lakeshore", "Riverside"])).toBe("Co-funded by Lakeshore and 1 other")
+    expect(backersLabel(["A", "B", "C"])).toBe("Co-funded by A and 2 others")
   })
 })
 

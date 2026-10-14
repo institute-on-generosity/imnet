@@ -5,9 +5,10 @@ import Link from "next/link"
 import { useOptimistic, useTransition } from "react"
 import { sendSignal } from "@/lib/send-signal"
 import { cn } from "@/lib/utils"
+import { IconTip } from "./icon-tip"
 
-const ACTION = "inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors"
 export const PRIVATE_NOTE = "Only the nonprofit sees this, as a total"
+const ICON_BUTTON = "inline-flex size-9 items-center justify-center rounded-full transition-colors"
 
 // Private signal: only the org sees a total. No public counts (design principle #4).
 export function MovedButton({ postId, moved, signedIn = true }: { postId: string; moved: boolean; signedIn?: boolean }) {
@@ -16,27 +17,28 @@ export function MovedButton({ postId, moved, signedIn = true }: { postId: string
 
   if (!signedIn) {
     return (
-      <Link href="/login" className={cn(ACTION, "text-muted-foreground hover:bg-muted")} title={PRIVATE_NOTE}>
-        <HandHeart className="size-5" aria-hidden />
-        Moved me
-      </Link>
+      <IconTip label="This moved me (sign in)">
+        <Link href="/login" className={cn(ICON_BUTTON, "text-muted-foreground hover:bg-muted")}>
+          <HandHeart className="size-5" aria-hidden />
+        </Link>
+      </IconTip>
     )
   }
   return (
-    <button
-      type="button"
-      aria-pressed={optimistic}
-      title={PRIVATE_NOTE}
-      onClick={() =>
-        startTransition(async () => {
-          setOptimistic(!optimistic)
-          await sendSignal({ kind: "moved", id: postId, on: !optimistic }).catch(() => {})
-        })
-      }
-      className={cn(ACTION, optimistic ? "bg-marigold-soft text-foreground" : "text-muted-foreground hover:bg-muted")}
-    >
-      <HandHeart className={cn("size-5", optimistic && "text-marigold")} aria-hidden />
-      {optimistic ? "Moved you" : "Moved me"}
-    </button>
+    <IconTip label={optimistic ? `This moved you. ${PRIVATE_NOTE}.` : `This moved me. ${PRIVATE_NOTE}.`}>
+      <button
+        type="button"
+        aria-pressed={optimistic}
+        onClick={() =>
+          startTransition(async () => {
+            setOptimistic(!optimistic)
+            await sendSignal({ kind: "moved", id: postId, on: !optimistic }).catch(() => {})
+          })
+        }
+        className={cn(ICON_BUTTON, optimistic ? "bg-marigold-soft text-marigold" : "text-muted-foreground hover:bg-muted")}
+      >
+        <HandHeart className="size-5" aria-hidden />
+      </button>
+    </IconTip>
   )
 }

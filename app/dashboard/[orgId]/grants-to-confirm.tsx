@@ -1,3 +1,4 @@
+import { Check, X } from "lucide-react"
 import { confirmGrant, declineGrant } from "@/app/actions"
 import { OrgMark } from "@/components/org-mark"
 import { Button } from "@/components/ui/button"
@@ -20,8 +21,8 @@ export function GrantsToConfirm({ orgId, grants }: { orgId: string; grants: Gran
               <p className="font-medium">{g.foundation.name}</p>
               <p className="text-muted-foreground">{[g.amount_usd && formatUsd(g.amount_usd), g.purpose].filter(Boolean).join(", ") || "No amount listed"}</p>
             </div>
-            <form action={confirmGrant.bind(null, g.id, orgId)}><Button type="submit" size="sm">Confirm</Button></form>
-            <form action={declineGrant.bind(null, g.id, orgId)}><Button type="submit" size="sm" variant="outline">Not ours</Button></form>
+            <form action={confirmGrant.bind(null, g.id, orgId)}><Button type="submit" size="sm"><Check aria-hidden />Confirm</Button></form>
+            <form action={declineGrant.bind(null, g.id, orgId)}><Button type="submit" size="sm" variant="outline"><X aria-hidden />Not ours</Button></form>
           </div>
         ))}
       </CardContent>
