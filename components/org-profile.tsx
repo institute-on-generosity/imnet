@@ -9,6 +9,7 @@ import { Feed } from "@/components/post-card"
 import { ShareButton } from "@/components/share-button"
 import { Panel, TwoColumn } from "@/components/shell"
 import { GrantsPanel } from "@/components/grants-panel"
+import { EventsPanel } from "@/components/events-panel"
 import { NeedsPanel } from "@/components/needs-panel"
 import { ThanksButton } from "@/components/thanks-button"
 import { SuggestedOrgs } from "@/components/side-cards"
@@ -19,6 +20,7 @@ import { footnotes } from "@/lib/footnotes"
 import { backers, backersLabel } from "@/lib/grants"
 import { ORG_TAB_LABEL, tabsFor, type OrgTab } from "@/lib/org-tabs"
 import type { OrgSummaryWithMission } from "@/lib/queries"
+import type { OrgEvent } from "@/lib/events"
 import type { Need } from "@/lib/needs"
 import type { Cause, Grant, ImpactStat, Org, Post } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -43,9 +45,12 @@ type Props = {
   grantsByPost: Map<string, Grant[]>
   tab: OrgTab
   needs: Need[]
+  interestIds: Set<string>
+  events: OrgEvent[]
+  rsvpIds: Set<string>
 }
 
-export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, savedIds, grants, grantsByPost, tab, needs }: Props) {
+export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, savedIds, grants, grantsByPost, tab, needs, interestIds, events, rsvpIds }: Props) {
   const base = `/o/${org.slug}`
   return (
     <TwoColumn right={<SuggestedOrgs title="Similar organizations" orgs={similar} signedIn={signedIn} />}>
@@ -104,7 +109,8 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
 
       {tab === "home" && (
         <>
-          <NeedsPanel needs={needs} />
+          <NeedsPanel needs={needs} interestIds={interestIds} signedIn={signedIn} />
+          <EventsPanel events={events} rsvpIds={rsvpIds} signedIn={signedIn} />
           <GiftsFund org={org} />
           <ImpactLedger stats={stats} />
           <GrantsPanel org={org} grants={grants} />

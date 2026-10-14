@@ -1,5 +1,6 @@
 import { cache } from "react"
 import { type Cursor, encodeCursor, olderThan } from "@/lib/cursor"
+import type { EventWithOrg, OrgEvent } from "@/lib/events"
 import type { Gift } from "@/lib/gifts"
 import { MET_SHOWN_DAYS, type Need, type NeedWithOrg } from "@/lib/needs"
 import { escapeLike } from "@/lib/search"
@@ -414,4 +415,82 @@ export async function getOrgName(id: string): Promise<{ id: string; name: string
   const supabase = await createClient()
   const { data } = await supabase.from("orgs").select("id, name").eq("id", id).maybeSingle()
   return data
+}
+
+const EVENT_FIELDS = "id, title, starts_at, location, detail"
+
+// Upcoming events across the network, soonest first. Optional cause filter on the org's causes.
+export async function getUpcomingEvents(opts: { cause?: string; orgId?: string; limit?: number } = {}): Promise<EventWithOrg[]> {
+  const supabase = await createClient()
+  const causeJoin = opts.cause ? ", org_causes!inner(cause_slug)" : ""
+  let q = supabase
+    .from("org_events")
+    .select(`${EVENT_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type${causeJoin})`)
+    .gt("starts_at", new Date().toISOString())
+    .order("starts_at")
+    .limit(opts.limit ?? 50)
+  if (opts.cause) q = q.eq("org.org_causes.cause_slug", opts.cause)
+  if (opts.orgId) q = q.eq("org_id", opts.orgId)
+  const { data } = await q
+  return (data ?? []) as unknown as EventWithOrg[]
+}
+
+// Which of these events / needs the viewer RSVPed to / raised a hand for (private).
+export async function getMyRsvpIds(userId: string | null, eventIds: string[]): Promise<Set<string>> {
+  if (!userId || eventIds.length === 0) return new Set()
+  const supabase = await createClient()
+  const { data } = await supabase.from("event_rsvps").select("event_id").eq("user_id", userId).in("event_id", eventIds)
+  return new Set((data ?? []).map((r) => r.event_id))
+}
+
+export async function getMyInterestIds(userId: string | null, needIds: string[]): Promise<Set<string>> {
+  if (!userId || needIds.length === 0) return new Set()
+  const supabase = await createClient()
+  const { data } = await supabase.from("need_interest").select("need_id").eq("user_id", userId).in("need_id", needIds)
+  return new Set((data ?? []).map((r) => r.need_id))
+}
+
+type Person = { handle: string; display_name: string | null }
+
+// Staff view: upcoming events with who's coming (RLS: org staff only see RSVPs).
+export async function getEventsForStaff(orgId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("org_events")
+    .select(`${EVENT_FIELDS}, rsvps:event_rsvps(person:profiles(handle, display_name))`)
+    .eq("org_id", orgId)
+    .gt("starts_at", new Date(Date.now() - 86_400_000).toISOString())
+    .order("starts_at")
+  return ((data ?? []) as unknown as (OrgEvent & { rsvps: { person: Person }[] })[]).map((e) => ({ ...e, people: e.rsvps.map((r) => r.person) }))
+}
+
+// Staff view: who raised a hand for each volunteer need.
+export async function getInterestForStaff(orgId: string): Promise<Map<string, Person[]>> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("need_interest")
+    .select("need_id, person:profiles(handle, display_name), need:org_needs!inner(org_id)")
+    .eq("need.org_id", orgId)
+    .order("created_at")
+  const map = new Map<string, Person[]>()
+  for (const r of (data ?? []) as unknown as { need_id: string; person: Person }[]) map.set(r.need_id, [...(map.get(r.need_id) ?? []), r.person])
+  return map
+}
+
+// Posts from orgs the donor logged gifts to, published since their first gift to that org.
+export async function getSinceYourGifts(gifts: Gift[]) {
+  const first = new Map<string, string>()
+  for (const g of gifts) if (!first.has(g.org.id) || g.given_on < first.get(g.org.id)!) first.set(g.org.id, g.given_on)
+  if (first.size === 0) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("posts")
+    .select("id, body, kind, created_at, org:orgs!inner(id, slug, name, logo_url, org_type)")
+    .in("org_id", [...first.keys()])
+    .gte("created_at", [...first.values()].sort()[0])
+    .order("created_at", { ascending: false })
+    .limit(40)
+  return ((data ?? []) as unknown as { id: string; body: string; kind: string; created_at: string; org: OrgSummary }[])
+    .filter((p) => p.created_at.slice(0, 10) >= first.get(p.org.id)!)
+    .slice(0, 8)
 }

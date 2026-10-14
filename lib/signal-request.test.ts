@@ -19,4 +19,9 @@ describe("parseSignalRequest", () => {
     expect(parseSignalRequest(h(ok), URL_, { ...body, id: "harbor-table" })).toMatchObject({ status: 400 })
     expect(parseSignalRequest(h(ok), URL_, { ...body, on: "yes" })).toMatchObject({ status: 400 })
   })
+
+  it("F-058 / F-059: accepts RSVP and volunteer-interest signals", () => {
+    expect(parseSignalRequest(h(ok), URL_, { ...body, kind: "rsvp" })).toMatchObject({ signal: { kind: "rsvp" } })
+    expect(parseSignalRequest(h(ok), URL_, { ...body, kind: "interest" })).toMatchObject({ signal: { kind: "interest" } })
+  })
 })

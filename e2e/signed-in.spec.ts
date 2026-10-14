@@ -448,6 +448,48 @@ test("F-056: a foundation sees its confirmed grants with no report yet", async (
   await expect(card.getByRole("link", { name: "Second Chance Paws" })).toHaveCount(0)
 })
 
+test("F-058: staff add an event; a donor RSVPs privately; staff see who's going", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  const title = `Soup night ${id}`
+  const when = new Date(Date.now() + 5 * 86_400_000)
+  const local = `${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, "0")}-${String(when.getDate()).padStart(2, "0")}T18:30`
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await page.getByLabel("Event", { exact: true }).fill(title)
+  await page.getByLabel("Starts").fill(local)
+  await page.getByLabel("Where").fill("Test Kitchen hall")
+  await page.getByRole("button", { name: "Add event" }).click()
+  await expect(page.getByRole("button", { name: `Remove "${title}"` })).toBeVisible()
+
+  await page.goto(`/o/${slug}`)
+  const row = page.getByRole("region", { name: "Upcoming events" }).getByRole("listitem").filter({ hasText: title })
+  await expect(row.getByText("6:30 PM")).toBeVisible()
+  await row.getByRole("button", { name: `Going? to ${title}` }).click()
+  await expect(row.getByRole("button", { name: `Going to ${title}` })).toHaveAttribute("aria-pressed", "true")
+  await expect.poll(async () => (await sql`select count(*)::int n from event_rsvps r join org_events e on e.id = r.event_id where e.title = ${title}`)[0].n).toBe(1)
+
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await expect(page.getByText("1 going")).toBeVisible()
+})
+
+test("F-059: 'I'm interested' on a volunteer need tells only the org's team", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  const need = `Dish crew ${id}`
+  await sql`insert into org_needs (org_id, kind, title, help_url) values (${kitchen.id}, 'volunteer', ${need}, 'https://example.org/dish')`
+  await page.goto(`/o/${slug}`)
+  await page.getByRole("button", { name: `I'm interested in ${need}` }).click()
+  await expect(page.getByRole("button", { name: `Interested in ${need}` })).toHaveAttribute("aria-pressed", "true")
+  await expect.poll(async () => (await sql`select count(*)::int n from need_interest i join org_needs n on n.id = i.need_id where n.title = ${need}`)[0].n).toBe(1)
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await expect(page.getByText("1 interested")).toBeVisible()
+})
+
+test("F-060: the giving journal shows news from orgs you gave to, since your gift", async () => {
+  await sql`insert into gifts (user_id, org_id, amount_usd, given_on) values (${userId}, ${HARBOR}, 40, current_date - 30)`
+  await page.goto("/giving")
+  const since = page.getByRole("region", { name: "Since your gifts" })
+  await expect(since.getByRole("link", { name: /Harbor Table/ }).first()).toBeVisible()
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

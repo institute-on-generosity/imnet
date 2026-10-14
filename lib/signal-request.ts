@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 const SignalSchema = z.object({
-  kind: z.enum(["follow", "supporter", "moved", "saved"]),
+  kind: z.enum(["follow", "supporter", "moved", "saved", "rsvp", "interest"]),
   id: z.uuid(),
   on: z.boolean(),
 })

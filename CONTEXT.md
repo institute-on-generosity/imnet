@@ -19,6 +19,8 @@ Domain language for imnet. Use these terms in code, docs and UI. Table names in 
 - **Impact stat**: one number on a profile with a required source link (`impact_stats`). No source, no stat.
 - **Need**: a concrete current ask on a profile (items, volunteers or funding) with a link or email to help (`org_needs`). Marked met, not deleted, so the profile shows asks that worked.
 - **Giving journal**: a donor's private log of gifts they made (`gifts`). Nobody else sees it, including the orgs.
+- **Event**: a volunteer day, open house or gathering an org hosts (`org_events`). RSVPs (`event_rsvps`) are private to the donor and the org's staff.
+- **Volunteer interest**: a donor's private "I'm interested" on an open volunteer need (`need_interest`).
 - **Thank-you note**: private encouragement from a donor to an org's team (`thanks`). Seen only by the author and the org's staff; no counts.
 - **What gifts fund**: plain-language examples of what a donation pays for.
 - **Cause**: a fixed category (`causes`), e.g. hunger, housing. Orgs pick causes; donors list causes they care about.
@@ -135,6 +137,10 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-055 Log this gift.** Signed in, clicking Donate reveals a quiet "Gave? Log it" link to `/giving?org=<id>`, with that org preselected (offered even if you don't follow it). Test: `e2e/signed-in.spec.ts`
 - **F-056 Reports not yet posted.** Foundation dashboards list their confirmed grants with no grant report, oldest first, with "Awarded N months ago". A view for the funder; imnet never chases grantees. Test: `lib/grants.test.ts`, `e2e/signed-in.spec.ts`
 - **F-057 Bigger demo network.** 30 more fictional orgs (22 nonprofits, 8 foundations; 45 total) from `scripts/demo_more_orgs.py`, each with an original logo, mission, sourced stats, posts and needs; 25 more grants (most foundations' grantees, half with reports) and 3 more open calls. 280 more people (400 total) with bios, causes and cause-based follows; earlier people follow some new orgs; ~2,400 follows, ~4,000 private reactions, ~950 saves, 145 thank-you notes, 500 private gift logs. Generated with a separate random stream so earlier demo data is unchanged. No demo org has an Every.org slug (a made-up slug could point at a real org). Test: full e2e suite runs against it
+- **F-058 Events and RSVPs.** Staff add events (title, local date and time, where, optional details) and remove them; the browser's UTC offset travels with the form so "6:30 pm" means the staff member's 6:30 pm, and every viewer sees times in their own zone. Profiles show upcoming events; `/events` lists all upcoming events soonest first with the cause filter; Home's sidebar shows the next three. "Going?" is a private one-click RSVP (keepalive signal): only the donor and the org's staff see it, staff see who's going on the dashboard, no public counts, no RSVPs to past events. Test: `lib/events.test.ts`, `lib/signal-request.test.ts`, `supabase/tests/rls.test.ts`, `e2e/public.spec.ts`, `e2e/signed-in.spec.ts`
+- **F-059 Volunteer interest.** Open volunteer needs get "I'm interested" (private one-click signal) next to Help, on profiles and `/needs`. Staff see "N interested" with names on the dashboard. Only open volunteer needs accept interest. Test: `supabase/tests/rls.test.ts`, `e2e/signed-in.spec.ts`
+- **F-060 Since your gifts.** The giving journal shows recent posts from orgs you logged gifts to, published since your first gift to each. Test: `e2e/signed-in.spec.ts`
+- **F-061 1,000 demo people.** 600 more fictional people (1,000 total) with bios, causes and cause-based follows; 32 upcoming events (Pacific local times) with ~760 RSVPs; ~260 volunteer-interest signals; more notes, gift logs, reactions (~10,700), saves (~2,000) and 30-day analytics (~10,000 events). Separate random stream; earlier data unchanged. Test: full e2e suite runs against it
 
 ### Fixes
 

@@ -254,3 +254,23 @@ test("F-054: Ways to help lists open needs across orgs, filters by cause, and ap
   await side.getByRole("link", { name: "See all needs" }).click()
   await expect(page).toHaveURL(/\/needs$/)
 })
+
+test("F-058: events list soonest first with a cause filter; profiles and Home show upcoming events", async ({ page }) => {
+  await page.goto("/events")
+  await expect(page.getByRole("heading", { name: "Events" })).toBeVisible()
+  const titles = await page.locator("main li p.font-semibold").allTextContents()
+  expect(titles.indexOf("Free screening night")).toBeLessThan(titles.indexOf("Holiday meal packing night"))
+
+  await page.goto("/events?cause=animals")
+  await expect(page.getByText("Adoption day", { exact: true })).toBeVisible()
+  await expect(page.getByText("Free screening night", { exact: true })).toHaveCount(0)
+
+  await page.goto("/o/harbor-table")
+  const panel = page.getByRole("region", { name: "Upcoming events" })
+  await expect(panel.getByText("Community dinner and kitchen tour", { exact: true })).toBeVisible()
+  // Signed out, RSVP leads to sign-in.
+  await expect(panel.getByRole("link", { name: /Going\? to Community dinner and kitchen tour \(sign in\)/ })).toHaveAttribute("href", "/login")
+
+  await page.goto("/")
+  await expect(page.getByRole("region", { name: "Upcoming events" }).getByRole("link", { name: "See all events" })).toBeVisible()
+})

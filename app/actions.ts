@@ -7,6 +7,7 @@ import { draftProfileFromWebsite, fetchWebsiteText, suggestCauses } from "@/lib/
 import { toEmbed } from "@/lib/embeds"
 import { formValues } from "@/lib/form-values"
 import { validateImages } from "@/lib/post-images"
+import { parseEventFields } from "@/lib/events"
 import { parseGiftFields } from "@/lib/gifts"
 import { parseGrantFields } from "@/lib/grants"
 import { parseStatFields } from "@/lib/impact-stat-fields"
@@ -476,4 +477,34 @@ export async function deleteThanks(noteId: string, orgId: string) {
   const supabase = await createClient()
   await supabase.from("thanks").delete().eq("id", noteId)
   revalidatePath(`/dashboard/${orgId}`)
+}
+
+// ---------------------------------------------------------------------------
+// Events (F-058); RSVPs go through /api/signals
+// ---------------------------------------------------------------------------
+export async function addEvent(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const parsed = parseEventFields(
+    {
+      title: String(form.get("title") ?? ""),
+      startsLocal: String(form.get("starts_local") ?? ""),
+      tzOffset: String(form.get("tz_offset") ?? ""),
+      location: String(form.get("location") ?? ""),
+      detail: String(form.get("detail") ?? ""),
+    },
+    new Date(),
+  )
+  if ("error" in parsed) return fail(form, parsed.error)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("org_events").insert({ ...parsed.fields, org_id: orgId }).select("id").single()
+  if (error) return fail(form, error.message)
+  revalidatePath("/", "layout")
+  return { ok: true, id: data.id, message: "Added." }
+}
+
+export async function deleteEvent(eventId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("org_events").delete().eq("id", eventId)
+  revalidatePath("/", "layout")
 }

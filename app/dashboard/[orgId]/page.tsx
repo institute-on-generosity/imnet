@@ -1,11 +1,12 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCauses, getGrantsAwaitingReport, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgEventCounts, getOrgNeeds, getReportableGrants, getThanks } from "@/lib/queries"
+import { getCauses, getGrantsAwaitingReport, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgEventCounts, getEventsForStaff, getInterestForStaff, getOrgNeeds, getReportableGrants, getThanks } from "@/lib/queries"
 import type { ImpactStat, Org } from "@/lib/types"
 import { createClient, getUserId } from "@/lib/supabase/server"
 import { Composer } from "./composer"
 import { ImpactStatsEditor } from "./impact-stats-editor"
+import { EventsEditor } from "./events-editor"
 import { NeedsEditor } from "./needs-editor"
 import { ThanksCard } from "./thanks-card"
 import { PostManager } from "./post-manager"
@@ -80,7 +81,12 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
 
       <Card>
         <CardHeader><CardTitle>Current needs</CardTitle></CardHeader>
-        <CardContent><NeedsEditor orgId={org.id} needs={await getOrgNeeds(org.id)} /></CardContent>
+        <CardContent><NeedsEditor orgId={org.id} needs={await getOrgNeeds(org.id)} interest={Object.fromEntries(await getInterestForStaff(org.id))} /></CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Events</CardTitle></CardHeader>
+        <CardContent><EventsEditor orgId={org.id} events={await getEventsForStaff(org.id)} /></CardContent>
       </Card>
 
       <Card>

@@ -373,24 +373,117 @@ for o, amt, days, note in [(5, 500, 300, "Year-end gift"), (1, 100, 240, None), 
     out.append(f"insert into gifts (user_id, org_id, amount_usd, given_on, note) values ('{DANA}', '{oid(o)}', {amt}, current_date - {days}, {q(note) if note else 'null'});")
 out.append("")
 
+# Demo event times are Pacific local time (the app shows each viewer's own zone).
+# --- Events (F-058), volunteer interest (F-059) and 600 more people ------------------------
+r3 = random.Random(20261016)
+EVENTS = [
+    (1, "Community dinner and kitchen tour", 4, 17, "Harbor Table kitchen, 12 Pier St", "Meet the cooks, see the walk-in freezer, stay for soup."),
+    (1, "Holiday meal packing night", 38, 18, "Harbor Table kitchen, 12 Pier St", "We pack 600 holiday meal boxes. Ages 12 and up."),
+    (2, "Build day: porch and ramp", 9, 8, "1420 Alder Ave", "Tools, lunch and safety training provided."),
+    (3, "Tutor orientation", 22, 18, "Riverbend Branch Library, room B", None),
+    (4, "Trail restoration day", 5, 9, "Greenway trailhead kiosk", "Gloves and tools provided. Wear boots."),
+    (5, "Grantee showcase", 26, 17, "Lakeshore Community Center", "Ten grantees share a year of work. Open to all."),
+    (7, "Adoption day", 3, 11, "Second Chance Paws shelter", None),
+    (8, "Planting day on Delmar Street", 25, 9, "Delmar St and 5th Ave", "Bring water. We bring shovels and saplings."),
+    (9, "Mural unveiling", 12, 16, "Westside underpass, 3rd St", "Our teens' new mural, with music and lemonade."),
+    (10, "Spring registration and gear swap", 16, 10, "Northside Park field house", "Bring outgrown cleats; take what fits."),
+    (11, "Welcome potluck", 7, 18, "Bridge Welcome Center", "Bring a dish from home, any home."),
+    (12, "Volunteer info night", 10, 19, "Online", "Learn about peer support training."),
+    (13, "Little library build day", 19, 10, "Open Shelves workshop, 88 Mill Rd", None),
+    (14, "Free screening night", 2, 17, "Eastside Recreation Center", "Blood pressure and diabetes checks, interpreters on site."),
+    (16, "Ride along: night rescue route", 6, 21, "Eastgate depot, 4 Dock Rd", None),
+    (18, "Tutor training", 13, 18, "Pine Street school library", None),
+    (19, "Creek cleanup", 11, 9, "Mill Creek at Birch Rd bridge", "Waders provided for the first 20 people."),
+    (21, "Move-in kit assembly", 8, 18, "Hearth & Home Shelter, rear entrance", None),
+    (22, "Bird release at the marsh", 15, 8, "Saltmarsh boardwalk parking lot", "Quiet please: watch three recovered herons fly home."),
+    (23, "Student showcase", 20, 18, "Southside Music Lab", None),
+    (24, "Pay-what-you-can dinner", 2, 18, "Shared Table kitchen", "This week: Eritrean lentils and injera."),
+    (26, "Open house for families", 14, 10, "Little Oak Early Learning", None),
+    (28, "Warehouse volunteer shift", 4, 9, "Prairie Wind warehouse, Route 6", "Closed-toe shoes required."),
+    (29, "Opening night: fall show", 18, 19, "Old Mill Community Theater", "Pay what you can at the door."),
+    (31, "Driver orientation", 9, 10, "Hilltop Senior Meals office", None),
+    (32, "October river cleanup", 17, 9, "Canal Street boat launch", None),
+    (33, "Harvest market day", 3, 8, "Saturday market, stall 14", None),
+    (34, "Demo night", 24, 18, "Bright Lines lab, 2nd floor", "Teens present the apps they built this fall."),
+    (36, "Foster orientation", 6, 19, "Online", "Everything you need to foster kittens."),
+    (38, "Neighbor committee open meeting", 21, 18, "Bayside Library community room", None),
+    (41, "Teen grants committee Q&A", 11, 17, "Online", "Ask our teen committee about youth-led grants."),
+    (42, "Community health listening session", 30, 18, "Bellweather Health Trust offices", None),
+]
+out.append("insert into org_events (org_id, title, starts_at, location, detail) values")
+out.append(",\n".join(
+    f"  ('{oid(o)}', {q(t)}, (date_trunc('day', now() at time zone 'America/Los_Angeles') + interval '{d} days {h} hours') at time zone 'America/Los_Angeles', {q(loc)}, {q(det) if det else 'null'})"
+    for o, t, d, h, loc, det in EVENTS) + ";")
+
+BIOS3 = ["Mom of three. We volunteer as a family.", "Grad student. Small gifts, big hopes.", "Firefighter. I've seen what these groups do.",
+         "Accountant by day, food bank sorter by night.", "Pastor. Our congregation gives locally.", "Barista who tips forward.",
+         "Grandparent. I give in my grandkids' names.", "Software engineer, mentor, monthly donor.", "Librarian. Books for everyone.",
+         "I give where I live.", "Bus driver. I know every neighborhood.", "College student organizing a campus giving circle.",
+         "Veterinary tech and shelter volunteer.", "Retired teacher. Still tutoring.", "Union carpenter. Build days are my thing.",
+         None, None, None, None, None]
+FIRST3 = FIRST2 + ["Abel", "Bianca", "Cora", "Dmitri", "Esme", "Femi", "Gwen", "Henrik", "Isla", "Jamal", "Keiko", "Lior", "Mateo",
+                   "Nell", "Otto", "Paloma", "Rhea", "Soren", "Tariq", "Una", "Vik", "Willa", "Yusuf", "Zoe", "Adaeze", "Bao", "Chidi"]
+LAST3 = LAST2 + ["Acosta", "Bauer", "Chowdhury", "Delgado", "Ekstrom", "Ferreira", "Gill", "Holt", "Ito", "Jovanovic", "Kamau",
+                 "Larsen", "Mahmoud", "Nakamura", "Osei", "Pham", "Rahman", "Sandoval", "Thapa", "Ueda", "Varga", "Wong"]
+new_people = []
+for i in range(400, 1000):
+    first, last = r3.choice(FIRST3), r3.choice(LAST3)
+    handle = f"{first}_{last}".lower()[:27]  # handles: a-z, 0-9, _; at most 30 chars
+    while handle in used:
+        handle = f"{first}_{last}".lower()[:27] + str(r3.randint(2, 99))
+    used.add(handle)
+    uid = f"00000000-0000-4000-c000-{i:012d}"
+    new_people.append(uid)
+    bio = r3.choice(BIOS3)
+    out.append(f"insert into auth.users (id, email, aud, role) values ('{uid}', '{handle}@example.com', 'authenticated', 'authenticated');")
+    out.append(f"update profiles set handle = '{handle}', display_name = {q(first + ' ' + last)}, bio = {q(bio) if bio else 'null'}, "
+               f"created_at = now() - interval '{r3.randint(1, 700)} days' where id = '{uid}';")
+    mine = r3.sample(CAUSES, r3.randint(1, 3))
+    for c in mine:
+        out.append(f"insert into profile_causes (user_id, cause_slug) values ('{uid}', '{c}');")
+    pool = [o[0] for o in more.ORGS if set(o[4]) & set(mine)] + [n for n, *_ in NEW_ORGS if set(_[3]) & set(mine)]
+    picks = set(r3.sample(pool, min(len(pool), r3.randint(1, 6)))) | set(r3.sample(EVERY_ORG, r3.randint(0, 3)))
+    for o in picks:
+        out.append(f"insert into follows (user_id, org_id, supporter) values ('{uid}', '{oid(o)}', {'true' if r3.random() < 0.3 else 'false'});")
+people = everyone + new_people
+
+# RSVPs: a handful to dozens per event; "I'm interested" on volunteer needs
+for o, t, *_ in EVENTS:
+    for uid in r3.sample(people, r3.randint(4, 45)):
+        out.append(f"insert into event_rsvps (event_id, user_id) select id, '{uid}' from org_events where org_id = '{oid(o)}' and title = {q(t)};")
+out.append(f"""insert into need_interest (need_id, user_id)
+select n.id, p.id from org_needs n cross join lateral (
+  select id from profiles where id::text like '00000000-0000-4000-c000-%' order by md5(n.id::text || id::text) limit 3 + (abs(hashtext(n.id::text)) % 22)
+) p where n.kind = 'volunteer' and n.met_at is null on conflict do nothing;""")
+
+# More notes and gift logs from the new people
+for _ in range(160):
+    out.append(f"insert into thanks (org_id, user_id, body, created_at) values ('{oid(r3.choice(EVERY_ORG))}', '{r3.choice(new_people)}', "
+               f"{q(r3.choice(NOTES))}, now() - interval '{r3.randint(1, 80)} days');")
+for uid in r3.sample(new_people, 220):
+    for _ in range(r3.randint(1, 5)):
+        out.append(f"insert into gifts (user_id, org_id, amount_usd, given_on) values ('{uid}', '{oid(r3.choice(EVERY_ORG))}', "
+                   f"{r3.choice([5, 10, 20, 25, 50, 50, 75, 100, 150, 250, 500])}, current_date - {r3.randint(1, 500)});")
+out.append("")
+
 # Private reactions and saves, and 30 days of analytics
 out.append(f"""-- "Moved" and saves: random donors on random posts (private; only totals show to staff).
 insert into moved (user_id, post_id)
 select d.id, p.id from posts p cross join lateral (
-  select id from profiles where id::text like '00000000-0000-4000-c000-%' order by md5(id::text || p.id::text) limit (abs(hashtext(p.id::text)) % 70)
+  select id from profiles where id::text like '00000000-0000-4000-c000-%' order by md5(id::text || p.id::text) limit (abs(hashtext(p.id::text)) % 160)
 ) d on conflict do nothing;
 insert into saved_posts (user_id, post_id)
 select d.id, p.id from posts p cross join lateral (
-  select id from profiles where id::text like '00000000-0000-4000-c000-%' order by md5(p.id::text || id::text) limit (abs(hashtext(p.id::text || 's')) % 14)
+  select id from profiles where id::text like '00000000-0000-4000-c000-%' order by md5(p.id::text || id::text) limit (abs(hashtext(p.id::text || 's')) % 30)
 ) d on conflict do nothing;
 
 -- Views, shares and donate clicks over the last 30 days.
 insert into events (type, org_id, post_id, created_at)
 select (array['view','view','view','view','view','view','share','donate_click'])[1 + (abs(hashtext(p.id::text || g::text)) % 8)],
        p.org_id, p.id, now() - make_interval(hours => abs(hashtext(g::text || p.id::text)) % 720)
-  from posts p cross join generate_series(1, 6 + abs(hashtext(p.id::text)) % 40) g;
+  from posts p cross join generate_series(1, 20 + abs(hashtext(p.id::text)) % 120) g;
 """)
 
 open(OUT, "w").write("\n".join(out) + "\n")
 print(f"wrote {os.path.relpath(OUT)}: {len(NEW_ORGS) + len(more.ORGS)} new orgs, {len(POSTS) + sum(len(o[8]) for o in more.ORGS)} posts, "
-      f"{len(GRANTS) + len(more.GRANTS)} grants, {len(donors) + len(more_donors)} donors")
+      f"{len(GRANTS) + len(more.GRANTS)} grants, {len(people)} people, {len(EVENTS)} events")

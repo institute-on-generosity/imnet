@@ -3,10 +3,11 @@ import { redirect } from "next/navigation"
 import { Panel, TwoColumn } from "@/components/shell"
 import { summarize } from "@/lib/gifts"
 import { formatUsd } from "@/lib/grants"
-import { getFollowedOrgs, getGifts, getOrgName } from "@/lib/queries"
+import { getFollowedOrgs, getGifts, getOrgName, getSinceYourGifts } from "@/lib/queries"
 import { todayISO } from "@/lib/open-calls"
 import { getUserId } from "@/lib/supabase/server"
 import { DeleteGift, GiftForm } from "./gift-form"
+import { SinceYourGifts } from "./since-your-gifts"
 
 export const metadata = { title: "Giving journal" }
 
@@ -21,6 +22,7 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
   // Coming from a Donate click: offer that org even if you don't follow it.
   const orgs = preselect && !followed.some((o) => o.id === preselect.id) ? [preselect, ...followed] : followed
   const years = summarize(gifts)
+  const since = await getSinceYourGifts(gifts)
 
   return (
     <TwoColumn>
@@ -37,6 +39,8 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
           <GiftForm orgs={orgs} today={todayISO()} preselect={preselect?.id} />
         )}
       </Panel>
+
+      <SinceYourGifts posts={since} />
 
       {years.map((y) => (
         <Panel key={y.year} aria-labelledby={`y-${y.year}`} className="p-4">

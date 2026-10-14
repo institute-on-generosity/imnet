@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { OrgProfile } from "@/components/org-profile"
 import { decodeCursor } from "@/lib/cursor"
 import { parseOrgTab } from "@/lib/org-tabs"
-import { getFeedPage, getFollow, getGrantsForPosts, getMovedPostIds, getSavedPostIds, getOrgBySlug, getOrgGrants, getOrgNeeds, getPortfolioPosts, getSuggestedOrgs } from "@/lib/queries"
+import { getFeedPage, getFollow, getGrantsForPosts, getMovedPostIds, getSavedPostIds, getOrgBySlug, getOrgGrants, getOrgNeeds, getMyInterestIds, getMyRsvpIds, getUpcomingEvents, getPortfolioPosts, getSuggestedOrgs } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 
 export async function generateMetadata({ params }: PageProps<"/o/[slug]">): Promise<Metadata> {
@@ -25,14 +25,16 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/o/[s
   const cursor = activeTab === "posts" ? decodeCursor(before) : null
 
   const userId = await getUserId()
-  const [page, follow, similar, grants, portfolio, needs] = await Promise.all([
+  const [page, follow, similar, grants, portfolio, needs, events] = await Promise.all([
     getFeedPage({ orgIds: [data.org.id], before: cursor ?? undefined }),
     getFollow(userId, data.org.id),
     getSuggestedOrgs({ userId, cause: data.causes[0]?.slug, excludeId: data.org.id, limit: 4 }),
     getOrgGrants(data.org),
     activeTab === "portfolio" ? getPortfolioPosts(data.org.id) : Promise.resolve([]),
     activeTab === "home" ? getOrgNeeds(data.org.id) : Promise.resolve([]),
+    activeTab === "home" ? getUpcomingEvents({ orgId: data.org.id, limit: 5 }) : Promise.resolve([]),
   ])
+  const [interestIds, rsvpIds] = await Promise.all([getMyInterestIds(userId, needs.map((n) => n.id)), getMyRsvpIds(userId, events.map((e) => e.id))])
   const { posts, next } = page
   const ids = [...posts, ...portfolio].map((p) => p.id)
   const [movedIds, savedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getSavedPostIds(userId, ids), getGrantsForPosts(ids)])
@@ -51,6 +53,9 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/o/[s
       grantsByPost={grantsByPost}
       tab={activeTab}
       needs={needs}
+      interestIds={interestIds}
+      events={events}
+      rsvpIds={rsvpIds}
     />
   )
 }

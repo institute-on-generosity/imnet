@@ -485,3 +485,40 @@ describe("needs, gifts and thank-you notes", () => {
     expect((await t.as(STAFF, `delete from thanks where id = '${id}' returning id`)).rows).toHaveLength(1)
   })
 })
+
+describe("events and volunteer interest", () => {
+  const OTHER = "10000000-0000-4000-8000-0000000000e2"
+  let future = ""
+  let past = ""
+  let volunteer = ""
+  let item = ""
+
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${OTHER}', 'other2.donor@example.com') on conflict do nothing`)
+    future = (await t.as(STAFF, `insert into org_events (org_id, title, starts_at, location) values ('${ORG_1}', 'Volunteer day', now() + interval '7 days', 'Pier St kitchen') returning id`)).rows![0].id as string
+    past = (await t.owner(`insert into org_events (org_id, title, starts_at, location) values ('${ORG_1}', 'Old open house', now() - interval '7 days', 'Pier St') returning id`))[0].id as string
+    volunteer = (await t.as(STAFF, `insert into org_needs (org_id, kind, title, help_url) values ('${ORG_1}', 'volunteer', 'Dishwashers', 'https://x.example.org') returning id`)).rows![0].id as string
+    item = (await t.as(STAFF, `insert into org_needs (org_id, kind, title, help_url) values ('${ORG_1}', 'item', 'Pots', 'https://x.example.org') returning id`)).rows![0].id as string
+  })
+
+  it("F-058: only staff create events; anyone sees them", async () => {
+    expect((await t.as(DONOR, `insert into org_events (org_id, title, starts_at, location) values ('${ORG_1}', 'Fake', now() + interval '1 day', 'Nowhere')`)).error).toMatch(/row-level security/)
+    expect((await t.as(null, `select id from org_events where id = '${future}'`)).rows).toHaveLength(1)
+  })
+
+  it("F-058: RSVPs are private to the donor and the org's staff, and only for upcoming events", async () => {
+    expect((await t.as(DONOR, `insert into event_rsvps (event_id) values ('${future}')`)).error).toBeUndefined()
+    expect((await t.as(DONOR, `insert into event_rsvps (event_id) values ('${past}')`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `insert into event_rsvps (event_id, user_id) values ('${future}', '${OTHER}')`)).error).toMatch(/row-level security/)
+    expect((await t.as(STAFF, `select user_id from event_rsvps where event_id = '${future}'`)).rows).toHaveLength(1)
+    expect((await t.as(OTHER, `select user_id from event_rsvps where event_id = '${future}'`)).rows).toHaveLength(0)
+    expect((await t.as(null, `select user_id from event_rsvps`)).rows ?? []).toHaveLength(0)
+  })
+
+  it("F-059: volunteer interest only on open volunteer needs; seen by the donor and staff only", async () => {
+    expect((await t.as(DONOR, `insert into need_interest (need_id) values ('${volunteer}')`)).error).toBeUndefined()
+    expect((await t.as(DONOR, `insert into need_interest (need_id) values ('${item}')`)).error).toMatch(/row-level security/)
+    expect((await t.as(STAFF, `select user_id from need_interest where need_id = '${volunteer}'`)).rows).toHaveLength(1)
+    expect((await t.as(OTHER, `select user_id from need_interest`)).rows).toHaveLength(0)
+  })
+})

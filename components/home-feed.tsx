@@ -4,10 +4,11 @@ import { decodeCursor } from "@/lib/cursor"
 import { feedHref } from "@/lib/feed-href"
 import { Feed } from "@/components/post-card"
 import { Panel, ThreeColumn } from "@/components/shell"
+import { UpcomingEvents } from "@/components/events-panel"
 import { WaysToHelp } from "@/components/needs-panel"
 import { JoinCard, SuggestedOrgs, ViewerCard } from "@/components/side-cards"
 import { portfolioContext } from "@/lib/portfolio"
-import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getGrantsForPosts, getMovedPostIds, getOpenNeeds, getSavedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
+import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getGrantsForPosts, getMovedPostIds, getMyRsvpIds, getOpenNeeds, getUpcomingEvents, getSavedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
 import { createClient } from "@/lib/supabase/server"
 import { getUserId } from "@/lib/supabase/server"
 import type { OrgType } from "@/lib/types"
@@ -21,16 +22,17 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
   const orgIds = followingOnly && userId ? await getFollowedOrgIds(userId) : undefined
   // Following a foundation also brings in its grantees' grant reports (its portfolio).
   const reportGrantIds = orgIds?.length ? await getConfirmedGrantIds(await foundationsAmong(orgIds)) : []
-  const [viewer, causes, page, suggested, needs] = await Promise.all([
+  const [viewer, causes, page, suggested, needs, events] = await Promise.all([
     getViewer(userId),
     getCauses(),
     orgIds && orgIds.length === 0 ? Promise.resolve({ posts: [], next: null }) : getFeedPage({ cause, orgIds, orgType, reportGrantIds, before: cursor ?? undefined }),
     getSuggestedOrgs({ userId, cause }),
     getOpenNeeds({ cause, limit: 3 }),
+    getUpcomingEvents({ cause, limit: 3 }),
   ])
   const { posts, next } = page
   const ids = posts.map((p) => p.id)
-  const [movedIds, savedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getSavedPostIds(userId, ids), getGrantsForPosts(ids)])
+  const [movedIds, savedIds, grantsByPost, rsvpIds] = await Promise.all([getMovedPostIds(userId, ids), getSavedPostIds(userId, ids), getGrantsForPosts(ids), getMyRsvpIds(userId, events.map((e) => e.id))])
   const context = followingOnly ? portfolioContext(posts, new Set(orgIds)) : undefined
 
   const empty = followingOnly
@@ -46,6 +48,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
         <div className="sticky top-20 space-y-3">
           <SuggestedOrgs title={cause ? "Organizations in this cause" : "Add to your feed"} orgs={suggested} signedIn={!!userId} />
           <WaysToHelp needs={needs} cause={cause} />
+          <UpcomingEvents events={events} rsvpIds={rsvpIds} signedIn={!!userId} cause={cause} />
           <p className="px-4 text-xs leading-relaxed text-muted-foreground">
             Newest first. Never ranked by popularity.
           </p>

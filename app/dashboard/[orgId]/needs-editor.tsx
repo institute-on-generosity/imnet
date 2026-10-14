@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
 const iconBtn = "inline-flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
 
 // Concrete asks on the profile. Mark them met when they are: met needs stay up for a month.
-export function NeedsEditor({ orgId, needs }: { orgId: string; needs: Need[] }) {
+export function NeedsEditor({ orgId, needs, interest }: { orgId: string; needs: Need[]; interest: Record<string, { handle: string; display_name: string | null }[]> }) {
   const [state, action, pending] = useActionState(addNeed.bind(null, orgId), null)
   const v = state?.values
   return (
@@ -24,7 +24,15 @@ export function NeedsEditor({ orgId, needs }: { orgId: string; needs: Need[] }) 
           {needs.map((n) => (
             <li key={n.id} className="flex items-center gap-3 px-3 py-2 text-sm">
               <span className="w-20 shrink-0 text-xs text-muted-foreground">{NEED_KIND_LABEL[n.kind]}</span>
-              <span className={cn("min-w-0 flex-1 truncate", n.met_at && "text-muted-foreground line-through")}>{n.title}</span>
+              <div className="min-w-0 flex-1">
+                <p className={cn("truncate", n.met_at && "text-muted-foreground line-through")}>{n.title}</p>
+                {(interest[n.id]?.length ?? 0) > 0 && (
+                  <details>
+                    <summary className="cursor-pointer text-xs text-leaf">{interest[n.id].length} interested</summary>
+                    <p className="text-xs text-muted-foreground">{interest[n.id].map((p) => p.display_name ?? `@${p.handle}`).join(", ")}</p>
+                  </details>
+                )}
+              </div>
               <form action={setNeedMet.bind(null, n.id, !n.met_at)}>
                 <IconTip label={n.met_at ? `Reopen "${n.title}"` : `Mark "${n.title}" met`}>
                   <button type="submit" className={cn(iconBtn, !n.met_at && "hover:text-leaf")}>
