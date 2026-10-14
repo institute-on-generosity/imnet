@@ -15,7 +15,8 @@ export function CauseFilter({ causes, active, type, basePath }: { causes: Cause[
     <nav aria-label="Filter by cause" className="overflow-x-auto [scrollbar-width:none]">
       <div className="flex w-max gap-1.5">
         <Link href={feedHref(basePath, { type })} className={pill(!active)} aria-current={!active ? "page" : undefined}>All causes</Link>
-        {causes.map((c) => (
+        {/* The selected cause comes first so it's never scrolled out of view. */}
+        {[...causes].sort((a, b) => Number(b.slug === active) - Number(a.slug === active)).map((c) => (
           <Link key={c.slug} href={feedHref(basePath, { cause: c.slug, type })} className={pill(active === c.slug)} aria-current={active === c.slug ? "page" : undefined}>
             {c.name}
           </Link>
