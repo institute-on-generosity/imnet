@@ -8,7 +8,7 @@ export type Comment = {
   donor: boolean
   created_at: string
   user_id: string
-  author: { handle: string; display_name: string | null; bio: string | null }
+  author: { handle: string; display_name: string | null; bio: string | null; avatar_url?: string | null }
 }
 export type Thread = Comment & { replies: Comment[] }
 

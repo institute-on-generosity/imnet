@@ -8,19 +8,13 @@ import { ago, type Comment, type Thread } from "@/lib/comments"
 import type { OrgSummary } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { OrgMark } from "./org-mark"
+import { PersonAvatar } from "./person-avatar"
 
 export type CommentsData = NonNullable<Awaited<ReturnType<typeof loadComments>>>
 type Viewer = CommentsData["viewer"]
 
 const PAGE = 5
 
-function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" }) {
-  return (
-    <span aria-hidden className={cn("grid shrink-0 place-items-center rounded-full bg-leaf-soft font-semibold text-leaf", size === "md" ? "size-10 text-base" : "size-8 text-sm")}>
-      {name.replace("@", "").charAt(0).toUpperCase()}
-    </span>
-  )
-}
 
 // LinkedIn-style comments: composer on top, newest comments first, replies nested one level.
 // No likes and no counts (design principle #4).
@@ -93,7 +87,7 @@ export function CommentItem({ comment: c, org, viewer, isStaff, postId, onChange
   return (
     <div className="flex gap-2">
       <Link href={href} tabIndex={-1} aria-hidden className="shrink-0">
-        {c.as_org ? <OrgMark org={org} size="sm" /> : <Avatar name={name} size={small ? "sm" : "md"} />}
+        {c.as_org ? <OrgMark org={org} size="sm" /> : <PersonAvatar name={name} avatarUrl={c.author.avatar_url} size={small ? "sm" : "md"} />}
       </Link>
       <div className="min-w-0 flex-1">
         <div className="rounded-lg rounded-tl-none bg-muted/70 px-3 py-2">
@@ -153,10 +147,10 @@ function Composer({ postId, org, viewer, isStaff, parent, onPosted, small }: {
     <div className="flex items-start gap-2 py-1">
       {isStaff ? (
         <button type="button" onClick={() => setAsOrg(!asOrg)} aria-label={`Commenting as ${as}. Switch to ${asOrg ? viewer.name : org.name}`} title={`Commenting as ${as}`} className="shrink-0 rounded-full">
-          {asOrg ? <OrgMark org={org} size="sm" /> : <Avatar name={viewer.name} size={small ? "sm" : "md"} />}
+          {asOrg ? <OrgMark org={org} size="sm" /> : <PersonAvatar name={viewer.name} avatarUrl={viewer.avatarUrl} size={small ? "sm" : "md"} />}
         </button>
       ) : (
-        <Avatar name={viewer.name} size={small ? "sm" : "md"} />
+        <PersonAvatar name={viewer.name} avatarUrl={viewer.avatarUrl} size={small ? "sm" : "md"} />
       )}
       <div className="min-w-0 flex-1">
         <div className="flex items-end gap-2 rounded-3xl border bg-background px-4 py-2 focus-within:ring-2 focus-within:ring-ring/50">

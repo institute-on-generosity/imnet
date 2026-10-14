@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { OrgMark } from "@/components/org-mark"
+import { PersonAvatar } from "@/components/person-avatar"
 import { FoundationMark } from "@/components/org-type-badge"
 import { GivingBecame } from "@/components/giving-became"
 import { getActivity, getDonorOrgs, getOrgGrants } from "@/lib/queries"
@@ -16,7 +17,7 @@ async function getProfile(handle: string) {
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, handle, display_name, bio, created_at")
+    .select("id, handle, display_name, bio, created_at, avatar_url")
     .eq("handle", handle)
     .maybeSingle()
   if (!profile) return null
@@ -68,9 +69,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
       <Panel className="overflow-hidden">
         <div className="h-24 bg-gradient-to-r from-leaf-soft via-leaf-soft to-marigold-soft sm:h-32" />
         <div className="px-4 pb-5 sm:px-6">
-          <span aria-hidden className="-mt-12 grid size-24 place-items-center rounded-full border-4 border-card bg-leaf font-heading text-4xl text-white sm:-mt-14 sm:size-28">
-            {name.replace("@", "").charAt(0).toUpperCase()}
-          </span>
+          <PersonAvatar name={name} avatarUrl={profile.avatar_url} size="xl" className="-mt-12 block border-4 border-card bg-card sm:-mt-14" />
           <h1 className="mt-3 text-3xl font-semibold">{name}</h1>
           {profile.bio && <p className="mt-1 max-w-prose text-lg leading-snug text-foreground/80">{profile.bio}</p>}
           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">

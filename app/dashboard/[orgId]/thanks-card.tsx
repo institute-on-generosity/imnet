@@ -2,8 +2,9 @@ import { Trash2 } from "lucide-react"
 import Link from "next/link"
 import { deleteThanks } from "@/app/actions"
 import { IconTip } from "@/components/icon-tip"
+import { PersonAvatar } from "@/components/person-avatar"
 
-type Note = { id: string; body: string; created_at: string; author: { handle: string; display_name: string | null } }
+type Note = { id: string; body: string; created_at: string; author: { handle: string; display_name: string | null; avatar_url: string | null } }
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 
 // Private notes from supporters. Remove any you don't want to keep.
@@ -13,6 +14,7 @@ export function ThanksCard({ orgId, notes }: { orgId: string; notes: Note[] }) {
     <ul className="space-y-3">
       {notes.map((n) => (
         <li key={n.id} className="flex gap-3 rounded-lg border p-3">
+          <PersonAvatar name={n.author.display_name ?? n.author.handle} avatarUrl={n.author.avatar_url} size="md" />
           <div className="min-w-0 flex-1">
             <p className="story whitespace-pre-line">{n.body}</p>
             <p className="mt-1 text-xs text-muted-foreground">

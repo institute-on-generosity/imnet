@@ -531,7 +531,7 @@ export async function loadComments(postId: string) {
     threads: thread(comments),
     isStaff,
     donorHint,
-    viewer: viewer ? { id: viewer.id, handle: viewer.handle, name: viewer.display_name ?? `@${viewer.handle}` } : null,
+    viewer: viewer ? { id: viewer.id, handle: viewer.handle, name: viewer.display_name ?? `@${viewer.handle}`, avatarUrl: viewer.avatar_url } : null,
   }
 }
 

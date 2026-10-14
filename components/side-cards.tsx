@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button"
 import type { OrgSummaryWithMission, Viewer } from "@/lib/queries"
 import { FollowButton } from "./follow-button"
 import { OrgMark } from "./org-mark"
+import { PersonAvatar } from "./person-avatar"
 import { IconTip } from "./icon-tip"
 import { FoundationMark } from "./org-type-badge"
 import { Panel } from "./shell"
@@ -15,9 +16,7 @@ export function ViewerCard({ viewer }: { viewer: Viewer }) {
     <Panel className="overflow-hidden">
       <div className="h-14 bg-leaf-soft" />
       <div className="-mt-8 px-4 pb-4">
-        <span aria-hidden className="grid size-16 place-items-center rounded-full border-4 border-card bg-leaf font-heading text-2xl text-white">
-          {name.replace("@", "").charAt(0).toUpperCase()}
-        </span>
+        <PersonAvatar name={name} avatarUrl={viewer.avatar_url} size="lg" className="size-16 border-4 border-card" />
         <Link href={`/u/${viewer.handle}`} className="mt-2 block font-semibold hover:underline">{name}</Link>
         <p className="text-sm text-muted-foreground">@{viewer.handle}</p>
       </div>

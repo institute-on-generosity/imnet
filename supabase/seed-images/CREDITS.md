@@ -43,3 +43,5 @@ CC BY and CC BY-SA photos require attribution: the credit is stored on each post
 | `mural-pan.webm` | Luis Alvaz | CC BY-SA 4.0 | [Murales de la Avenida Gómez Morín en Aguascalientes](https://commons.wikimedia.org/wiki/File:Murales_de_la_Avenida_G%C3%B3mez_Mor%C3%ADn_en_Aguascalientes_(sin_audio,_velocidad_normal).webm) |
 
 Videos are Commons' 480p VP9 versions. Poster images (`.jpg`) are frames from each video.
+
+People's avatars are illustrations drawn on the fly by `app/avatars/[seed]` with DiceBear (MIT): the "Notionists" style, artwork by Zoish, CC0 1.0 (https://heyzoish.gumroad.com/l/notionists). They are not photos of real people.

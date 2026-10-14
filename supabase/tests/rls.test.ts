@@ -625,3 +625,10 @@ describe("analytics and profile giving", () => {
     expect((await t.as(null, `select name from donor_orgs('${P}')`)).rows).toEqual([{ name: "Harbor Table" }])
   })
 })
+
+describe("avatars", () => {
+  it("F-070: avatar_url can only be our own /avatars/<seed> route", async () => {
+    expect((await t.as(DONOR, `update profiles set avatar_url = 'https://evil.example/pixel.gif' where id = '${DONOR}'`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `update profiles set avatar_url = '/avatars/dana' where id = '${DONOR}' returning avatar_url`)).rows).toEqual([{ avatar_url: "/avatars/dana" }])
+  })
+})

@@ -345,3 +345,12 @@ test("F-066: profiles have About and Activity; opted-in donors show 'Has given t
   const [c] = await sql`select c.body from comments c join profiles pr on pr.id = c.user_id where pr.handle = ${p.handle} and not c.as_org order by c.created_at desc limit 1`
   await expect(page.getByRole("region", { name: "Comments" }).getByText(c.body, { exact: true }).first()).toBeVisible()
 })
+
+test("F-070: people have illustrated avatars served from our own route", async ({ page, request }) => {
+  await page.goto("/u/dana_demo")
+  const avatar = page.locator('img[src="/avatars/dana_demo"]').first()
+  await expect(avatar).toBeVisible()
+  const res = await request.get("/avatars/dana_demo")
+  expect(res.headers()["content-type"]).toContain("image/svg+xml")
+  expect((await request.get("/avatars/" + encodeURIComponent("<script>"))).status()).toBe(404)
+})

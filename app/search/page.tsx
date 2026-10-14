@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { OrgMark } from "@/components/org-mark"
+import { PersonAvatar } from "@/components/person-avatar"
 import { OrgTypeBadge } from "@/components/org-type-badge"
 import { Panel, TwoColumn } from "@/components/shell"
 import { searchOrgs, searchPeople, searchPosts } from "@/lib/queries"
@@ -77,7 +78,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
             return (
               <li key={p.id}>
                 <Link href={`/u/${p.handle}`} className="flex gap-3 px-4 py-3 hover:bg-muted/50">
-                  <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-full bg-leaf-soft text-lg font-semibold text-leaf">{name.replace("@", "").charAt(0).toUpperCase()}</span>
+                  <PersonAvatar name={name} avatarUrl={p.avatar_url} size="lg" />
                   <div className="min-w-0">
                     <p className="font-semibold">{name}</p>
                     <p className="truncate text-sm text-muted-foreground">{p.bio ?? `@${p.handle}`}</p>

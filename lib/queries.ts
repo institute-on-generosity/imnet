@@ -136,6 +136,7 @@ export type Viewer = {
   id: string
   handle: string
   display_name: string | null
+  avatar_url: string | null
   following: number
   causes: Cause[]
 }
@@ -144,7 +145,7 @@ export async function getViewer(userId: string | null): Promise<Viewer | null> {
   if (!userId) return null
   const supabase = await createClient()
   const [{ data: profile }, { count }, { data: causes }] = await Promise.all([
-    supabase.from("profiles").select("id, handle, display_name").eq("id", userId).single(),
+    supabase.from("profiles").select("id, handle, display_name, avatar_url").eq("id", userId).single(),
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("profile_causes").select("cause:causes(slug, name)").eq("user_id", userId),
   ])
@@ -368,11 +369,11 @@ export async function getThanks(orgId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from("thanks")
-    .select("id, body, created_at, author:profiles(handle, display_name)")
+    .select("id, body, created_at, author:profiles(handle, display_name, avatar_url)")
     .eq("org_id", orgId)
     .order("created_at", { ascending: false })
     .limit(30)
-  return (data ?? []) as unknown as { id: string; body: string; created_at: string; author: { handle: string; display_name: string | null } }[]
+  return (data ?? []) as unknown as { id: string; body: string; created_at: string; author: { handle: string; display_name: string | null; avatar_url: string | null } }[]
 }
 
 // The viewer's own gift log (private under RLS), newest first.
@@ -512,7 +513,7 @@ export async function getComments(postId: string): Promise<Comment[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from("comments")
-    .select("id, parent_id, body, as_org, donor, created_at, user_id, author:profiles(handle, display_name, bio)")
+    .select("id, parent_id, body, as_org, donor, created_at, user_id, author:profiles(handle, display_name, bio, avatar_url)")
     .eq("post_id", postId)
     .order("created_at")
     .limit(500)
@@ -550,8 +551,8 @@ export async function getLatestComments(postIds: string[]): Promise<Map<string, 
   if (postIds.length === 0) return new Map()
   const supabase = await createClient()
   const { data } = await supabase.rpc("latest_comments", { post_ids: postIds })
-  type Row = Omit<Comment, "author"> & { post_id: string; handle: string; display_name: string | null; bio: string | null; more: boolean }
-  return new Map(((data ?? []) as Row[]).map(({ handle, display_name, bio, post_id, ...c }) => [post_id, { ...c, author: { handle, display_name, bio } }]))
+  type Row = Omit<Comment, "author"> & { post_id: string; handle: string; display_name: string | null; bio: string | null; avatar_url: string | null; more: boolean }
+  return new Map(((data ?? []) as Row[]).map(({ handle, display_name, bio, avatar_url, post_id, ...c }) => [post_id, { ...c, author: { handle, display_name, bio, avatar_url } }]))
 }
 
 // Profile "Gave to": orgs a person logged gifts to, only if they opted in (names only).
@@ -584,7 +585,7 @@ export async function searchPeople(q: string) {
   if (!e) return []
   const { data } = await supabase
     .from("profiles")
-    .select("id, handle, display_name, bio")
+    .select("id, handle, display_name, bio, avatar_url")
     .or(`display_name.ilike.%${e}%,handle.ilike.%${e}%`)
     .order("display_name")
     .limit(20)
