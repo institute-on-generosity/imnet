@@ -187,8 +187,8 @@ test("F-038: 'I give through this fund' shows what that giving became on the don
   await expect(page.getByRole("heading", { name: "What my giving became" })).toHaveCount(0)
 
   await page.goto("/o/lakeshore-community-foundation")
-  await page.getByRole("button", { name: /Show "I give through this fund" on my public profile/ }).click()
-  await expect(page.getByRole("button", { name: /"I give through this fund" is on your public profile/ })).toBeVisible()
+  await page.getByRole("button", { name: /Show "I give through this fund" on my profile/ }).click()
+  await expect(page.getByRole("button", { name: /"I give through this fund" shown on your profile/ })).toBeVisible()
   await expect.poll(async () => (await sql`select bool_or(supporter) s from follows where user_id = ${userId}`)[0].s).toBe(true)
 
   await page.goto(`/u/${handle}`)
@@ -300,13 +300,13 @@ test("F-045: staff upload a logo; it replaces the monogram and points only at ou
 test("F-046: save a post with the bookmark; it's on /saved; unsave removes it", async () => {
   await page.goto("/o/greenway-stewards")
   const post = page.locator("article").filter({ hasText: "re-cut two miles of eroded trail" }).first()
-  await post.getByRole("button", { name: "Save for later" }).click()
-  await expect(post.getByRole("button", { name: /Saved \(only you can see this\)/ })).toBeVisible()
+  await post.getByRole("button", { name: "Save", exact: true }).click()
+  await expect(post.getByRole("button", { name: /Saved \(private\)/ })).toBeVisible()
   await expect.poll(async () => (await sql`select count(*)::int n from saved_posts where user_id = ${userId}`)[0].n).toBe(1)
 
   await page.goto("/saved")
   await expect(page.getByText("re-cut two miles of eroded trail")).toBeVisible()
-  await page.getByRole("button", { name: /Saved \(only you can see this\)/ }).click()
+  await page.getByRole("button", { name: /Saved \(private\)/ }).click()
   await expect.poll(async () => (await sql`select count(*)::int n from saved_posts where user_id = ${userId}`)[0].n).toBe(0)
   await page.reload()
   await expect(page.getByText("Nothing saved yet.")).toBeVisible()

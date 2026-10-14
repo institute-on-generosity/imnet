@@ -19,14 +19,14 @@ export default async function CallsPage({ searchParams }: PageProps<"/calls">) {
     <TwoColumn
       right={
         <Panel className="p-4 text-sm text-muted-foreground">
-          Open calls are invitations from foundations to apply for grants. imnet links to each foundation&apos;s own application; we don&apos;t handle applications.
+          Foundations&apos; calls for grants. You apply on their site.
         </Panel>
       }
     >
       <Panel className="space-y-3 p-4">
         <div>
           <h1 className="font-sans text-lg font-semibold tracking-normal">Open calls</h1>
-          <p className="text-sm text-muted-foreground">Grants nonprofits can apply for now, soonest deadline first.</p>
+          <p className="text-sm text-muted-foreground">Soonest deadline first.</p>
         </div>
         <CauseFilter causes={causes} active={active} basePath="/calls" />
       </Panel>

@@ -165,7 +165,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
         <>
           <Panel className="p-4 sm:p-6">
             <h2 className="font-sans text-lg font-semibold tracking-normal">Portfolio</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Grant reports from the nonprofits {org.name} funds: what each grant made possible, in the grantee&apos;s own words.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Grant reports from nonprofits {org.name} funds.</p>
           </Panel>
           <Feed posts={portfolio} empty="No grant reports yet. They appear here when grantees post them." movedIds={movedIds} savedIds={savedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
         </>

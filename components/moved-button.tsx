@@ -25,7 +25,7 @@ export function MovedButton({ postId, moved, signedIn = true }: { postId: string
     )
   }
   return (
-    <IconTip label={optimistic ? `This moved you. ${PRIVATE_NOTE}.` : `This moved me. ${PRIVATE_NOTE}.`}>
+    <IconTip label={optimistic ? "This moved you (private)" : "This moved me (private)"}>
       <button
         type="button"
         aria-pressed={optimistic}

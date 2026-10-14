@@ -22,7 +22,7 @@ export function SaveButton({ postId, saved, signedIn }: { postId: string; saved:
   }
   const Icon = on ? BookmarkCheck : Bookmark
   return (
-    <IconTip label={on ? "Saved (only you can see this)" : "Save for later"}>
+    <IconTip label={on ? "Saved (private)" : "Save"}>
       <button
         type="button"
         aria-pressed={on}

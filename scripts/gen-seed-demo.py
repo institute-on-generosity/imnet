@@ -84,7 +84,7 @@ POSTS = [
     (8, "update", "Watering crews are out every Tuesday and Thursday through October. Young trees need about 15 gallons a week.", 12, ["carrying-trees.jpg"]),
     (8, "update", "Our two-year survival rate is 88%, up from 71%. The difference: neighbors who adopt a tree and water it.", 26, ["planting-hillside.jpg"]),
     (8, "ask", "Know a block that bakes in summer? Nominate it for spring planting. Residents choose the species.", 41, []),
-    (9, "impact_story", "Fourteen teens designed and painted the new underpass mural over six Saturdays. It is now the most photographed wall in the neighborhood.", 4.5, ["tunnel-mural.jpg"]),
+    (9, "update", "Mural walk: our teens studied this tunnel mural before sketching their own wall for the underpass. Next step: a community vote on designs.", 4.5, ["tunnel-mural.jpg"]),
     (9, "update", "Guest artist week: muralist Lena Ortiz showed students how to scale a sketch to a 30-foot wall.", 15, ["wall-painting.jpg"]),
     (9, "update", "Fall classes are full, with 84 students. We added a Thursday evening session for the waitlist.", 29, []),
     (9, "ask", "We are out of acrylics and brushes. A $25 kit keeps one student painting all semester.", 52, []),
@@ -104,6 +104,7 @@ POSTS = [
     (13, "ask", "Children's picture books are our most requested and the first to go. Book drive at the library through Friday.", 31, []),
     (14, "impact_story", "At last Thursday's screening night, 112 neighbors had blood pressure checks. 19 were connected to a doctor the same week.", 2.9, []),
     (14, "update", "Our follow-up call team reached 640 people this year who had no regular doctor. Most now do.", 19, []),
+    (14, "update", "Sixteen new community health workers finished training this week: blood pressure, diabetes screening and how to help someone find a doctor.", 9.5, ["health-workers-class.jpg", "health-trainer.jpg"]),
     (14, "update", "Screening nights are now monthly at the Eastside recreation center, with Spanish and Somali interpreters.", 44, []),
     (15, "update", "We're funding peer-led mental health programs this year, because people often reach out first to someone who has been there.", 8, []),
     (1, "update", "The pantry garden is done for the season: 640 pounds of produce this year, all of it on Tuesday shelves within a day of picking.", 21, ["garden-hands.jpg"]),
@@ -115,6 +116,16 @@ POSTS = [
     (4, "ask", "We're short on work gloves in small sizes. Donations at the trailhead kiosk any weekend.", 48, []),
     (5, "update", "Our grants committee read 96 applications this cycle. Every applicant gets written feedback, funded or not.", 18, []),
     (6, "update", "Rapid-response grants are open year round for food programs in the river valley. Most decisions in under three weeks.", 25, []),
+]
+
+# --- Video posts (org, kind, body, days ago, file stem, alt, credit) --------------------
+VIDEO_POSTS = [
+    (1, "update", "Saturday's farm delivery: 1,000 pounds of potatoes, unloaded in twenty minutes and on Tuesday's shelves.", 5.1,
+     "truck-delivery", "A worker unloading sacks of potatoes from a delivery truck", "USDA, public domain, via Wikimedia Commons"),
+    (8, "update", "Bed prep for spring planting: every new tree pit gets loosened soil and compost before it gets a tree.", 8.4,
+     "bed-prep", "A volunteer working soil in a garden bed", "USDA, public domain, via Wikimedia Commons"),
+    (9, "update", "Mural walk, part two: community murals that tell a neighborhood's story. Our teens picked their favorite details for the underpass design.", 11.3,
+     "mural-pan", "A long, colorful community mural along a street", "Luis Alvaz, CC BY-SA 4.0, via Wikimedia Commons"),
 ]
 
 # --- Grants (foundation, grantee, amount, purpose, days ago, report) ---------------------
@@ -169,6 +180,13 @@ for n, kind, body, days, photos in POSTS:
     rows.append(f"  ('{oid(n)}', '{kind}', {q(body)}, {arr(paths)}, {arr(alts)}, {arr(creds)}, {'true' if photos else 'false'}, now() - interval '{days * 24:.0f} hours')")
 out.append("insert into posts (org_id, kind, body, image_paths, image_alts, image_credits, beneficiary_consent, created_at) values")
 out.append(",\n".join(rows) + ";")
+out.append("")
+
+# Native video posts (files in supabase/seed-images/post-videos/<org>/)
+out.append("insert into posts (org_id, kind, body, video_path, video_poster_path, video_alt, video_credit, created_at) values")
+out.append(",\n".join(
+    f"  ('{oid(n)}', '{kind}', {q(body)}, '{oid(n)}/{stem}.webm', '{oid(n)}/{stem}.jpg', {q(alt)}, {q(credit)}, now() - interval '{days * 24:.0f} hours')"
+    for n, kind, body, days, stem, alt, credit in VIDEO_POSTS) + ";")
 out.append("")
 
 # Open call from the new foundation

@@ -17,7 +17,7 @@ export function SupporterToggle({ orgId, orgType, supporter }: { orgId: string; 
   const Icon = on ? Eye : EyeOff
 
   return (
-    <IconTip label={on ? `"${what}" is on your public profile. Click to hide.` : `Show "${what}" on my public profile (self-reported)`}>
+    <IconTip label={on ? `"${what}" shown on your profile` : `Show "${what}" on my profile`}>
       <button
         type="button"
         aria-pressed={on}

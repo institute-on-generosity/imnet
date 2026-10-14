@@ -49,7 +49,7 @@ export function JoinCard() {
   return (
     <Panel className="space-y-3 p-4">
       <p className="font-heading text-lg font-semibold leading-snug">Follow the nonprofits and foundations you care about</p>
-      <p className="text-sm text-muted-foreground">See their stories in one feed, and share the ones that move you.</p>
+      <p className="text-sm text-muted-foreground">Their stories, in one feed.</p>
       <Link href="/login" className={buttonVariants({ className: "w-full" })}>Join now</Link>
     </Panel>
   )

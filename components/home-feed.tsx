@@ -44,7 +44,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
         <div className="sticky top-20 space-y-3">
           <SuggestedOrgs title={cause ? "Organizations in this cause" : "Add to your feed"} orgs={suggested} signedIn={!!userId} />
           <p className="px-4 text-xs leading-relaxed text-muted-foreground">
-            Your feed is newest first. imnet never ranks stories by popularity.
+            Newest first. Never ranked by popularity.
           </p>
         </div>
       }

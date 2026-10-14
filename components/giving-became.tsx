@@ -13,7 +13,7 @@ export function GivingBecame({ funds, isOwn }: { funds: { foundation: OrgSummary
     <Panel className="p-4 sm:p-6">
       <h2 className="font-sans text-lg font-semibold tracking-normal">What {isOwn ? "my" : "their"} giving became</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Grants from funds {isOwn ? "I give" : "they give"} through, confirmed by each nonprofit. Funds are pooled, so this is the fund&apos;s record, not a trace of one gift.
+        Confirmed grants from funds {isOwn ? "I give" : "they give"} through. Pooled: the fund&apos;s record, not one gift.
       </p>
       <div className="mt-4 space-y-5">
         {funds.map(({ foundation, grants }) => {

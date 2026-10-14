@@ -13,7 +13,7 @@ export function GrantsToConfirm({ orgId, grants }: { orgId: string; grants: Gran
     <Card>
       <CardHeader><CardTitle>Grants to confirm</CardTitle></CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">Confirm grants you received. Confirmed grants show on both profiles and on the foundation&apos;s post.</p>
+        <p className="text-sm text-muted-foreground">Confirmed grants show on both profiles.</p>
         {grants.map((g) => (
           <div key={g.id} className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
             <OrgMark org={g.foundation} />

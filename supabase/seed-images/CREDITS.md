@@ -25,6 +25,8 @@ Demo photos and videos for the fictional seed orgs, all openly licensed from Wik
 | `tunnel-mural.jpg` | University of Malta Department of Arts, Open Communities and Adult... | CC BY-SA 4.0 | [University of Malta tunnel mural.jpg](https://commons.wikimedia.org/wiki/File:University_of_Malta_tunnel_mural.jpg) |
 | `wall-painting.jpg` | Антон Хлабов | CC BY-SA 4.0 | [The End. Wall Painting.jpg](https://commons.wikimedia.org/wiki/File:The_End._Wall_Painting.jpg) |
 | `garden-hands.jpg` | Caitlin Purdome, U.S. Forest Service | Public domain | [Tlingit potato community garden - Tongass National Forest.jpg](https://commons.wikimedia.org/wiki/File:Tlingit_potato_community_garden_-_Tongass_National_Forest.jpg) |
+| `health-workers-class.jpg` | Ness Kerson/madNESS Photography for AusAID | CC BY-SA 4.0 | [Physiotherapist Saimonah Mokupe teaches a class of community health workers](https://commons.wikimedia.org/wiki/File:Physiotherapist_Saimonah_Mokupe_teaches_a_class_of_community_health_workers_(10713204286).jpg) |
+| `health-trainer.jpg` | Ness Kerson/madNESS Photography for AusAID | CC BY-SA 4.0 | [Physiotherapist Saimonah Mokupe teaches a class of community health workers](https://commons.wikimedia.org/wiki/File:Physiotherapist_Saimonah_Mokupe_teaches_a_class_of_community_health_workers_(10713202844).jpg) |
 
 CC BY and CC BY-SA photos require attribution: the credit is stored on each post (`posts.image_credits`) and shown under the photo.
 
@@ -35,5 +37,9 @@ CC BY and CC BY-SA photos require attribution: the credit is stored on each post
 | `garden-harvest.webm` | USDA | Public domain | [People's Garden Volunteers (20220922-FPAC-LSC-0044)](https://commons.wikimedia.org/wiki/File:People%27s_Garden_Volunteers_(20220922-FPAC-LSC-0044).webm) |
 | `trail-crew.webm` | BLM Oregon & Washington | Public domain | [2015 National Public Lands Day at Fishtrap Recreation Area, Washington](https://commons.wikimedia.org/wiki/File:2015_National_Public_Lands_Day_at_Fishtrap_Recreation_Area,_Washington_(21243639374).webm) |
 | `fence-removal.webm` | BLM Oregon & Washington | Public domain | [National Public Lands Day 2017 at Devils Garden](https://commons.wikimedia.org/wiki/File:National_Public_Lands_Day_2017_at_Devils_Garden_(36808901483).webm) |
+
+| `truck-delivery.webm` | USDA | Public domain | [Half-ton of Spuds from Feds Feed Families](https://commons.wikimedia.org/wiki/File:Half-ton_of_Spuds_from_Feds_Feed_Families_(20120820-OSEC-LSC-9002).webm) |
+| `bed-prep.webm` | USDA | Public domain | [People's Garden Volunteers (20220922-FPAC-LSC-0088)](https://commons.wikimedia.org/wiki/File:People%27s_Garden_Volunteers_(20220922-FPAC-LSC-0088).webm) |
+| `mural-pan.webm` | Luis Alvaz | CC BY-SA 4.0 | [Murales de la Avenida Gómez Morín en Aguascalientes](https://commons.wikimedia.org/wiki/File:Murales_de_la_Avenida_G%C3%B3mez_Mor%C3%ADn_en_Aguascalientes_(sin_audio,_velocidad_normal).webm) |
 
 Videos are Commons' 480p VP9 versions. Poster images (`.jpg`) are frames from each video.
