@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getCauses, getGrantsAwaitingReport, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgDaily, getOrgTopPosts, getEventsForStaff, getInterestForStaff, getOrgNeeds, getReportableGrants, getThanks } from "@/lib/queries"

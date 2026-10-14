@@ -1,5 +1,5 @@
 import { UserPlus } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { notFound } from "next/navigation"
 import { acceptInvite } from "@/app/actions"
 import { Panel } from "@/components/shell"

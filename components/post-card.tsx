@@ -1,6 +1,6 @@
 import { Earth } from "lucide-react"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { getFollowedOrgIds, getFollowerCounts, getLatestComments } from "@/lib/queries"
 import type { Comment } from "@/lib/comments"
 import { getUserId } from "@/lib/supabase/server"

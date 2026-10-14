@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { cache } from "react"
 
 export async function createClient() {
   const cookieStore = await cookies()
@@ -26,9 +27,10 @@ export async function createClient() {
   )
 }
 
-// Verified current user id, or null. Uses getClaims(), which validates the JWT.
-export async function getUserId() {
+// Verified current user id, or null. Uses getClaims(), which validates the JWT. Cached for the
+// request: the header, page and feed all ask, and validation can be a round trip to auth.
+export const getUserId = cache(async () => {
   const supabase = await createClient()
   const { data } = await supabase.auth.getClaims()
   return (data?.claims?.sub as string | undefined) ?? null
-}
+})

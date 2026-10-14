@@ -1,5 +1,5 @@
 import { PenLine } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { OrgMark } from "@/components/org-mark"
 import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { formatUsd, grantTotals } from "@/lib/grants"
 import type { Grant, GrantReport, Org } from "@/lib/types"
 import { OrgMark } from "./org-mark"

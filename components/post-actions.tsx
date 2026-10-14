@@ -1,7 +1,8 @@
 "use client"
 
 import { Bookmark, BookmarkCheck, Check, HandHeart, MessageCircle, Send } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
+import { useRouter } from "next/navigation"
 import { useOptimistic, useState, useTransition } from "react"
 import { logEvent } from "@/app/actions"
 import { sendSignal } from "@/lib/send-signal"
@@ -22,11 +23,14 @@ export function PostActions({ postId, org, moved, saved, signedIn, full, comment
   const [isSaved, setSaved] = useOptimistic(saved)
   const [copied, setCopied] = useState(false)
   const [, start] = useTransition()
+  const router = useRouter()
 
+  // After the signal lands, refresh in the background: clears prefetched pages so Saved etc. are current.
   const toggle = (kind: "moved" | "saved", on: boolean, set: (v: boolean) => void) =>
     start(async () => {
       set(on)
       await sendSignal({ kind, id: postId, on }).catch(() => {})
+      router.refresh()
     })
 
   async function share() {

@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { buttonVariants } from "@/components/ui/button"
 
 // Explicit paging instead of infinite scroll (design principle #4: no engineered loops).

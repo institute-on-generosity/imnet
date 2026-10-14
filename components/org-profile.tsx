@@ -1,5 +1,5 @@
 import { BadgeCheck, HandHeart, Plus } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { DonateButton } from "@/components/donate-button"
 import { FollowButton } from "@/components/follow-button"
 import { OrgMark } from "@/components/org-mark"

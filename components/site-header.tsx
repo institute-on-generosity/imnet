@@ -1,5 +1,5 @@
 import { LogOut, Search } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { signOut } from "@/app/actions"
 import { buttonVariants } from "@/components/ui/button"
 import { hasUnread } from "@/lib/notifications"
@@ -12,13 +12,14 @@ export async function SiteHeader() {
   const userId = await getUserId()
   let handle: string | null = null
   let avatar: string | null = null
-  let unread = false
+  let unread: Promise<boolean> | false = false
   if (userId) {
     const supabase = await createClient()
     const { data } = await supabase.from("profiles").select("handle, avatar_url").eq("id", userId).single()
     handle = data?.handle ?? null
     avatar = data?.avatar_url ?? null
-    unread = await hasUnread(userId)
+    // Not awaited: the dot streams in, so the header (and page) never wait on notifications.
+    unread = hasUnread(userId)
   }
 
   return (

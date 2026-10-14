@@ -1,5 +1,5 @@
 import { BadgeCheck, Globe } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { footnotes } from "@/lib/footnotes"
 import { formatUsd } from "@/lib/grants"
 import type { Grant, ImpactStat, Org, OrgSummary } from "@/lib/types"

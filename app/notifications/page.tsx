@@ -1,5 +1,5 @@
 import { BadgeCheck, FileText, HandCoins, HeartHandshake, Megaphone, MessageCircle, UserPlus } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { redirect } from "next/navigation"
 import { Panel, TwoColumn } from "@/components/shell"
 import { getNotifications } from "@/lib/notifications"

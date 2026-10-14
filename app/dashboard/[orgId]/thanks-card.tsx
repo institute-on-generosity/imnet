@@ -1,5 +1,5 @@
 import { Trash2 } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { deleteThanks } from "@/app/actions"
 import { IconTip } from "@/components/icon-tip"
 import { PersonAvatar } from "@/components/person-avatar"

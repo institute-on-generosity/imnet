@@ -1,7 +1,7 @@
 "use client"
 
 import { HandHeart } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { useEffect, useRef, useState, useTransition } from "react"
 import { deleteComment, loadComments, postComment } from "@/app/actions"
 import { ago, type Comment, type Thread } from "@/lib/comments"

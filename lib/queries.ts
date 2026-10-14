@@ -95,11 +95,12 @@ export async function getPost(id: string): Promise<Post | null> {
   return data as unknown as Post | null
 }
 
-export async function getFollowedOrgIds(userId: string): Promise<string[]> {
+// Cached per request (feeds, cards and headers all ask).
+export const getFollowedOrgIds = cache(async (userId: string): Promise<string[]> => {
   const supabase = await createClient()
   const { data } = await supabase.from("follows").select("org_id").eq("user_id", userId)
   return (data ?? []).map((f) => f.org_id)
-}
+})
 
 export function postVideoUrl(path: string) {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-videos/${path}`
@@ -141,7 +142,7 @@ export type Viewer = {
   causes: Cause[]
 }
 
-export async function getViewer(userId: string | null): Promise<Viewer | null> {
+export const getViewer = cache(async (userId: string | null): Promise<Viewer | null> => {
   if (!userId) return null
   const supabase = await createClient()
   const [{ data: profile }, { count }, { data: causes }] = await Promise.all([
@@ -155,7 +156,7 @@ export async function getViewer(userId: string | null): Promise<Viewer | null> {
     following: count ?? 0,
     causes: ((causes ?? []) as unknown as { cause: Cause }[]).map((c) => c.cause),
   }
-}
+})
 
 // Orgs to follow: verified, not already followed, optionally within one cause.
 // Alphabetical, not popularity-ranked (design principle #4).

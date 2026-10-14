@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { notFound } from "next/navigation"
 import { OrgMark } from "@/components/org-mark"
 import { PostCard } from "@/components/post-card"

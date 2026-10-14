@@ -1,5 +1,5 @@
 import { Bookmark, NotebookPen, Plus } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { buttonVariants } from "@/components/ui/button"
 import type { OrgSummaryWithMission, Viewer } from "@/lib/queries"
 import { FollowButton } from "./follow-button"

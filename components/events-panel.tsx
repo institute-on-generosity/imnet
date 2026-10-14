@@ -1,5 +1,5 @@
 import { MapPin } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import type { EventWithOrg, OrgEvent } from "@/lib/events"
 import { cn } from "@/lib/utils"
 import { LocalTime } from "./local-time"

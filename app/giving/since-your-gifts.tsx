@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { OrgMark } from "@/components/org-mark"
 import { Panel } from "@/components/shell"
 import type { OrgSummary } from "@/lib/types"

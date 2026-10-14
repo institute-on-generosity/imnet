@@ -1,7 +1,7 @@
 "use client"
 
 import { Check, Pencil, Trash2, X } from "lucide-react"
-import Link from "next/link"
+import Link from "@/components/intent-link"
 import { useActionState, useState } from "react"
 import { deletePost, updatePostBody } from "@/app/actions"
 import { IconTip } from "@/components/icon-tip"
