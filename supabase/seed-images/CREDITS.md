@@ -1,6 +1,6 @@
 # Seed image credits
 
-Demo photos and videos for the fictional seed orgs, all openly licensed from Wikimedia Commons. They show volunteers at work, animals and places, not the people being served. Org logos (`*/logo.png`) are original marks for these fictional orgs, drawn as SVG in `scripts/gen-logos.mjs`.
+Demo photos and videos for the fictional seed orgs, all openly licensed from Wikimedia Commons. They show volunteers at work, animals and places, not the people being served. Org logos (`*/logo.png`) are original marks for these fictional orgs, drawn as SVG with wordmarks set in Google Fonts (SIL Open Font License) by `scripts/gen-logos.mjs`.
 
 ## Photos
 
