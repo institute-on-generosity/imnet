@@ -1,5 +1,6 @@
 import { cache } from "react"
 import { type Cursor, encodeCursor, olderThan } from "@/lib/cursor"
+import type { Comment } from "@/lib/comments"
 import type { EventWithOrg, OrgEvent } from "@/lib/events"
 import type { Gift } from "@/lib/gifts"
 import { MET_SHOWN_DAYS, type Need, type NeedWithOrg } from "@/lib/needs"
@@ -495,18 +496,24 @@ export async function getSinceYourGifts(gifts: Gift[]) {
     .slice(0, 8)
 }
 
-export type Comment = { id: string; body: string; as_org: boolean; created_at: string; user_id: string; author: { handle: string; display_name: string | null } }
-
-// A post's comments, oldest first (a conversation reads top to bottom). Public when the post is.
+// A post's comments (threaded by the caller). Public when the post is.
 export async function getComments(postId: string): Promise<Comment[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from("comments")
-    .select("id, body, as_org, created_at, user_id, author:profiles(handle, display_name)")
+    .select("id, parent_id, body, as_org, created_at, user_id, author:profiles(handle, display_name, bio)")
     .eq("post_id", postId)
     .order("created_at")
-    .limit(200)
+    .limit(500)
   return (data ?? []) as unknown as Comment[]
+}
+
+// "N followers" in post headers, for several orgs at once.
+export async function getFollowerCounts(orgIds: string[]): Promise<Map<string, number>> {
+  if (orgIds.length === 0) return new Map()
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("follower_counts", { targets: [...new Set(orgIds)] })
+  return new Map(((data ?? []) as { org_id: string; n: number }[]).map((r) => [r.org_id, Number(r.n)]))
 }
 
 export async function isOrgStaff(userId: string | null, orgId: string): Promise<boolean> {

@@ -1,34 +1,44 @@
-import { ArrowUpRight, MessageCircle } from "lucide-react"
-import Link from "next/link"
+import { Earth } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
+import { getFollowedOrgIds, getFollowerCounts } from "@/lib/queries"
+import { getUserId } from "@/lib/supabase/server"
 import type { Grant, OrgSummary, Post } from "@/lib/types"
 import { ExpandableText } from "./expandable-text"
+import { FollowLink } from "./follow-link"
+import { PostActions } from "./post-actions"
+import type { CommentsData } from "./post-comments"
+import { PostMenu } from "./post-menu"
 import { GrantChips } from "./grant-chips"
 import { GrantReportBanner } from "./grant-report-banner"
-import { MovedButton } from "./moved-button"
 import { OpenCallBlock } from "./open-call-block"
-import { SaveButton } from "./save-button"
 import { OrgMark } from "./org-mark"
 import { FoundationMark } from "./org-type-badge"
-import { IconTip } from "./icon-tip"
 import { PostKindLabel } from "./post-kind"
 import { PostMedia } from "./post-media"
-import { ShareButton } from "./share-button"
 import { Panel } from "./shell"
 
 const relative = (iso: string) => {
-  const days = Math.floor((Date.parse(new Date().toISOString()) - Date.parse(iso)) / 86_400_000)
-  if (days < 1) return "Today"
+  const mins = Math.floor((Date.now() - Date.parse(iso)) / 60_000)
+  if (mins < 60) return `${Math.max(mins, 1)}m`
+  if (mins < 1440) return `${Math.floor(mins / 60)}h`
+  const days = Math.floor(mins / 1440)
   if (days < 7) return `${days}d`
   if (days < 30) return `${Math.floor(days / 7)}w`
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
+const followersLabel = (n: number) => `${n.toLocaleString("en-US")} ${n === 1 ? "follower" : "followers"}`
 
 // context: the followed foundation this post appears for (portfolio), shown above the header.
-type CardProps = { post: Post; full?: boolean; moved?: boolean; saved?: boolean; signedIn?: boolean; grants?: Grant[]; context?: OrgSummary }
+// following: undefined hides the header's Follow button (signed out, or on the org's own page).
+type CardProps = {
+  post: Post; full?: boolean; moved?: boolean; saved?: boolean; signedIn?: boolean; grants?: Grant[]; context?: OrgSummary
+  followers?: number; following?: boolean; comments?: CommentsData
+}
 
-// A LinkedIn-style post: author header, text with "see more", media, then an action bar.
-export function PostCard({ post, full = false, moved = false, saved = false, signedIn = false, grants = [], context }: CardProps) {
+// A LinkedIn post: author header (followers, time, Follow, ⋯), text with "…more", media,
+// then the Moved · Comment · Share · Save bar and an inline comment thread. No counts.
+export function PostCard({ post, full = false, moved = false, saved = false, signedIn = false, grants = [], context, followers, following, comments }: CardProps) {
   return (
     <article className="rounded-xl border bg-card">
       {context && (
@@ -37,19 +47,32 @@ export function PostCard({ post, full = false, moved = false, saved = false, sig
           <Link href={`/o/${context.slug}`} className="font-medium text-foreground hover:underline">{context.name}</Link>, which you follow
         </p>
       )}
-      <header className="flex items-start gap-3 px-4 pt-4">
-        <Link href={`/o/${post.org.slug}`} tabIndex={-1} aria-hidden><OrgMark org={post.org} size="md" /></Link>
+      <header className="flex items-start gap-2 px-4 pt-3">
+        <Link href={`/o/${post.org.slug}`} tabIndex={-1} aria-hidden className="mt-0.5"><OrgMark org={post.org} size="md" /></Link>
         <div className="min-w-0 flex-1 leading-tight">
           <div className="flex min-w-0 items-center gap-1.5">
             <Link href={`/o/${post.org.slug}`} className="truncate font-semibold hover:text-leaf hover:underline">{post.org.name}</Link>
             {post.org.org_type === "foundation" && <FoundationMark />}
           </div>
-          <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+          {followers !== undefined && <p className="mt-0.5 truncate text-xs text-muted-foreground">{followersLabel(followers)}</p>}
+          <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
             <PostKindLabel kind={post.kind} />
-            <time dateTime={post.created_at}>{relative(post.created_at)}</time>
-            {post.edited_at && <span title={`Edited ${new Date(post.edited_at).toLocaleString("en-US")}`}>Edited</span>}
+            <span aria-hidden>•</span>
+            <Link href={`/p/${post.id}`} aria-label={`${relative(post.created_at)} ago, open post`} className="hover:text-leaf hover:underline">
+              <time dateTime={post.created_at}>{relative(post.created_at)}</time>
+            </Link>
+            {post.edited_at && (
+              <>
+                <span aria-hidden>•</span>
+                <span title={`Edited ${new Date(post.edited_at).toLocaleString("en-US")}`}>Edited</span>
+              </>
+            )}
+            <span aria-hidden>•</span>
+            <Earth className="size-3" aria-label="Public" />
           </p>
         </div>
+        {following !== undefined && <FollowLink orgId={post.org.id} orgName={post.org.name} following={following} />}
+        <PostMenu postId={post.id} signedIn={signedIn} />
       </header>
 
       {post.report_grant && <GrantReportBanner grant={post.report_grant} />}
@@ -66,35 +89,35 @@ export function PostCard({ post, full = false, moved = false, saved = false, sig
       <PostMedia post={post} />
       <GrantChips grants={grants} />
 
-      <footer className="mt-2 flex items-center gap-0.5 px-2 pb-1.5">
-        <MovedButton postId={post.id} moved={moved} signedIn={signedIn} />
-        <IconTip label="Comments">
-          <Link href={`/p/${post.id}#comments`} className="inline-flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted">
-            <MessageCircle className="size-5" aria-hidden />
-          </Link>
-        </IconTip>
-        <ShareButton path={`/p/${post.id}`} title={`${post.org.name} on imnet`} orgId={post.org_id} postId={post.id} />
-        <SaveButton postId={post.id} saved={saved} signedIn={signedIn} />
-        {!full && (
-          <IconTip label="Open post">
-            <Link href={`/p/${post.id}`} className="ml-auto inline-flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted">
-              <ArrowUpRight className="size-5" aria-hidden />
-            </Link>
-          </IconTip>
-        )}
-      </footer>
+      <div className="mt-2">
+        <PostActions postId={post.id} org={post.org} moved={moved} saved={saved} signedIn={signedIn} full={full} comments={comments} />
+      </div>
     </article>
   )
 }
 
 type FeedProps = { posts: Post[]; empty: React.ReactNode; movedIds?: Set<string>; savedIds?: Set<string>; signedIn?: boolean; grantsByPost?: Map<string, Grant[]>; context?: Map<string, OrgSummary> }
 
-export function Feed({ posts, empty, movedIds, savedIds, signedIn = false, grantsByPost, context }: FeedProps) {
+// Fetches the header details (follower counts, whether you follow) for the whole page at once.
+export async function Feed({ posts, empty, movedIds, savedIds, signedIn = false, grantsByPost, context, hideFollow }: FeedProps & { hideFollow?: boolean }) {
   if (posts.length === 0) return <Panel className="p-6 text-muted-foreground">{empty}</Panel>
+  const userId = signedIn ? await getUserId() : null
+  const [counts, followed] = await Promise.all([getFollowerCounts(posts.map((p) => p.org_id)), userId ? getFollowedOrgIds(userId) : Promise.resolve([])])
+  const followedSet = new Set(followed)
   return (
     <div className="space-y-3">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} moved={movedIds?.has(post.id)} saved={savedIds?.has(post.id)} signedIn={signedIn} grants={grantsByPost?.get(post.id)} context={context?.get(post.id)} />
+        <PostCard
+          key={post.id}
+          post={post}
+          moved={movedIds?.has(post.id)}
+          saved={savedIds?.has(post.id)}
+          signedIn={signedIn}
+          grants={grantsByPost?.get(post.id)}
+          context={context?.get(post.id)}
+          followers={counts.get(post.org_id) ?? 0}
+          following={userId && !hideFollow ? followedSet.has(post.org_id) : undefined}
+        />
       ))}
     </div>
   )

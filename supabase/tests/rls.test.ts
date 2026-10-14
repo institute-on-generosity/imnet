@@ -554,3 +554,18 @@ describe("comments", () => {
     expect((await t.as(STAFF, `delete from comments where id = '${id}' returning id`)).rows).toHaveLength(1)
   })
 })
+
+describe("comment replies", () => {
+  it("F-063: replies stay on the parent's post and one level deep", async () => {
+    const a = (await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'post a') returning id`))[0].id
+    const b = (await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'post b') returning id`))[0].id
+    const top = (await t.as(DONOR, `insert into comments (post_id, body) values ('${a}', 'top') returning id`)).rows![0].id
+    const reply = await t.as(STAFF, `insert into comments (post_id, body, parent_id, as_org) values ('${a}', 'thanks', '${top}', true) returning id`)
+    expect(reply.error).toBeUndefined()
+    expect((await t.as(DONOR, `insert into comments (post_id, body, parent_id) values ('${b}', 'wrong post', '${top}')`)).error).toMatch(/same post/)
+    expect((await t.as(DONOR, `insert into comments (post_id, body, parent_id) values ('${a}', 'too deep', '${reply.rows![0].id}')`)).error).toMatch(/one level/)
+    // Removing a comment removes its replies.
+    await t.as(DONOR, `delete from comments where id = '${top}'`)
+    expect(await t.owner(`select 1 from comments where parent_id = '${top}'`)).toHaveLength(0)
+  })
+})

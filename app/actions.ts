@@ -7,6 +7,7 @@ import { draftProfileFromWebsite, fetchWebsiteText, suggestCauses } from "@/lib/
 import { toEmbed } from "@/lib/embeds"
 import { formValues } from "@/lib/form-values"
 import { validateImages } from "@/lib/post-images"
+import { thread } from "@/lib/comments"
 import { parseEventFields } from "@/lib/events"
 import { parseGiftFields } from "@/lib/gifts"
 import { parseGrantFields } from "@/lib/grants"
@@ -17,6 +18,7 @@ import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
 import { todayISO } from "@/lib/open-calls"
 import { safeNext } from "@/lib/safe-next"
 import { escapeLike } from "@/lib/search"
+import { getComments, getPost, getViewer, isOrgStaff } from "@/lib/queries"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
 // values: what the user typed, sent back on error so forms can refill (React 19 resets forms after an action).
@@ -512,19 +514,31 @@ export async function deleteEvent(eventId: string) {
 // ---------------------------------------------------------------------------
 // Comments (F-062)
 // ---------------------------------------------------------------------------
-export async function addComment(postId: string, _: ActionState, form: FormData): Promise<ActionState> {
+// Load a post's thread plus who is viewing (for the composer's avatar and "comment as" switch).
+export async function loadComments(postId: string) {
+  const userId = await getUserId()
+  const post = await getPost(postId)
+  if (!post) return null
+  const [comments, isStaff, viewer] = await Promise.all([getComments(postId), isOrgStaff(userId, post.org_id), getViewer(userId)])
+  return {
+    threads: thread(comments),
+    isStaff,
+    viewer: viewer ? { id: viewer.id, handle: viewer.handle, name: viewer.display_name ?? `@${viewer.handle}` } : null,
+  }
+}
+
+export async function postComment(input: { postId: string; parentId?: string | null; body: string; asOrg?: boolean }): Promise<{ error?: string }> {
   await requireUser()
-  const body = z.string().trim().min(1, "Write a comment first.").max(1000, "Keep it under 1,000 characters.").safeParse(form.get("body"))
-  if (!body.success) return fail(form, body.error.issues[0].message)
+  const body = z.string().trim().min(1, "Write a comment first.").max(1000, "Keep it under 1,000 characters.").safeParse(input.body)
+  if (!body.success) return { error: body.error.issues[0].message }
+  if (input.parentId && !/^[0-9a-f-]{36}$/.test(input.parentId)) return { error: "That comment is gone." }
   const supabase = await createClient()
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("comments")
-    .insert({ post_id: postId, body: body.data, as_org: form.get("as_org") === "on" })
-    .select("id")
-    .single()
-  if (error) return fail(form, error.message.includes("row-level security") ? "You can't comment on this post." : error.message)
-  revalidatePath(`/p/${postId}`)
-  return { ok: true, id: data.id }
+    .insert({ post_id: input.postId, parent_id: input.parentId ?? null, body: body.data, as_org: !!input.asOrg })
+  if (error) return { error: error.message.includes("row-level security") ? "You can't comment on this post." : error.message }
+  revalidatePath(`/p/${input.postId}`)
+  return {}
 }
 
 export async function deleteComment(commentId: string, postId: string) {

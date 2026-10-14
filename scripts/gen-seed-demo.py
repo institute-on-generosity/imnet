@@ -498,6 +498,9 @@ REPLIES = [
     "Our volunteers will be so happy to read this.", "Thank you. Every gift really does add up.",
     "Yes! Send us a note through the Help link and we'll get you started.", "Grateful for you. See you soon.",
 ]
+PEER = ["Couldn't agree more.", "Same here!", "See you there!", "This is exactly why I started volunteering too.",
+        "Well said.", "Thanks for sharing that.", "I'm going Saturday too. Say hi!", "Love this.", "So true.",
+        "My family feels the same way.", "Their volunteer orientation is great, highly recommend.", "Yes! Signed up after reading this."]
 def sql_arr(xs):
     return "array[" + ", ".join(q(x) for x in xs) + "]"
 out.append(f"""-- Comments: 2 to 29 people per post, spread between the post time and now.
@@ -516,13 +519,25 @@ select p.id, d.id,
   ) d
  where p.published;
 
--- Team replies on about half the posts that have comments, after the latest comment.
-insert into comments (post_id, user_id, body, as_org, created_at)
-select p.id, m.user_id, ({sql_arr(REPLIES)})[1 + abs(hashtext(p.id::text || 'reply')) % {len(REPLIES)}], true,
-       least(now() - interval '5 minutes', (select max(created_at) from comments c where c.post_id = p.id) + interval '3 hours')
-  from posts p
+-- Team replies (LinkedIn "Author" replies) under one or two comments on about half the posts.
+insert into comments (post_id, parent_id, user_id, body, as_org, created_at)
+select c.post_id, c.id, m.user_id, ({sql_arr(REPLIES)})[1 + abs(hashtext(c.id::text || 'reply')) % {len(REPLIES)}], true,
+       least(now() - interval '5 minutes', c.created_at + interval '2 hours')
+  from (select c.*, row_number() over (partition by post_id order by md5(id::text)) rn from comments c) c
+  join posts p on p.id = c.post_id
   cross join lateral (select user_id from org_members where org_id = p.org_id order by created_at, user_id limit 1) m
- where abs(hashtext(p.id::text || 'reply')) % 10 < 5 and exists (select 1 from comments c where c.post_id = p.id);
+ where c.rn <= 1 + abs(hashtext(p.id::text)) % 2 and abs(hashtext(p.id::text || 'reply')) % 10 < 5;
+
+-- People reply to each other under about one comment in six.
+insert into comments (post_id, parent_id, user_id, body, created_at)
+select c.post_id, c.id, r.id, ({sql_arr(PEER)})[1 + abs(hashtext(c.id::text || r.id::text)) % {len(PEER)}],
+       least(now() - interval '2 minutes', c.created_at + make_interval(mins => 10 + abs(hashtext(c.id::text || 'peer')) % 600))
+  from comments c
+  cross join lateral (
+    select id from profiles where id::text like '00000000-0000-4000-c000-%' and id <> c.user_id
+     order by md5(c.id::text || id::text) limit 1 + abs(hashtext(c.id::text || 'n')) % 2
+  ) r
+ where c.parent_id is null and not c.as_org and abs(hashtext(c.id::text || 'peer')) % 6 = 0;
 """)
 
 # Private reactions and saves, and 30 days of analytics

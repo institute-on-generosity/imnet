@@ -91,22 +91,25 @@ async function openCallsForCauses(orgIds: string[], since: string): Promise<Noti
   }))
 }
 
-// The org replied (as the org) on a post you commented on, after your comment.
+// Someone (or the org's team) replied to one of your comments.
 async function repliesToYou(userId: string, since: string): Promise<Notification[]> {
   const supabase = await createClient()
-  const { data: mine } = await supabase.from("comments").select("post_id, created_at").eq("user_id", userId).gte("created_at", since)
+  const { data: mine } = await supabase.from("comments").select("id").eq("user_id", userId).is("parent_id", null).limit(200)
   if (!mine?.length) return []
-  const firstByPost = new Map<string, string>()
-  for (const c of mine) if (!firstByPost.has(c.post_id) || c.created_at < firstByPost.get(c.post_id)!) firstByPost.set(c.post_id, c.created_at)
   const { data } = await supabase
     .from("comments")
-    .select("id, post_id, created_at, post:posts!inner(org:orgs!inner(name))")
-    .in("post_id", [...firstByPost.keys()])
-    .eq("as_org", true)
+    .select("id, post_id, created_at, as_org, author:profiles(display_name, handle), post:posts!inner(org:orgs!inner(name))")
+    .in("parent_id", mine.map((c) => c.id))
     .neq("user_id", userId)
-  return ((data ?? []) as unknown as { id: string; post_id: string; created_at: string; post: { org: { name: string } } }[])
-    .filter((r) => r.created_at > firstByPost.get(r.post_id)!)
-    .map((r) => ({ key: `reply-${r.id}`, at: r.created_at, kind: "comment" as const, text: `${name(r.post.org)} replied to your comment.`, href: `/p/${r.post_id}#comments` }))
+    .gte("created_at", since)
+  type Row = { id: string; post_id: string; created_at: string; as_org: boolean; author: { display_name: string | null; handle: string }; post: { org: { name: string } } }
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    key: `reply-${r.id}`,
+    at: r.created_at,
+    kind: "comment" as const,
+    text: `${r.as_org ? name(r.post.org) : (r.author.display_name ?? `@${r.author.handle}`)} replied to your comment.`,
+    href: `/p/${r.post_id}#comments`,
+  }))
 }
 
 export async function hasUnread(userId: string): Promise<boolean> {

@@ -490,17 +490,30 @@ test("F-060: the giving journal shows news from orgs you gave to, since your gif
   await expect(since.getByRole("link", { name: /Harbor Table/ }).first()).toBeVisible()
 })
 
-test("F-062: comment on a post and remove it; staff reply as the org and hear about new comments", async () => {
+test("F-062 / F-063: comment, reply and delete; staff comment as the org and hear about comments and replies", async () => {
   const [harborPost] = await sql`select id from posts where org_id = ${HARBOR} order by created_at desc limit 1`
   await page.goto(`/p/${harborPost.id}`)
   const section = page.getByRole("region", { name: "Comments" })
-  await expect(section.getByText(/Reply as/)).toHaveCount(0) // not Harbor's staff
+  await expect(section.getByText(/Commenting as/)).toHaveCount(0) // not Harbor's staff
   await section.getByLabel("Add a comment").fill(`So glad to read this ${id}`)
-  await section.getByRole("button", { name: "Comment", exact: true }).click()
-  const mine = section.getByRole("listitem").filter({ hasText: `So glad to read this ${id}` })
+  await section.getByRole("button", { name: "Post", exact: true }).click()
+  const mine = section.locator("li").filter({ hasText: `So glad to read this ${id}` }).first()
   await expect(mine).toBeVisible()
-  await mine.getByRole("button", { name: "Remove comment" }).click()
-  await expect(mine).toHaveCount(0)
+
+  // Reply under my own comment, then a demo donor replies to me: I get notified.
+  await mine.getByRole("button", { name: "Reply", exact: true }).first().click()
+  await section.getByLabel("Add a reply").fill(`Adding to that ${id}`)
+  await mine.getByRole("button", { name: "Reply", exact: true }).last().click() // the reply box's submit
+  await expect(mine.getByText(`Adding to that ${id}`)).toBeVisible()
+  const [top] = await sql`select id from comments where body = ${`So glad to read this ${id}`}`
+  await sql`insert into comments (post_id, parent_id, user_id, body) values (${harborPost.id}, ${top.id}, '00000000-0000-4000-c000-000000000002', ${`Agreed ${id}`})`
+  await page.goto("/notifications")
+  await expect(page.getByRole("link", { name: /replied to your comment/ }).first()).toBeVisible()
+
+  await page.goto(`/p/${harborPost.id}`)
+  await section.locator("li").filter({ hasText: `So glad to read this ${id}` }).first().getByRole("button", { name: "Delete comment" }).first().click()
+  await expect(section.getByText(`So glad to read this ${id}`)).toHaveCount(0)
+  await expect(section.getByText(`Agreed ${id}`)).toHaveCount(0) // replies go with it
 
   // A demo donor comments on this user's own org post; the team hears about it and replies as the org.
   const [own] = await sql`select p.id from posts p join orgs o on o.id = p.org_id where o.slug = ${slug} order by p.created_at desc limit 1`
@@ -508,11 +521,12 @@ test("F-062: comment on a post and remove it; staff reply as the org and hear ab
   await page.goto("/notifications")
   await page.getByRole("link", { name: /commented on your post/ }).first().click()
   await expect(page).toHaveURL(new RegExp(`/p/${own.id}#comments`))
+  await section.getByRole("button", { name: new RegExp(`Switch to ${orgName}`) }).click()
+  await expect(section.getByText(`Commenting as ${orgName}`).first()).toBeVisible()
   await section.getByLabel("Add a comment").fill(`Thanks for being here ${id}`)
-  await section.getByLabel(`Reply as ${orgName}`).check()
-  await section.getByRole("button", { name: "Comment", exact: true }).click()
-  const reply = section.getByRole("listitem").filter({ hasText: `Thanks for being here ${id}` })
-  await expect(reply.getByText("Team")).toBeVisible()
+  await section.getByRole("button", { name: "Post", exact: true }).click()
+  const reply = section.locator("li").filter({ hasText: `Thanks for being here ${id}` }).first()
+  await expect(reply.getByText("Author")).toBeVisible()
   await expect(reply.getByRole("link", { name: orgName })).toBeVisible()
 })
 

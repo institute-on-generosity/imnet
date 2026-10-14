@@ -116,7 +116,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
           <GrantsPanel org={org} grants={grants} />
           <section aria-labelledby="recent" className="space-y-3">
             <h2 id="recent" className="px-1 font-sans text-lg font-semibold tracking-normal">Recent posts</h2>
-            <Feed posts={posts.slice(0, 3)} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} savedIds={savedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
+            <Feed posts={posts.slice(0, 3)} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} savedIds={savedIds} signedIn={signedIn} grantsByPost={grantsByPost} hideFollow />
             {posts.length > 3 && (
               <Link href={`${base}?tab=posts`} className={buttonVariants({ variant: "outline", className: "w-full" })}>Show all posts</Link>
             )}
@@ -164,7 +164,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
 
       {tab === "posts" && (
         <>
-          <Feed posts={posts} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} savedIds={savedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
+          <Feed posts={posts} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} savedIds={savedIds} signedIn={signedIn} grantsByPost={grantsByPost} hideFollow />
           <OlderPosts
             olderHref={postsPaging.next ? `${base}?tab=posts&before=${postsPaging.next}` : null}
             newestHref={`${base}?tab=posts`}
