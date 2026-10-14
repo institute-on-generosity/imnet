@@ -24,15 +24,11 @@ async function getProfile(handle: string) {
     .eq("handle", handle)
     .maybeSingle()
   if (!profile) return null
-  const [{ data: supports }, { data: causes }] = await Promise.all([
-    supabase.from("follows").select("org:orgs(id, slug, name, logo_url, org_type)").eq("user_id", profile.id).eq("supporter", true),
-    supabase.from("profile_causes").select("cause:causes(slug, name)").eq("user_id", profile.id),
-  ])
+  const { data: supports } = await supabase.from("follows").select("org:orgs(id, slug, name, logo_url, org_type)").eq("user_id", profile.id).eq("supporter", true)
   return {
     profile,
     supports: ((supports ?? []) as unknown as { org: OrgSummary | null }[])
       .flatMap((s) => (s.org ? [s.org] : [])),
-    causes: ((causes ?? []) as unknown as { cause: { slug: string; name: string } }[]).map((c) => c.cause),
   }
 }
 
@@ -47,7 +43,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   const tab = rawTab === "activity" ? "activity" : "about"
   const data = await getProfile(handle)
   if (!data) notFound()
-  const { profile, supports, causes } = data
+  const { profile, supports } = data
   const name = profile.display_name ?? `@${profile.handle}`
   const isOwn = (await getUserId()) === profile.id
   const [funds, gaveTo, activity, totals] = await Promise.all([
@@ -98,13 +94,6 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
               </>
             )}
           </p>
-          {causes.length > 0 && (
-            <ul aria-label={isOwn ? "Causes I care about" : "Causes they care about"} className="mt-3 flex flex-wrap gap-1.5 text-sm">
-              {causes.map((c) => (
-                <li key={c.slug}><Link href={`/?cause=${c.slug}`} className="rounded-full border border-leaf/30 bg-leaf-soft px-3 py-1 text-leaf hover:bg-leaf hover:text-white">{c.name}</Link></li>
-              ))}
-            </ul>
-          )}
         </div>
         <nav aria-label="Profile sections" className="flex border-t px-2 sm:px-4">
           {(["about", "activity"] as const).map((t) => (

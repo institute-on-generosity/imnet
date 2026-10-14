@@ -590,7 +590,8 @@ test("F-073: edit your profile: headline, location, About, causes and a cover fr
   await expect(page.getByText("Tacoma, WA")).toBeVisible()
   await expect(page.getByText(`I give where I live. ${id}`)).toBeVisible()
   await expect(page.locator('main img[src$="covers/lavender.webp"]')).toBeVisible()
-  await expect(page.getByRole("list", { name: "Causes I care about" }).getByRole("link", { name: "Animals" })).toBeVisible()
+  // Causes are saved (they shape suggestions), not shown as labels on the profile.
+  await expect.poll(async () => (await sql`select count(*)::int n from profile_causes where user_id = ${userId} and cause_slug = 'animals'`)[0].n).toBe(1)
 })
 
 test("F-073: staff add location, founding year, team and programs; they show on the profile", async () => {
