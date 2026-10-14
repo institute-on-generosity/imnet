@@ -167,6 +167,25 @@ describe("posts", () => {
     expect((await t.as(STAFF, `delete from posts where id = '${post.id}' returning id`)).rows).toHaveLength(1)
   })
 
+  it("B-018: staff can't hide or fake the Edited stamp", async () => {
+    const [post] = await t.owner(`insert into posts (org_id, author_id, body) values ('${ORG_1}', '${STAFF}', 'original') returning id`)
+    await t.as(STAFF, `update posts set body = 'changed' where id = '${post.id}'`)
+    expect((await t.owner(`select edited_at from posts where id = '${post.id}'`))[0].edited_at).not.toBeNull()
+    await t.as(STAFF, `update posts set edited_at = null where id = '${post.id}'`)
+    expect((await t.owner(`select edited_at from posts where id = '${post.id}'`))[0].edited_at).not.toBeNull()
+    const [fresh] = await t.owner(`insert into posts (org_id, author_id, body) values ('${ORG_1}', '${STAFF}', 'untouched') returning id`)
+    await t.as(STAFF, `update posts set edited_at = now() where id = '${fresh.id}'`)
+    expect((await t.owner(`select edited_at from posts where id = '${fresh.id}'`))[0].edited_at).toBeNull()
+  })
+
+  it("B-019: a logo must be a path in the org's own folder, never an outside URL", async () => {
+    const set = (v: string) => t.as(STAFF, `update orgs set logo_url = ${v} where id = '${ORG_1}'`)
+    expect((await set("'https://tracker.example/pixel.png'")).error).toMatch(/logo_is_own_storage_path/)
+    expect((await set(`'00000000-0000-4000-a000-000000000002/logo.png'`)).error).toMatch(/logo_is_own_storage_path/)
+    expect((await set(`'${ORG_1}/logo-0000000a-0000-4000-8000-000000000000.png'`)).error).toBeUndefined()
+    expect((await set("null")).error).toBeUndefined()
+  })
+
   it("B-003: staff can't move a post to another org", async () => {
     const [post] = await t.owner(`insert into posts (org_id, author_id, body) values ('${ORG_1}', '${STAFF}', 'stay here') returning id`)
     const moved = await t.as(STAFF, `update posts set org_id = '${ORG_2}' where id = '${post.id}'`)
@@ -271,7 +290,7 @@ describe("upload cleanup", () => {
     // An org logo is in use too, even though no post references it.
     const logo = `${ORG_1}/logo-aaaaaaaa-0000-4000-8000-000000000004.png`
     await t.owner(`insert into storage.objects (bucket_id, name, created_at) values ('post-images', '${logo}', now() - interval '3 days')`)
-    await t.owner(`update orgs set logo_url = 'http://127.0.0.1:54321/storage/v1/object/public/post-images/${logo}' where id = '${ORG_1}'`)
+    await t.owner(`update orgs set logo_url = '${logo}' where id = '${ORG_1}'`)
 
     const listed = await t.asService(`select name from orphan_post_images()`)
     expect(listed.rows!.map((r) => r.name)).toEqual([orphanOld])
@@ -376,7 +395,7 @@ describe("team invites", () => {
   const NEWBIE = "10000000-0000-4000-8000-0000000000f7"
   const STRANGER = "10000000-0000-4000-8000-0000000000f8"
   beforeAll(async () => {
-    await t.owner(`insert into auth.users (id, email) values ('${NEWBIE}', 'new.colleague@harbor.example.org'), ('${STRANGER}', 'someone@else.example.com') on conflict do nothing`)
+    await t.owner(`insert into auth.users (id, email, email_confirmed_at) values ('${NEWBIE}', 'new.colleague@harbor.example.org', now()), ('${STRANGER}', 'someone@else.example.com', now()) on conflict do nothing`)
   })
 
   it("F-048: only staff invite; only the invited email can accept; invites are single-use", async () => {
@@ -394,7 +413,22 @@ describe("team invites", () => {
     expect((await t.as(NEWBIE, `select accept_org_invite('${token}')`)).error).toMatch(/already used/)
   })
 
+  it("B-020: an unconfirmed email can't accept an invite", async () => {
+    const UNCONFIRMED = "10000000-0000-4000-8000-0000000000f9"
+    await t.owner(`insert into auth.users (id, email) values ('${UNCONFIRMED}', 'unverified@harbor.example.org') on conflict do nothing`)
+    const inv = await t.as(STAFF, `insert into org_invites (org_id, email, invited_by) values ('${ORG_1}', 'unverified@harbor.example.org', '${STAFF}') returning token`)
+    expect((await t.as(UNCONFIRMED, `select accept_org_invite('${inv.rows![0].token}')`)).error).toMatch(/confirm your email/)
+  })
+
+  it("B-021: removing a colleague revokes the invites they sent that are still pending", async () => {
+    await t.owner(`insert into org_members (org_id, user_id) values ('${ORG_1}', '${NEWBIE}') on conflict do nothing`)
+    await t.as(NEWBIE, `insert into org_invites (org_id, email, invited_by) values ('${ORG_1}', 'friend.of.newbie@harbor.example.org', '${NEWBIE}')`)
+    expect((await t.as(STAFF, `select remove_org_member('${ORG_1}', '${NEWBIE}')`)).error).toBeUndefined()
+    expect(await t.owner(`select 1 from org_invites where email = 'friend.of.newbie@harbor.example.org'`)).toHaveLength(0)
+  })
+
   it("F-048: staff can remove a colleague, never the last member; outsiders can't remove anyone", async () => {
+    await t.owner(`insert into org_members (org_id, user_id) values ('${ORG_1}', '${NEWBIE}') on conflict do nothing`)
     expect((await t.as(DONOR, `select remove_org_member('${ORG_1}', '${NEWBIE}')`)).error).toMatch(/not your organization/)
     expect((await t.as(STAFF, `select remove_org_member('${ORG_1}', '${NEWBIE}')`)).error).toBeUndefined()
     expect((await t.as(STAFF, `select remove_org_member('${ORG_1}', '${STAFF}')`)).error).toMatch(/at least one member/)

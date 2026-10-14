@@ -26,8 +26,9 @@ test("F-001: cause filter shows only orgs in that cause", async ({ page }) => {
 test("F-032: org videos autoplay muted on screen and pause when scrolled away", async ({ page }) => {
   await page.goto("/o/greenway-stewards")
   const video = page.getByLabel("Volunteers with hand tools re-cutting a dirt trail across a dry hillside")
-  await video.scrollIntoViewIfNeeded()
-  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => !v.paused && v.muted && v.currentTime > 0), { timeout: 10_000 }).toBe(true)
+  await video.evaluate((v) => v.scrollIntoView({ block: "center" }))
+  // Under a full parallel-ish run the dev server is slow to serve the clip; allow time to buffer.
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => !v.paused && v.muted && v.currentTime > 0), { timeout: 25_000 }).toBe(true)
   await expect(page.getByText("Video: BLM Oregon & Washington, public domain, via Wikimedia Commons").first()).toBeVisible()
 
   await page.mouse.wheel(0, 4000)

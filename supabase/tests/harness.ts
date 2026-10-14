@@ -19,7 +19,7 @@ const SUPABASE_STANDINS = `
   alter default privileges in schema public grant all on sequences to anon, authenticated;
 
   create schema auth;
-  create table auth.users (id uuid primary key, email text, aud text, role text);
+  create table auth.users (id uuid primary key, email text, aud text, role text, email_confirmed_at timestamptz);
   create function auth.uid() returns uuid language sql stable as $$
     select nullif(current_setting('request.jwt.sub', true), '')::uuid
   $$;

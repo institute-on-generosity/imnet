@@ -292,9 +292,9 @@ test("F-045: staff upload a logo; it replaces the monogram and points only at ou
   await expect(page.getByText("Profile saved.")).toBeVisible()
 
   const [org] = await sql`select logo_url from orgs where id = ${kitchen.id}`
-  expect(org.logo_url).toMatch(new RegExp(`/storage/v1/object/public/post-images/${kitchen.id}/logo-[0-9a-f-]{36}\\.jpg$`))
+  expect(org.logo_url).toMatch(new RegExp(`^${kitchen.id}/logo-[0-9a-f-]{36}\\.jpg$`))
   await page.goto(`/o/${slug}`)
-  await expect(page.locator(`main img[src="${org.logo_url}"]`).first()).toBeVisible()
+  await expect(page.locator(`main img[src$="/post-images/${org.logo_url}"]`).first()).toBeVisible()
 })
 
 test("F-046: save a post with the bookmark; it's on /saved; unsave removes it", async () => {

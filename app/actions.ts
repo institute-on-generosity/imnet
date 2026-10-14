@@ -9,7 +9,7 @@ import { formValues } from "@/lib/form-values"
 import { validateImages } from "@/lib/post-images"
 import { parseGrantFields } from "@/lib/grants"
 import { parseStatFields } from "@/lib/impact-stat-fields"
-import { logoPathIsValid, logoPublicUrl } from "@/lib/logo"
+import { logoPathIsValid } from "@/lib/logo"
 import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
 import { todayISO } from "@/lib/open-calls"
 import { safeNext } from "@/lib/safe-next"
@@ -120,7 +120,7 @@ export async function updateOrg(orgId: string, _: ActionState, form: FormData): 
   if (form.get("remove_logo") === "on") logo = { logo_url: null }
   else if (logoPath) {
     if (!logoPathIsValid(orgId, logoPath)) return fail(form, "The logo upload didn't finish. Try again.")
-    logo = { logo_url: logoPublicUrl(process.env.NEXT_PUBLIC_SUPABASE_URL!, logoPath) }
+    logo = { logo_url: logoPath }
   }
 
   const supabase = await createClient()

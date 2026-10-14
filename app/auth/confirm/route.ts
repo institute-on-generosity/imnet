@@ -18,5 +18,6 @@ export async function GET(request: NextRequest) {
       ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
       : { error: new Error("Missing auth parameters") }
 
-  return NextResponse.redirect(new URL(error ? "/login?error=link" : next, origin))
+  // String concat, not new URL(next, origin): a path can never change the host.
+  return NextResponse.redirect(`${origin}${error ? "/login?error=link" : next}`)
 }

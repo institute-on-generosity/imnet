@@ -16,4 +16,8 @@ describe("safeNext", () => {
     expect(safeNext(null)).toBe("/")
     expect(safeNext(["/x"])).toBe("/")
   })
+
+  it("B-017: blocks paths that only become '//host' after normalizing", () => {
+    for (const raw of ["/.//evil.com", "/x/..//evil.com", "/%2e%2e//evil.com", "/./\\evil.com"]) expect(safeNext(raw)).toBe("/")
+  })
 })
