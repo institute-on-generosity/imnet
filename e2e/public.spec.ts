@@ -290,8 +290,12 @@ test("F-062 / F-063: LinkedIn-style posts: header, action bar, inline comments w
   await expect(inline.getByRole("link", { name: "Sign in" })).toBeVisible()
   await expect(inline.locator("time").first()).toBeVisible()
 
-  const [post] = await sql`select p.id from posts p where p.org_id = ${"00000000-0000-4000-a000-000000000001"}
-    and exists (select 1 from comments c where c.post_id = p.id and c.as_org and c.parent_id is not null) limit 1`
+  // A post whose Author reply sits under one of the five newest threads (older ones are behind "Load more").
+  const [post] = await sql`select r.post_id as id from comments r
+    join posts p on p.id = r.post_id
+   where p.org_id = ${"00000000-0000-4000-a000-000000000001"} and r.as_org and r.parent_id in (
+     select t.id from comments t where t.post_id = r.post_id and t.parent_id is null order by t.created_at desc limit 5)
+   order by r.post_id limit 1`
   await page.goto(`/p/${post.id}`)
   const section = page.getByRole("region", { name: "Comments" })
   await expect(section.getByText("Author").first()).toBeVisible()
