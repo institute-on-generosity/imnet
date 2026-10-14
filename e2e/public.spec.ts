@@ -398,12 +398,14 @@ test("F-074: events open their own page: host, when, where, add to calendar, mor
   expect((await request.get("/e/00000000-0000-4000-a000-000000000999")).status()).toBe(404)
 })
 
-test("F-076: an opted-in donor's profile shows total giving and the split by cause", async ({ page }) => {
+test("F-076 / B-028: an opted-in donor's profile shows total giving, amounts by organization and causes supported", async ({ page }) => {
   await page.goto("/u/dana_demo")
   const panel = page.getByRole("region", { name: "Giving" })
   await expect(panel.getByText(/^\$[\d,]+$/).first()).toBeVisible()
   await expect(panel.getByText(/given to \d+ organizations? since/)).toBeVisible()
+  await expect(panel.getByRole("heading", { name: "Causes supported" })).toBeVisible()
   await expect(panel.getByRole("link", { name: "Hunger & Food" })).toBeVisible()
+  await expect(panel.getByText(/\d+%/)).toHaveCount(0) // B-028: no invented per-cause split
   // F-077: amount to each organization, largest first.
   const orgRow = panel.getByRole("listitem").filter({ has: page.getByRole("link", { name: "Harbor Table" }) })
   await expect(orgRow.getByText(/^\$[\d,]+$/)).toBeVisible()

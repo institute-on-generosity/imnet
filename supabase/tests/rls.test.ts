@@ -652,7 +652,7 @@ describe("full profiles", () => {
 })
 
 describe("giving totals", () => {
-  it("F-076: totals by cause only when opted in; gifts split evenly across an org's causes", async () => {
+  it("F-076 / B-028: totals and causes supported only when opted in; no invented per-cause amounts", async () => {
     const G = "10000000-0000-4000-8000-0000000000e6"
     await t.owner(`insert into auth.users (id, email) values ('${G}', 'totals@example.com') on conflict do nothing`)
     await t.owner(`delete from org_causes where org_id in ('${ORG_1}', '${ORG_2}')`)
@@ -660,15 +660,19 @@ describe("giving totals", () => {
     await t.as(G, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 100, current_date - 10), ('${ORG_1}', 100, current_date - 10), ('${ORG_2}', 50, current_date - 3)`)
     expect((await t.as(null, `select * from giving_summary('${G}')`)).rows).toHaveLength(0)
     await t.as(G, `update profiles set show_giving_totals = true where id = '${G}'`)
-    const rows = (await t.as(null, `select cause_slug, amount::int, total::int, orgs::int from giving_summary('${G}')`)).rows!
+    // B-028: causes are listed, never given made-up amounts; the total is what was logged.
+    const rows = (await t.as(null, `select cause_slug, total::int, orgs::int from giving_summary('${G}')`)).rows!
     expect(rows).toEqual([
-      { cause_slug: "health", amount: 100, total: 250, orgs: 2 },
-      { cause_slug: "hunger", amount: 100, total: 250, orgs: 2 },
-      { cause_slug: "housing", amount: 50, total: 250, orgs: 2 },
-    ].sort((a, b) => b.amount - a.amount || 0))
+      { cause_slug: "health", total: 250, orgs: 2 },
+      { cause_slug: "housing", total: 250, orgs: 2 },
+      { cause_slug: "hunger", total: 250, orgs: 2 },
+    ])
     expect((await t.as(DONOR, `update profiles set show_giving_totals = true where id = '${G}' returning id`)).rows ?? []).toHaveLength(0)
     // F-077: by organization, under the same opt-in.
-    expect((await t.as(null, `select name, amount::int from giving_by_org('${G}')`)).rows).toEqual([{ name: "Harbor Table", amount: 200 }, { name: "Open Door Homes", amount: 50 }])
+    expect((await t.as(null, `select name, amount::int, causes from giving_by_org('${G}')`)).rows).toEqual([
+      { name: "Harbor Table", amount: 200, causes: ["Health", "Hunger & Food"] },
+      { name: "Open Door Homes", amount: 50, causes: ["Housing & Homelessness"] },
+    ])
     await t.as(G, `update profiles set show_giving_totals = false where id = '${G}'`)
     expect((await t.as(null, `select * from giving_by_org('${G}')`)).rows).toHaveLength(0)
   })
