@@ -1,27 +1,38 @@
 import { CauseFilter, OrgTypeFilter } from "@/components/cause-filter"
+import { OlderPosts } from "@/components/older-posts"
+import { decodeCursor } from "@/lib/cursor"
+import { feedHref } from "@/lib/feed-href"
 import { Feed } from "@/components/post-card"
 import { Panel, ThreeColumn } from "@/components/shell"
+import { UpcomingEvents } from "@/components/events-panel"
+import { WaysToHelp } from "@/components/needs-panel"
 import { JoinCard, SuggestedOrgs, ViewerCard } from "@/components/side-cards"
 import { portfolioContext } from "@/lib/portfolio"
-import { getCauses, getConfirmedGrantIds, getFeed, getFollowedOrgIds, getGrantsForPosts, getMovedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
+import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getGrantsForPosts, getMovedPostIds, getMyRsvpIds, getOpenNeeds, getUpcomingEvents, getSavedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
 import { createClient } from "@/lib/supabase/server"
 import { getUserId } from "@/lib/supabase/server"
 import type { OrgType } from "@/lib/types"
 
 // Shared by Home (all orgs) and Following (followed orgs only).
-export async function HomeFeed({ cause, orgType, followingOnly, basePath }: { cause?: string; orgType?: OrgType; followingOnly?: boolean; basePath: string }) {
+type Props = { cause?: string; orgType?: OrgType; followingOnly?: boolean; basePath: string; before?: string }
+
+export async function HomeFeed({ cause, orgType, followingOnly, basePath, before }: Props) {
+  const cursor = decodeCursor(before)
   const userId = await getUserId()
   const orgIds = followingOnly && userId ? await getFollowedOrgIds(userId) : undefined
   // Following a foundation also brings in its grantees' grant reports (its portfolio).
   const reportGrantIds = orgIds?.length ? await getConfirmedGrantIds(await foundationsAmong(orgIds)) : []
-  const [viewer, causes, posts, suggested] = await Promise.all([
+  const [viewer, causes, page, suggested, needs, events] = await Promise.all([
     getViewer(userId),
     getCauses(),
-    orgIds && orgIds.length === 0 ? Promise.resolve([]) : getFeed({ cause, orgIds, orgType, reportGrantIds }),
+    orgIds && orgIds.length === 0 ? Promise.resolve({ posts: [], next: null }) : getFeedPage({ cause, orgIds, orgType, reportGrantIds, before: cursor ?? undefined }),
     getSuggestedOrgs({ userId, cause }),
+    getOpenNeeds({ cause, limit: 3 }),
+    getUpcomingEvents({ cause, limit: 3 }),
   ])
+  const { posts, next } = page
   const ids = posts.map((p) => p.id)
-  const [movedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getGrantsForPosts(ids)])
+  const [movedIds, savedIds, grantsByPost, rsvpIds] = await Promise.all([getMovedPostIds(userId, ids), getSavedPostIds(userId, ids), getGrantsForPosts(ids), getMyRsvpIds(userId, events.map((e) => e.id))])
   const context = followingOnly ? portfolioContext(posts, new Set(orgIds)) : undefined
 
   const empty = followingOnly
@@ -36,22 +47,29 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath }: { ca
       right={
         <div className="sticky top-20 space-y-3">
           <SuggestedOrgs title={cause ? "Organizations in this cause" : "Add to your feed"} orgs={suggested} signedIn={!!userId} />
+          <WaysToHelp needs={needs} cause={cause} />
+          <UpcomingEvents events={events} rsvpIds={rsvpIds} signedIn={!!userId} cause={cause} />
           <p className="px-4 text-xs leading-relaxed text-muted-foreground">
-            Your feed is newest first. imnet never ranks stories by popularity.
+            Your feed: newest first, never ranked by popularity.
           </p>
         </div>
       }
     >
-      <Panel className="space-y-3 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="font-sans text-lg font-semibold tracking-normal">
-            {followingOnly ? "From organizations you follow" : "What giving made possible"}
-          </h1>
+      <h1 className="sr-only">{followingOnly ? "From organizations you follow" : "What giving made possible"}</h1>
+      <Panel>
+        <div className="p-2.5">
           <OrgTypeFilter active={orgType} cause={cause} basePath={basePath} />
         </div>
-        <CauseFilter causes={causes} active={cause} type={orgType} basePath={basePath} />
+        <div className="border-t p-2.5">
+          <CauseFilter causes={causes} active={cause} type={orgType} basePath={basePath} />
+        </div>
       </Panel>
-      <Feed posts={posts} empty={empty} movedIds={movedIds} signedIn={!!userId} grantsByPost={grantsByPost} context={context} />
+      <Feed posts={posts} empty={empty} movedIds={movedIds} savedIds={savedIds} signedIn={!!userId} grantsByPost={grantsByPost} context={context} />
+      <OlderPosts
+        olderHref={next ? feedHref(basePath, { cause, type: orgType, before: next }) : null}
+        newestHref={feedHref(basePath, { cause, type: orgType })}
+        isFirstPage={!cursor}
+      />
     </ThreeColumn>
   )
 }

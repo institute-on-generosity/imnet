@@ -1,10 +1,19 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCauses, getGrantsNeedingReport, getGrantsToConfirm, getOpenCalls, getOrgEventCounts, getReportableGrants } from "@/lib/queries"
-import type { Org } from "@/lib/types"
+import { getCauses, getGrantsAwaitingReport, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgDaily, getOrgTopPosts, getEventsForStaff, getInterestForStaff, getOrgNeeds, getReportableGrants, getThanks } from "@/lib/queries"
+import { total } from "@/lib/analytics"
+import type { ImpactStat, Org } from "@/lib/types"
 import { createClient, getUserId } from "@/lib/supabase/server"
+import { AnalyticsCard } from "./analytics-card"
 import { Composer } from "./composer"
+import { ImpactStatsEditor } from "./impact-stats-editor"
+import { EventsEditor } from "./events-editor"
+import { NeedsEditor } from "./needs-editor"
+import { ThanksCard } from "./thanks-card"
+import { PostManager } from "./post-manager"
+import { TeamCard } from "./team-card"
+import { GrantsAwaitingReport } from "./grants-awaiting-report"
 import { GrantsNeedingReport } from "./grants-needing-report"
 import { GrantsToConfirm } from "./grants-to-confirm"
 import { OpenCallsForYou } from "./open-calls-for-you"
@@ -19,13 +28,15 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
   const { data: member } = await supabase.from("org_members").select("user_id").match({ org_id: orgId, user_id: userId }).maybeSingle()
   if (!member) notFound()
 
-  const [{ data: org }, { data: orgCauses }, causes, counts, { data: followers }] = await Promise.all([
+  const [{ data: org }, { data: orgCauses }, causes, series, { data: followers }, top] = await Promise.all([
     supabase.from("orgs").select("id, slug, name, ein, website, mission, what_gifts_fund, logo_url, everyorg_slug, status, org_type").eq("id", orgId).single<Org>(),
     supabase.from("org_causes").select("cause_slug").eq("org_id", orgId),
     getCauses(),
-    getOrgEventCounts(orgId),
+    getOrgDaily(orgId),
     supabase.rpc("follower_count", { target: orgId }),
+    getOrgTopPosts(orgId),
   ])
+  const counts = { view: total(series, "view"), share: total(series, "share"), donate_click: total(series, "donate_click") }
   if (!org) notFound()
 
   return (
@@ -42,6 +53,12 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
         <Stat label="Donate clicks (30d)" value={counts.donate_click} />
       </section>
 
+      <Card>
+        <CardHeader><CardTitle>Analytics</CardTitle></CardHeader>
+        <CardContent><AnalyticsCard series={series} top={top} /></CardContent>
+      </Card>
+
+      {org.org_type === "foundation" && <GrantsAwaitingReport grants={await getGrantsAwaitingReport(org.id)} />}
       {org.org_type === "nonprofit" && <GrantsToConfirm orgId={org.id} grants={await getGrantsToConfirm(org.id)} />}
       {org.org_type === "nonprofit" && <GrantsNeedingReport orgId={org.id} grants={await getGrantsNeedingReport(org.id)} />}
       {org.org_type === "nonprofit" && (orgCauses ?? []).length > 0 && (
@@ -59,6 +76,38 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
             causes={causes}
           />
         </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Your posts</CardTitle></CardHeader>
+        <CardContent><PostManager posts={await getOrgPostsForStaff(org.id)} /></CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Notes from supporters</CardTitle></CardHeader>
+        <CardContent><ThanksCard orgId={org.id} notes={await getThanks(org.id)} /></CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Current needs</CardTitle></CardHeader>
+        <CardContent><NeedsEditor orgId={org.id} needs={await getOrgNeeds(org.id)} interest={Object.fromEntries(await getInterestForStaff(org.id))} /></CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Events</CardTitle></CardHeader>
+        <CardContent><EventsEditor orgId={org.id} events={await getEventsForStaff(org.id)} /></CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Impact stats</CardTitle></CardHeader>
+        <CardContent>
+          <ImpactStatsEditor orgId={org.id} stats={await getStats(org.id)} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Team</CardTitle></CardHeader>
+        <CardContent><TeamCard orgId={org.id} me={userId} {...await getTeam(org.id)} /></CardContent>
       </Card>
 
       <Card>
@@ -81,3 +130,22 @@ function Stat({ label, value }: { label: string; value: number }) {
     </Card>
   )
 }
+
+async function getStats(orgId: string): Promise<ImpactStat[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("impact_stats").select("id, label, value, source_url, as_of").eq("org_id", orgId).order("sort")
+  return data ?? []
+}
+
+async function getTeam(orgId: string) {
+  const supabase = await createClient()
+  const [{ data: members }, { data: invites }] = await Promise.all([
+    supabase.from("org_members").select("user_id, profile:profiles(handle, display_name, avatar_url)").eq("org_id", orgId).order("created_at"),
+    supabase.from("org_invites").select("id, email, token").eq("org_id", orgId).is("accepted_at", null).order("created_at"),
+  ])
+  return {
+    members: ((members ?? []) as unknown as { user_id: string; profile: { handle: string; display_name: string | null; avatar_url: string | null } }[]).map((m) => ({ user_id: m.user_id, ...m.profile })),
+    invites: invites ?? [],
+  }
+}
+

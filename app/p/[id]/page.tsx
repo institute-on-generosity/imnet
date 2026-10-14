@@ -1,13 +1,13 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { PRIVATE_NOTE } from "@/components/moved-button"
 import { OrgMark } from "@/components/org-mark"
 import { PostCard } from "@/components/post-card"
 import { Panel, TwoColumn } from "@/components/shell"
 import { TrackView } from "@/components/track-view"
 import { buttonVariants } from "@/components/ui/button"
-import { getGrantsForPosts, getMovedPostIds, getPost } from "@/lib/queries"
+import { loadComments } from "@/app/actions"
+import { getFollowedOrgIds, getFollowerCounts, getGrantsForPosts, getMovedPostIds, getPost, getSavedPostIds } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 
 export async function generateMetadata({ params }: PageProps<"/p/[id]">): Promise<Metadata> {
@@ -28,7 +28,10 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
   if (!post) notFound()
 
   const userId = await getUserId()
-  const [movedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, [post.id]), getGrantsForPosts([post.id])])
+  const [movedIds, savedIds, grantsByPost, comments, counts, followed] = await Promise.all([
+    getMovedPostIds(userId, [post.id]), getSavedPostIds(userId, [post.id]), getGrantsForPosts([post.id]), loadComments(post.id),
+    getFollowerCounts([post.org_id]), userId ? getFollowedOrgIds(userId) : Promise.resolve([]),
+  ])
   const moved = movedIds.has(post.id)
 
   return (
@@ -46,8 +49,8 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
       }
     >
       <TrackView orgId={post.org_id} postId={post.id} />
-      <PostCard post={post} full moved={moved} signedIn={!!userId} grants={grantsByPost.get(post.id)} />
-      <p className="px-1 text-xs text-muted-foreground">&ldquo;Moved me&rdquo; is private. {PRIVATE_NOTE}.</p>
+      <PostCard post={post} full moved={moved} saved={savedIds.has(post.id)} signedIn={!!userId} grants={grantsByPost.get(post.id)}
+        followers={counts.get(post.org_id) ?? 0} following={userId ? followed.includes(post.org_id) : undefined} comments={comments ?? undefined} />
     </TwoColumn>
   )
 }

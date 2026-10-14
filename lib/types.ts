@@ -35,6 +35,7 @@ export type Post = {
   image_alts: string[]
   image_credits: string[]
   created_at: string
+  edited_at: string | null
   org: OrgSummary
   // Set when this post is a grantee's report on a confirmed grant (hidden if the grant isn't visible).
   report_grant: ReportGrant | null

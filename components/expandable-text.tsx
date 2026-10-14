@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 
-// Clamps long text to a few lines with a "…see more" toggle, as LinkedIn does.
+// Clamps long text to a few lines with an inline "…more" toggle, as LinkedIn does.
 export function ExpandableText({ children, lines = 4, className }: { children: string; lines?: number; className?: string }) {
   const ref = useRef<HTMLParagraphElement>(null)
   const [open, setOpen] = useState(false)
@@ -15,7 +15,7 @@ export function ExpandableText({ children, lines = 4, className }: { children: s
   }, [children])
 
   return (
-    <div>
+    <div className="relative">
       <p
         ref={ref}
         className={cn("whitespace-pre-line", className)}
@@ -25,8 +25,8 @@ export function ExpandableText({ children, lines = 4, className }: { children: s
         {open ? children : children.replace(/\s*\n+\s*/g, " ")}
       </p>
       {overflows && !open && (
-        <button type="button" onClick={() => setOpen(true)} className="text-sm font-medium text-muted-foreground hover:text-leaf hover:underline">
-          see more
+        <button type="button" onClick={() => setOpen(true)} className="absolute right-0 bottom-0 bg-card pl-1 text-sm font-medium text-muted-foreground hover:text-leaf hover:underline">
+          …more
         </button>
       )}
     </div>

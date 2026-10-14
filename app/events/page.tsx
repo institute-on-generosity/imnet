@@ -1,0 +1,35 @@
+import { CauseFilter } from "@/components/cause-filter"
+import { EventRow } from "@/components/events-panel"
+import { Panel, TwoColumn } from "@/components/shell"
+import { getCauses, getMyRsvpIds, getUpcomingEvents } from "@/lib/queries"
+import { getUserId } from "@/lib/supabase/server"
+
+export const metadata = { title: "Events" }
+
+// Volunteer days, open houses and gatherings, soonest first. RSVPs are private.
+export default async function EventsPage({ searchParams }: PageProps<"/events">) {
+  const { cause } = await searchParams
+  const active = typeof cause === "string" ? cause : undefined
+  const userId = await getUserId()
+  const [events, causes] = await Promise.all([getUpcomingEvents({ cause: active }), getCauses()])
+  const rsvpIds = await getMyRsvpIds(userId, events.map((e) => e.id))
+
+  return (
+    <TwoColumn right={<Panel className="p-4 text-sm text-muted-foreground">Your RSVP is private: only you and the host&apos;s team see it.</Panel>}>
+      <Panel className="space-y-3 p-4">
+        <div>
+          <h1 className="font-sans text-lg font-semibold tracking-normal">Events</h1>
+          <p className="text-sm text-muted-foreground">Volunteer days and gatherings, soonest first.</p>
+        </div>
+        <CauseFilter causes={causes} active={active} basePath="/events" />
+      </Panel>
+      <Panel className="px-4">
+        {events.length === 0 ? (
+          <p className="py-6 text-sm text-muted-foreground">{active ? "No upcoming events for this cause. Try all causes." : "No upcoming events."}</p>
+        ) : (
+          <ul className="divide-y">{events.map((e) => <EventRow key={e.id} event={e} going={rsvpIds.has(e.id)} signedIn={!!userId} />)}</ul>
+        )}
+      </Panel>
+    </TwoColumn>
+  )
+}

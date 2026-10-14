@@ -1,3 +1,4 @@
+import { Check, X } from "lucide-react"
 import { notFound, redirect } from "next/navigation"
 import { approveClaim, rejectClaim } from "@/app/actions"
 import { Button } from "@/components/ui/button"
@@ -40,10 +41,10 @@ export default async function AdminPage() {
               <div className="flex gap-2">
                 <form action={approveClaim.bind(null, c.id)} className="flex gap-2">
                   <Input name="slug" placeholder="profile-slug" required pattern="[a-z0-9-]{2,60}" className="w-48" />
-                  <Button type="submit" size="sm">Approve</Button>
+                  <Button type="submit" size="sm"><Check aria-hidden />Approve</Button>
                 </form>
                 <form action={rejectClaim.bind(null, c.id)}>
-                  <Button type="submit" size="sm" variant="destructive">Reject</Button>
+                  <Button type="submit" size="sm" variant="destructive"><X aria-hidden />Reject</Button>
                 </form>
               </div>
             </CardContent>

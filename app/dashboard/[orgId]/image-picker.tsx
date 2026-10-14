@@ -71,7 +71,7 @@ export function ImagePicker({ orgId }: { orgId: string }) {
         </div>
       ))}
       {images.length < MAX_IMAGES && (
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm hover:bg-muted">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border py-1.5 pr-3 pl-2.5 text-sm hover:bg-muted">
           <ImagePlus className="size-4" aria-hidden />
           {busy ? "Uploading..." : images.length ? "Add another photo" : "Add photos"}
           <input

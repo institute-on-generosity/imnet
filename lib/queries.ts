@@ -1,15 +1,23 @@
 import { cache } from "react"
-import { escapeLike } from "@/lib/search"
+import { type Cursor, encodeCursor, olderThan } from "@/lib/cursor"
+import { type DayRow, fillDays, type Series, total } from "@/lib/analytics"
+import type { Comment } from "@/lib/comments"
+import type { EventWithOrg, OrgEvent } from "@/lib/events"
+import type { Gift } from "@/lib/gifts"
+import { MET_SHOWN_DAYS, type Need, type NeedWithOrg } from "@/lib/needs"
+import { escapeLike, orFilterTerm, wordStartPattern } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
 import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
 
 const PAGE_SIZE = 20
-const POST_FIELDS = `id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at, call_deadline, call_apply_url, call_max_award, call_causes,
+const POST_FIELDS = `id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at, edited_at, call_deadline, call_apply_url, call_max_award, call_causes,
   report_grant:grants!posts_reports_grant_id_fkey(id, amount_usd, purpose, foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type))`
 
-// Chronological, no engagement ranking (design principle #4).
+type FeedOpts = { cause?: string; orgIds?: string[]; orgType?: OrgType; reportGrantIds?: string[]; before?: Cursor }
+
+// Chronological, no engagement ranking (design principle #4). One page plus a cursor for the next.
 // reportGrantIds: also include grant reports on these grants (portfolio of followed foundations).
-export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType?: OrgType; reportGrantIds?: string[] } = {}): Promise<Post[]> {
+export async function getFeedPage(opts: FeedOpts = {}): Promise<{ posts: Post[]; next: string | null }> {
   const supabase = await createClient()
   const orgJoin = opts.cause
     ? "org:orgs!inner(id, slug, name, logo_url, org_type, org_causes!inner(cause_slug))"
@@ -20,7 +28,8 @@ export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType
     .select(`${POST_FIELDS}, ${orgJoin}`)
     .eq("published", true)
     .order("created_at", { ascending: false })
-    .limit(PAGE_SIZE)
+    .order("id", { ascending: false })
+    .limit(PAGE_SIZE + 1)
 
   if (opts.cause) query = query.eq("org.org_causes.cause_slug", opts.cause)
   if (opts.orgIds && opts.reportGrantIds?.length) {
@@ -28,10 +37,18 @@ export async function getFeed(opts: { cause?: string; orgIds?: string[]; orgType
     query = query.or(`${orgs}reports_grant_id.in.(${opts.reportGrantIds.join(",")})`)
   } else if (opts.orgIds) query = query.in("org_id", opts.orgIds)
   if (opts.orgType) query = query.eq("org.org_type", opts.orgType)
+  if (opts.before) query = query.or(olderThan(opts.before))
 
   const { data, error } = await query
   if (error) throw error
-  return (data ?? []) as unknown as Post[]
+  const rows = (data ?? []) as unknown as Post[]
+  const posts = rows.slice(0, PAGE_SIZE)
+  const last = posts.at(-1)
+  return { posts, next: rows.length > PAGE_SIZE && last ? encodeCursor({ createdAt: last.created_at, id: last.id }) : null }
+}
+
+export async function getFeed(opts: FeedOpts = {}): Promise<Post[]> {
+  return (await getFeedPage(opts)).posts
 }
 
 // Cached per request: many components need cause names.
@@ -93,13 +110,23 @@ export function postImageUrl(path: string) {
 }
 
 // Last-30-day engagement for an org's dashboard (RLS limits this to its staff).
+// 30-day totals for the dashboard, summed in the database (B-022: the API caps rows at 1,000).
 export async function getOrgEventCounts(orgId: string) {
+  const series = await getOrgDaily(orgId)
+  return { view: total(series, "view"), share: total(series, "share"), donate_click: total(series, "donate_click") }
+}
+
+export async function getOrgDaily(orgId: string, days = 30): Promise<Series> {
   const supabase = await createClient()
-  const since = new Date(Date.now() - 30 * 86_400_000).toISOString()
-  const { data } = await supabase.from("events").select("type").eq("org_id", orgId).gte("created_at", since)
-  const counts: Record<string, number> = { view: 0, share: 0, donate_click: 0 }
-  for (const e of data ?? []) counts[e.type] = (counts[e.type] ?? 0) + 1
-  return counts
+  const { data } = await supabase.rpc("org_daily_events", { target: orgId, days })
+  return fillDays((data ?? []) as DayRow[], days, new Date().toISOString().slice(0, 10))
+}
+
+export type TopPost = { post_id: string; body: string; created_at: string; views: number; shares: number; moved: number; saves: number; comments: number }
+export async function getOrgTopPosts(orgId: string): Promise<TopPost[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("org_top_posts", { target: orgId, days: 30, lim: 5 })
+  return ((data ?? []) as TopPost[]).map((r) => ({ ...r, views: Number(r.views), shares: Number(r.shares), moved: Number(r.moved), saves: Number(r.saves), comments: Number(r.comments) }))
 }
 
 // ---------------------------------------------------------------------------
@@ -109,6 +136,7 @@ export type Viewer = {
   id: string
   handle: string
   display_name: string | null
+  avatar_url: string | null
   following: number
   causes: Cause[]
 }
@@ -117,7 +145,7 @@ export async function getViewer(userId: string | null): Promise<Viewer | null> {
   if (!userId) return null
   const supabase = await createClient()
   const [{ data: profile }, { count }, { data: causes }] = await Promise.all([
-    supabase.from("profiles").select("id, handle, display_name").eq("id", userId).single(),
+    supabase.from("profiles").select("id, handle, display_name, avatar_url").eq("id", userId).single(),
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("profile_causes").select("cause:causes(slug, name)").eq("user_id", userId),
   ])
@@ -290,3 +318,290 @@ export async function getOpenCalls(opts: { causes?: string[]; limit?: number } =
   return (data ?? []) as unknown as Post[]
 }
 
+// An org's own recent posts, for the dashboard's edit/delete list.
+export async function getOrgPostsForStaff(orgId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("posts")
+    .select("id, kind, body, created_at, edited_at")
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false })
+    .limit(10)
+  return data ?? []
+}
+
+export async function getSavedPostIds(userId: string | null, postIds: string[]): Promise<Set<string>> {
+  if (!userId || postIds.length === 0) return new Set()
+  const supabase = await createClient()
+  const { data } = await supabase.from("saved_posts").select("post_id").eq("user_id", userId).in("post_id", postIds)
+  return new Set((data ?? []).map((s) => s.post_id))
+}
+
+// The viewer's saved posts, most recently saved first.
+export async function getSavedPosts(userId: string): Promise<Post[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("saved_posts")
+    .select(`created_at, post:posts!inner(${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type))`)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(50)
+  return ((data ?? []) as unknown as { post: Post }[]).map((r) => r.post)
+}
+
+
+// Open needs (newest first), then needs met in the last month.
+export async function getOrgNeeds(orgId: string): Promise<Need[]> {
+  const supabase = await createClient()
+  const since = new Date(Date.now() - MET_SHOWN_DAYS * 86_400_000).toISOString()
+  const { data } = await supabase
+    .from("org_needs")
+    .select("id, kind, title, detail, help_url, met_at, created_at")
+    .eq("org_id", orgId)
+    .or(`met_at.is.null,met_at.gte.${since}`)
+    .order("created_at", { ascending: false })
+  const needs = (data ?? []) as Need[]
+  return [...needs.filter((n) => !n.met_at), ...needs.filter((n) => n.met_at)]
+}
+
+// Thank-you notes to an org (staff only under RLS), newest first.
+export async function getThanks(orgId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("thanks")
+    .select("id, body, created_at, author:profiles(handle, display_name, avatar_url)")
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false })
+    .limit(30)
+  return (data ?? []) as unknown as { id: string; body: string; created_at: string; author: { handle: string; display_name: string | null; avatar_url: string | null } }[]
+}
+
+// The viewer's own gift log (private under RLS), newest first.
+export async function getGifts(userId: string): Promise<Gift[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("gifts")
+    .select("id, amount_usd, given_on, note, org:orgs(id, slug, name)")
+    .eq("user_id", userId)
+    .order("given_on", { ascending: false })
+    .order("created_at", { ascending: false })
+  return (data ?? []) as unknown as Gift[]
+}
+
+// Orgs a donor can log a gift to: the ones they follow, alphabetical.
+export async function getFollowedOrgs(userId: string): Promise<{ id: string; name: string }[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("follows").select("org:orgs!inner(id, name)").eq("user_id", userId)
+  return ((data ?? []) as unknown as { org: { id: string; name: string } }[]).map((f) => f.org).sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// Open needs across the network, newest first (Ways to help). Optional cause filter on the org's causes.
+export async function getOpenNeeds(opts: { cause?: string; limit?: number } = {}): Promise<NeedWithOrg[]> {
+  const supabase = await createClient()
+  const causeJoin = opts.cause ? ", org_causes!inner(cause_slug)" : ""
+  let q = supabase
+    .from("org_needs")
+    .select(`id, kind, title, detail, help_url, met_at, created_at, org:orgs!inner(id, slug, name, logo_url, org_type${causeJoin})`)
+    .is("met_at", null)
+    .order("created_at", { ascending: false })
+    .limit(opts.limit ?? 50)
+  if (opts.cause) q = q.eq("org.org_causes.cause_slug", opts.cause)
+  const { data } = await q
+  return (data ?? []) as unknown as NeedWithOrg[]
+}
+
+// Confirmed grants a foundation gave that have no report yet, oldest first.
+export async function getGrantsAwaitingReport(foundationId: string): Promise<Grant[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("grants")
+    .select(GRANT_FIELDS)
+    .eq("foundation_id", foundationId)
+    .not("confirmed_at", "is", null)
+    .order("awarded_on", { ascending: true })
+  return ((data ?? []) as unknown as Grant[]).filter((g) => g.reports.length === 0)
+}
+
+// One org by id, for preselecting it in a form (visible orgs only, under RLS).
+export async function getOrgName(id: string): Promise<{ id: string; name: string } | null> {
+  if (!/^[0-9a-f-]{36}$/.test(id)) return null
+  const supabase = await createClient()
+  const { data } = await supabase.from("orgs").select("id, name").eq("id", id).maybeSingle()
+  return data
+}
+
+const EVENT_FIELDS = "id, title, starts_at, location, detail"
+
+// Upcoming events across the network, soonest first. Optional cause filter on the org's causes.
+export async function getUpcomingEvents(opts: { cause?: string; orgId?: string; limit?: number } = {}): Promise<EventWithOrg[]> {
+  const supabase = await createClient()
+  const causeJoin = opts.cause ? ", org_causes!inner(cause_slug)" : ""
+  let q = supabase
+    .from("org_events")
+    .select(`${EVENT_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type${causeJoin})`)
+    .gt("starts_at", new Date().toISOString())
+    .order("starts_at")
+    .limit(opts.limit ?? 50)
+  if (opts.cause) q = q.eq("org.org_causes.cause_slug", opts.cause)
+  if (opts.orgId) q = q.eq("org_id", opts.orgId)
+  const { data } = await q
+  return (data ?? []) as unknown as EventWithOrg[]
+}
+
+// Which of these events / needs the viewer RSVPed to / raised a hand for (private).
+export async function getMyRsvpIds(userId: string | null, eventIds: string[]): Promise<Set<string>> {
+  if (!userId || eventIds.length === 0) return new Set()
+  const supabase = await createClient()
+  const { data } = await supabase.from("event_rsvps").select("event_id").eq("user_id", userId).in("event_id", eventIds)
+  return new Set((data ?? []).map((r) => r.event_id))
+}
+
+export async function getMyInterestIds(userId: string | null, needIds: string[]): Promise<Set<string>> {
+  if (!userId || needIds.length === 0) return new Set()
+  const supabase = await createClient()
+  const { data } = await supabase.from("need_interest").select("need_id").eq("user_id", userId).in("need_id", needIds)
+  return new Set((data ?? []).map((r) => r.need_id))
+}
+
+type Person = { handle: string; display_name: string | null; avatar_url: string | null }
+
+// Staff view: upcoming events with who's coming (RLS: org staff only see RSVPs).
+export async function getEventsForStaff(orgId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("org_events")
+    .select(`${EVENT_FIELDS}, rsvps:event_rsvps(person:profiles(handle, display_name, avatar_url))`)
+    .eq("org_id", orgId)
+    .gt("starts_at", new Date(Date.now() - 86_400_000).toISOString())
+    .order("starts_at")
+  return ((data ?? []) as unknown as (OrgEvent & { rsvps: { person: Person }[] })[]).map((e) => ({ ...e, people: e.rsvps.map((r) => r.person) }))
+}
+
+// Staff view: who raised a hand for each volunteer need.
+export async function getInterestForStaff(orgId: string): Promise<Map<string, Person[]>> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("need_interest")
+    .select("need_id, person:profiles(handle, display_name, avatar_url), need:org_needs!inner(org_id)")
+    .eq("need.org_id", orgId)
+    .order("created_at")
+  const map = new Map<string, Person[]>()
+  for (const r of (data ?? []) as unknown as { need_id: string; person: Person }[]) map.set(r.need_id, [...(map.get(r.need_id) ?? []), r.person])
+  return map
+}
+
+// Posts from orgs the donor logged gifts to, published since their first gift to that org.
+export async function getSinceYourGifts(gifts: Gift[]) {
+  const first = new Map<string, string>()
+  for (const g of gifts) if (!first.has(g.org.id) || g.given_on < first.get(g.org.id)!) first.set(g.org.id, g.given_on)
+  if (first.size === 0) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("posts")
+    .select("id, body, kind, created_at, org:orgs!inner(id, slug, name, logo_url, org_type)")
+    .in("org_id", [...first.keys()])
+    .gte("created_at", [...first.values()].sort()[0])
+    .order("created_at", { ascending: false })
+    .limit(40)
+  return ((data ?? []) as unknown as { id: string; body: string; kind: string; created_at: string; org: OrgSummary }[])
+    .filter((p) => p.created_at.slice(0, 10) >= first.get(p.org.id)!)
+    .slice(0, 8)
+}
+
+// A post's comments (threaded by the caller). Public when the post is.
+export async function getComments(postId: string): Promise<Comment[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("comments")
+    .select("id, parent_id, body, as_org, donor, created_at, user_id, author:profiles(handle, display_name, bio, avatar_url)")
+    .eq("post_id", postId)
+    .order("created_at")
+    .limit(500)
+  return (data ?? []) as unknown as Comment[]
+}
+
+// "N followers" in post headers, for several orgs at once.
+export async function getFollowerCounts(orgIds: string[]): Promise<Map<string, number>> {
+  if (orgIds.length === 0) return new Map()
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("follower_counts", { targets: [...new Set(orgIds)] })
+  return new Map(((data ?? []) as { org_id: string; n: number }[]).map((r) => [r.org_id, Number(r.n)]))
+}
+
+// Whether the viewer could show a Donor badge on this org's posts but hasn't opted in.
+export async function donorBadgeHint(userId: string | null, orgId: string): Promise<boolean> {
+  if (!userId) return false
+  const supabase = await createClient()
+  const [{ data: profile }, { count }] = await Promise.all([
+    supabase.from("profiles").select("donor_badge").eq("id", userId).single(),
+    supabase.from("gifts").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("org_id", orgId),
+  ])
+  return !profile?.donor_badge && (count ?? 0) > 0
+}
+
+export async function isOrgStaff(userId: string | null, orgId: string): Promise<boolean> {
+  if (!userId) return false
+  const supabase = await createClient()
+  const { data } = await supabase.from("org_members").select("user_id").match({ org_id: orgId, user_id: userId }).maybeSingle()
+  return !!data
+}
+
+// Feed comment preview: newest top-level comment per post, for a page of posts at once.
+export async function getLatestComments(postIds: string[]): Promise<Map<string, Comment & { more: boolean }>> {
+  if (postIds.length === 0) return new Map()
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("latest_comments", { post_ids: postIds })
+  type Row = Omit<Comment, "author"> & { post_id: string; handle: string; display_name: string | null; bio: string | null; avatar_url: string | null; more: boolean }
+  return new Map(((data ?? []) as Row[]).map(({ handle, display_name, bio, avatar_url, post_id, ...c }) => [post_id, { ...c, author: { handle, display_name, bio, avatar_url } }]))
+}
+
+// Profile "Gave to": orgs a person logged gifts to, only if they opted in (names only).
+export async function getDonorOrgs(userId: string): Promise<OrgSummary[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("donor_orgs", { target: userId })
+  return ((data ?? []) as OrgSummary[]).sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// Profile Activity: a person's public comments, newest first, with the post they're on.
+export type ActivityItem = { id: string; body: string; created_at: string; donor: boolean; parent_id: string | null; post: { id: string; body: string; org: OrgSummary } }
+export async function getActivity(userId: string): Promise<ActivityItem[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("comments")
+    .select("id, body, created_at, donor, parent_id, post:posts!inner(id, body, org:orgs!inner(id, slug, name, logo_url, org_type))")
+    .eq("user_id", userId)
+    .eq("as_org", false)
+    .order("created_at", { ascending: false })
+    .limit(30)
+  return (data ?? []) as unknown as ActivityItem[]
+}
+
+// Search people by name or handle (profiles are public).
+export async function searchPeople(q: string) {
+  const term = q.trim().slice(0, 100)
+  if (!term) return []
+  const supabase = await createClient()
+  const e = orFilterTerm(term)
+  if (!e) return []
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, handle, display_name, bio, avatar_url")
+    .or(`display_name.ilike.%${e}%,handle.ilike.%${e}%`)
+    .order("display_name")
+    .limit(20)
+  return data ?? []
+}
+
+// Search post text by word start, newest first (published posts of visible orgs, under RLS).
+export async function searchPosts(q: string) {
+  const term = q.trim().slice(0, 100)
+  if (!term) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("posts")
+    .select("id, body, kind, created_at, org:orgs!inner(id, slug, name, logo_url, org_type)")
+    .filter("body", "imatch", wordStartPattern(term)) // "river" finds "riverbank", not "drivers"
+    .order("created_at", { ascending: false })
+    .limit(20)
+  return (data ?? []) as unknown as { id: string; body: string; kind: string; created_at: string; org: OrgSummary }[]
+}

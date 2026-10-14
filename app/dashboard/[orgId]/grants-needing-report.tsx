@@ -1,3 +1,4 @@
+import { PenLine } from "lucide-react"
 import Link from "next/link"
 import { OrgMark } from "@/components/org-mark"
 import { buttonVariants } from "@/components/ui/button"
@@ -12,7 +13,7 @@ export function GrantsNeedingReport({ orgId, grants }: { orgId: string; grants: 
     <Card>
       <CardHeader><CardTitle>Share how your grants are going</CardTitle></CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">A short post with a photo or video is enough. It shows on your profile and on the foundation&apos;s.</p>
+        <p className="text-sm text-muted-foreground">A short post is enough.</p>
         {grants.map((g) => (
           <div key={g.id} className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
             <OrgMark org={g.foundation} />
@@ -20,7 +21,7 @@ export function GrantsNeedingReport({ orgId, grants }: { orgId: string; grants: 
               <p className="font-medium">{g.foundation.name}</p>
               <p className="text-muted-foreground">{[g.amount_usd && formatUsd(g.amount_usd), g.purpose].filter(Boolean).join(", ")}</p>
             </div>
-            <Link href={`/dashboard/${orgId}?report=${g.id}#composer`} className={buttonVariants({ size: "sm" })}>Write a report</Link>
+            <Link href={`/dashboard/${orgId}?report=${g.id}#composer`} className={buttonVariants({ size: "sm" })}><PenLine aria-hidden />Write a report</Link>
           </div>
         ))}
       </CardContent>

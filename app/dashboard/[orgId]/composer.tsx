@@ -1,5 +1,6 @@
 "use client"
 
+import { Send } from "lucide-react"
 import { useActionState, useState } from "react"
 import { createPost } from "@/app/actions"
 import { Button } from "@/components/ui/button"
@@ -72,7 +73,7 @@ export function Composer({ orgId, orgType = "nonprofit", reportableGrants = [], 
         <input type="checkbox" name="beneficiary_consent" className="mt-1" defaultChecked={v?.beneficiary_consent === "on"} />
         <span>Anyone identifiable in this post (name, face, story) has given consent to share it publicly.</span>
       </label>
-      <Button type="submit" disabled={pending}>{pending ? "Posting..." : "Post"}</Button>
+      <Button type="submit" disabled={pending}><Send aria-hidden />{pending ? "Posting..." : "Post"}</Button>
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
       {state?.message && <p className="text-sm text-muted-foreground">{state.message}</p>}
     </form>

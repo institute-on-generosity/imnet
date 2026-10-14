@@ -1,31 +1,40 @@
 "use client"
 
-import { Check, Eye } from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useOptimistic, useTransition } from "react"
-import { setSupporter } from "@/app/actions"
-import { Button } from "@/components/ui/button"
+import { sendSignal } from "@/lib/send-signal"
 import type { OrgType } from "@/lib/types"
+import { cn } from "@/lib/utils"
+import { IconTip } from "./icon-tip"
 
 // Follows are private. This opts in to showing support on your public profile (self-reported).
 export function SupporterToggle({ orgId, orgType, supporter }: { orgId: string; orgType: OrgType; supporter: boolean }) {
   const [on, setOn] = useOptimistic(supporter)
   const [, start] = useTransition()
-  const label = orgType === "foundation" ? "I give through this fund" : "I support this nonprofit"
+  const router = useRouter()
+  const what = orgType === "foundation" ? "I give through this fund" : "I support this nonprofit"
+  const Icon = on ? Eye : EyeOff
 
   return (
-    <Button
-      variant="outline"
-      aria-pressed={on}
-      title="Shows on your public profile. Self-reported: imnet doesn't see your donations."
-      onClick={() =>
-        start(async () => {
-          setOn(!on)
-          await setSupporter(orgId, !on)
-        })
-      }
-    >
-      {on ? <Check aria-hidden /> : <Eye aria-hidden />}
-      {on ? `${label} (on your profile)` : `${label}: show on my profile`}
-    </Button>
+    <IconTip label={on ? `"${what}" shown on your profile` : `Show "${what}" on my profile`}>
+      <button
+        type="button"
+        aria-pressed={on}
+        onClick={() =>
+          start(async () => {
+            setOn(!on)
+            await sendSignal({ kind: "supporter", id: orgId, on: !on }).catch(() => {})
+            router.refresh()
+          })
+        }
+        className={cn(
+          "inline-flex size-8 items-center justify-center rounded-full border transition-colors",
+          on ? "border-leaf bg-leaf-soft text-leaf" : "border-border bg-background text-muted-foreground hover:bg-muted",
+        )}
+      >
+        <Icon className="size-4" aria-hidden />
+      </button>
+    </IconTip>
   )
 }

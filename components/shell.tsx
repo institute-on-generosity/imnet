@@ -5,7 +5,7 @@ export const CONTAINER = "mx-auto w-full max-w-[1128px] px-4 sm:px-6"
 
 export function ThreeColumn({ left, right, children }: { left?: React.ReactNode; right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className={cn(CONTAINER, "grid gap-6 lg:grid-cols-[225px_minmax(0,1fr)_300px] md:grid-cols-[225px_minmax(0,1fr)]")}>
+    <div className={cn(CONTAINER, "grid grid-cols-1 gap-6 lg:grid-cols-[225px_minmax(0,1fr)_300px] md:grid-cols-[225px_minmax(0,1fr)]")}>
       <aside className="hidden md:block">{left}</aside>
       <div className="min-w-0 space-y-3">{children}</div>
       <aside className="hidden lg:block">{right}</aside>
@@ -15,7 +15,7 @@ export function ThreeColumn({ left, right, children }: { left?: React.ReactNode;
 
 export function TwoColumn({ right, children }: { right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className={cn(CONTAINER, "grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]")}>
+    <div className={cn(CONTAINER, "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]")}>
       <div className="min-w-0 space-y-3">{children}</div>
       <aside className="space-y-3">{right}</aside>
     </div>

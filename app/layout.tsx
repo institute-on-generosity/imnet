@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Literata, Schibsted_Grotesk } from "next/font/google"
 import { SiteHeader } from "@/components/site-header"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import "./globals.css"
 
 // Literata for stories and headlines, Schibsted Grotesk for interface text.
@@ -17,8 +18,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${story.variable} ${ui.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        <SiteHeader />
-        <main className="flex-1 pt-6 pb-20">{children}</main>
+        <TooltipProvider delay={300}>
+          {process.env.NEXT_PUBLIC_DEMO === "1" && (
+            <p className="bg-marigold-soft px-4 py-1.5 text-center text-xs text-foreground">
+              Demo data: the organizations, people and numbers here are fictional.
+            </p>
+          )}
+          <SiteHeader />
+          <main className="flex-1 pt-6 pb-20">{children}</main>
+        </TooltipProvider>
       </body>
     </html>
   )

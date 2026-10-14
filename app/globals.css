@@ -161,3 +161,9 @@
   font-optical-sizing: auto;
   text-wrap: pretty;
 }
+/* Optical alignment for asymmetric icons (lucide adds a class per icon, so this covers every use).
+   Percentages scale with the icon size. The paper plane's point pulls the eye up and right;
+   the speech bubble's tail sits bottom-left. */
+.lucide-send { translate: -5% 5%; }
+.lucide-message-circle { translate: 2% -2%; }
+.lucide-arrow-up-right, .lucide-external-link { translate: -3% 3%; }

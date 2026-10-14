@@ -40,8 +40,10 @@ describe("feeds and profiles", () => {
   it("F-007: sign-up creates a profile with a valid handle", async () => {
     const id = "10000000-0000-4000-8000-0000000000aa"
     await t.owner(`insert into auth.users (id, email) values ('${id}', 'New.Person+tag@example.com')`)
-    const [profile] = await t.owner(`select handle from profiles where id = '${id}'`)
+    const [profile] = await t.owner(`select handle, avatar_url from profiles where id = '${id}'`)
     expect(profile.handle).toMatch(/^[a-z0-9_]{3,30}$/)
+    // F-071: and an illustrated avatar from our own route.
+    expect(profile.avatar_url).toMatch(/^\/avatars\/u[0-9a-f]{16}$/)
   })
 })
 
@@ -156,6 +158,36 @@ describe("posts", () => {
     expect((await post("video_path, video_alt, video_poster_path, video_credit", `'${ORG_1}/a.webm', 'Crew at work', '${ORG_1}/a.jpg', 'Someone, CC BY'`)).error).toBeUndefined()
   })
 
+  it("F-044: staff can edit and delete their org's posts; edits are stamped; others can't", async () => {
+    const [post] = await t.owner(`insert into posts (org_id, author_id, body) values ('${ORG_1}', '${STAFF}', 'first draft') returning id`)
+    expect((await t.as(DONOR, `update posts set body = 'hijacked' where id = '${post.id}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(STAFF, `update posts set body = 'fixed typo' where id = '${post.id}'`)).error).toBeUndefined()
+    const [row] = await t.owner(`select body, edited_at from posts where id = '${post.id}'`)
+    expect(row.body).toBe("fixed typo")
+    expect(row.edited_at).not.toBeNull()
+    expect((await t.as(DONOR, `delete from posts where id = '${post.id}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(STAFF, `delete from posts where id = '${post.id}' returning id`)).rows).toHaveLength(1)
+  })
+
+  it("B-018: staff can't hide or fake the Edited stamp", async () => {
+    const [post] = await t.owner(`insert into posts (org_id, author_id, body) values ('${ORG_1}', '${STAFF}', 'original') returning id`)
+    await t.as(STAFF, `update posts set body = 'changed' where id = '${post.id}'`)
+    expect((await t.owner(`select edited_at from posts where id = '${post.id}'`))[0].edited_at).not.toBeNull()
+    await t.as(STAFF, `update posts set edited_at = null where id = '${post.id}'`)
+    expect((await t.owner(`select edited_at from posts where id = '${post.id}'`))[0].edited_at).not.toBeNull()
+    const [fresh] = await t.owner(`insert into posts (org_id, author_id, body) values ('${ORG_1}', '${STAFF}', 'untouched') returning id`)
+    await t.as(STAFF, `update posts set edited_at = now() where id = '${fresh.id}'`)
+    expect((await t.owner(`select edited_at from posts where id = '${fresh.id}'`))[0].edited_at).toBeNull()
+  })
+
+  it("B-019: a logo must be a path in the org's own folder, never an outside URL", async () => {
+    const set = (v: string) => t.as(STAFF, `update orgs set logo_url = ${v} where id = '${ORG_1}'`)
+    expect((await set("'https://tracker.example/pixel.png'")).error).toMatch(/logo_is_own_storage_path/)
+    expect((await set(`'00000000-0000-4000-a000-000000000002/logo.png'`)).error).toMatch(/logo_is_own_storage_path/)
+    expect((await set(`'${ORG_1}/logo-0000000a-0000-4000-8000-000000000000.png'`)).error).toBeUndefined()
+    expect((await set("null")).error).toBeUndefined()
+  })
+
   it("B-003: staff can't move a post to another org", async () => {
     const [post] = await t.owner(`insert into posts (org_id, author_id, body) values ('${ORG_1}', '${STAFF}', 'stay here') returning id`)
     const moved = await t.as(STAFF, `update posts set org_id = '${ORG_2}' where id = '${post.id}'`)
@@ -198,6 +230,15 @@ describe("network", () => {
     expect(n((await t.as(STAFF, `select moved_count('${post.id}')::int n`)).rows)).toBe(1)
     expect((await t.as(DONOR, `select moved_count('${post.id}') n`)).rows![0].n).toBeNull()
     expect((await t.as(null, `select moved_count('${post.id}') n`)).rows![0].n).toBeNull()
+  })
+
+  it("F-046: saved posts are private to the person who saved them", async () => {
+    const [post] = await t.owner(`select id from posts limit 1`)
+    expect((await t.as(DONOR, `insert into saved_posts (user_id, post_id) values ('${DONOR}', '${post.id}')`)).error).toBeUndefined()
+    expect(n((await t.as(DONOR, `select count(*)::int n from saved_posts`)).rows)).toBe(1)
+    expect(n((await t.as(STAFF, `select count(*)::int n from saved_posts`)).rows)).toBe(0)
+    expect(n((await t.as(null, `select count(*)::int n from saved_posts`)).rows)).toBe(0)
+    expect((await t.as(STAFF, `insert into saved_posts (user_id, post_id) values ('${DONOR}', '${post.id}')`)).error).toMatch(/row-level security/)
   })
 
   it("F-014: anyone logs events; only the org's staff read them; no spoofing", async () => {
@@ -248,8 +289,14 @@ describe("upload cleanup", () => {
       ('other-bucket', 'old.jpg', now() - interval '3 days')`)
     await t.owner(`insert into posts (org_id, body, image_paths, image_alts, beneficiary_consent) values ('${ORG_1}', 'uses a photo', '{${used}}', '{photo}', true)`)
 
+    // An org logo is in use too, even though no post references it.
+    const logo = `${ORG_1}/logo-aaaaaaaa-0000-4000-8000-000000000004.png`
+    await t.owner(`insert into storage.objects (bucket_id, name, created_at) values ('post-images', '${logo}', now() - interval '3 days')`)
+    await t.owner(`update orgs set logo_url = '${logo}' where id = '${ORG_1}'`)
+
     const listed = await t.asService(`select name from orphan_post_images()`)
     expect(listed.rows!.map((r) => r.name)).toEqual([orphanOld])
+    await t.owner(`update orgs set logo_url = null where id = '${ORG_1}'`)
 
     expect((await t.as(STAFF, `select * from orphan_post_images()`)).error).toMatch(/permission denied/)
     expect((await t.as(null, `select * from orphan_post_images()`)).error).toMatch(/permission denied/)
@@ -346,3 +393,244 @@ describe("open calls", () => {
   })
 })
 
+describe("team invites", () => {
+  const NEWBIE = "10000000-0000-4000-8000-0000000000f7"
+  const STRANGER = "10000000-0000-4000-8000-0000000000f8"
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email, email_confirmed_at) values ('${NEWBIE}', 'new.colleague@harbor.example.org', now()), ('${STRANGER}', 'someone@else.example.com', now()) on conflict do nothing`)
+  })
+
+  it("F-048: only staff invite; only the invited email can accept; invites are single-use", async () => {
+    expect((await t.as(DONOR, `insert into org_invites (org_id, email, invited_by) values ('${ORG_1}', 'x@y.org', '${DONOR}')`)).error).toMatch(/row-level security/)
+    const inv = await t.as(STAFF, `insert into org_invites (org_id, email, invited_by) values ('${ORG_1}', 'New.Colleague@harbor.example.org', '${STAFF}') returning token`)
+    const token = inv.rows![0].token
+
+    // Others can't list the org's invites; anyone with the link sees only the org name.
+    expect((await t.as(DONOR, `select token from org_invites`)).rows).toHaveLength(0)
+    expect((await t.as(null, `select org_name from invite_preview('${token}')`)).rows).toEqual([{ org_name: "Harbor Table" }])
+
+    expect((await t.as(STRANGER, `select accept_org_invite('${token}')`)).error).toMatch(/different email/)
+    expect((await t.as(NEWBIE, `select accept_org_invite('${token}')`)).error).toBeUndefined()
+    expect(await t.owner(`select 1 from org_members where org_id = '${ORG_1}' and user_id = '${NEWBIE}'`)).toHaveLength(1)
+    expect((await t.as(NEWBIE, `select accept_org_invite('${token}')`)).error).toMatch(/already used/)
+  })
+
+  it("B-020: an unconfirmed email can't accept an invite", async () => {
+    const UNCONFIRMED = "10000000-0000-4000-8000-0000000000f9"
+    await t.owner(`insert into auth.users (id, email) values ('${UNCONFIRMED}', 'unverified@harbor.example.org') on conflict do nothing`)
+    const inv = await t.as(STAFF, `insert into org_invites (org_id, email, invited_by) values ('${ORG_1}', 'unverified@harbor.example.org', '${STAFF}') returning token`)
+    expect((await t.as(UNCONFIRMED, `select accept_org_invite('${inv.rows![0].token}')`)).error).toMatch(/confirm your email/)
+  })
+
+  it("B-021: removing a colleague revokes the invites they sent that are still pending", async () => {
+    await t.owner(`insert into org_members (org_id, user_id) values ('${ORG_1}', '${NEWBIE}') on conflict do nothing`)
+    await t.as(NEWBIE, `insert into org_invites (org_id, email, invited_by) values ('${ORG_1}', 'friend.of.newbie@harbor.example.org', '${NEWBIE}')`)
+    expect((await t.as(STAFF, `select remove_org_member('${ORG_1}', '${NEWBIE}')`)).error).toBeUndefined()
+    expect(await t.owner(`select 1 from org_invites where email = 'friend.of.newbie@harbor.example.org'`)).toHaveLength(0)
+  })
+
+  it("F-048: staff can remove a colleague, never the last member; outsiders can't remove anyone", async () => {
+    await t.owner(`insert into org_members (org_id, user_id) values ('${ORG_1}', '${NEWBIE}') on conflict do nothing`)
+    expect((await t.as(DONOR, `select remove_org_member('${ORG_1}', '${NEWBIE}')`)).error).toMatch(/not your organization/)
+    expect((await t.as(STAFF, `select remove_org_member('${ORG_1}', '${NEWBIE}')`)).error).toBeUndefined()
+    expect((await t.as(STAFF, `select remove_org_member('${ORG_1}', '${STAFF}')`)).error).toMatch(/at least one member/)
+  })
+})
+
+
+describe("needs, gifts and thank-you notes", () => {
+  const OTHER = "10000000-0000-4000-8000-0000000000e1" // a second donor
+
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${OTHER}', 'other.donor@example.com') on conflict do nothing`)
+  })
+
+  it("F-051: anyone sees an org's needs; only its staff add or change them; a way to help is required", async () => {
+    const add = (who: string, url = "https://harbor.example.org/volunteer") =>
+      t.as(who, `insert into org_needs (org_id, kind, title, help_url) values ('${ORG_1}', 'volunteer', 'Saturday dishwashers', '${url}') returning id`)
+    expect((await add(DONOR)).error).toMatch(/row-level security/)
+    expect((await add(STAFF, "javascript:alert(1)")).error).toMatch(/check constraint/)
+    const need = await add(STAFF, "mailto:help@harbor.example.org")
+    expect(need.error).toBeUndefined()
+    const id = need.rows![0].id
+
+    expect((await t.as(null, `select title from org_needs where id = '${id}'`)).rows).toHaveLength(1)
+    expect((await t.as(DONOR, `update org_needs set met_at = now() where id = '${id}' returning id`)).rows).toHaveLength(0)
+    expect((await t.as(STAFF, `update org_needs set met_at = now() where id = '${id}' returning id`)).rows).toHaveLength(1)
+  })
+
+  it("F-052: a gift log is private to its donor and can't be backdated into the future", async () => {
+    const mine = await t.as(DONOR, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 50, current_date) returning id`)
+    expect(mine.error).toBeUndefined()
+    expect((await t.as(DONOR, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 50, current_date + 1)`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 0, current_date)`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into gifts (user_id, org_id, amount_usd, given_on) values ('${OTHER}', '${ORG_1}', 5, current_date)`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_PENDING}', 5, current_date)`)).error).toMatch(/row-level security/)
+
+    expect((await t.as(OTHER, `select id from gifts`)).rows).toHaveLength(0)
+    expect((await t.as(STAFF, `select id from gifts`)).rows).toHaveLength(0)
+    expect((await t.as(null, `select id from gifts`)).rows ?? []).toHaveLength(0)
+  })
+
+  it("F-053: a thank-you note is seen only by its author and the org's staff", async () => {
+    expect((await t.as(null, `insert into thanks (org_id, body) values ('${ORG_1}', 'hi')`)).error).toBeDefined()
+    expect((await t.as(DONOR, `insert into thanks (org_id, body) values ('${ORG_1}', '   ')`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into thanks (org_id, body) values ('${ORG_PENDING}', 'hi')`)).error).toMatch(/row-level security/)
+    const note = await t.as(DONOR, `insert into thanks (org_id, body) values ('${ORG_1}', 'Thank you for the Tuesday dinners') returning id`)
+    expect(note.error).toBeUndefined()
+    const id = note.rows![0].id
+
+    expect((await t.as(STAFF, `select body from thanks where id = '${id}'`)).rows).toHaveLength(1)
+    expect((await t.as(OTHER, `select body from thanks where id = '${id}'`)).rows).toHaveLength(0)
+    expect((await t.as(null, `select body from thanks where id = '${id}'`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(DONOR, `update thanks set body = 'changed' where id = '${id}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(STAFF, `delete from thanks where id = '${id}' returning id`)).rows).toHaveLength(1)
+  })
+})
+
+describe("events and volunteer interest", () => {
+  const OTHER = "10000000-0000-4000-8000-0000000000e2"
+  let future = ""
+  let past = ""
+  let volunteer = ""
+  let item = ""
+
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${OTHER}', 'other2.donor@example.com') on conflict do nothing`)
+    future = (await t.as(STAFF, `insert into org_events (org_id, title, starts_at, location) values ('${ORG_1}', 'Volunteer day', now() + interval '7 days', 'Pier St kitchen') returning id`)).rows![0].id as string
+    past = (await t.owner(`insert into org_events (org_id, title, starts_at, location) values ('${ORG_1}', 'Old open house', now() - interval '7 days', 'Pier St') returning id`))[0].id as string
+    volunteer = (await t.as(STAFF, `insert into org_needs (org_id, kind, title, help_url) values ('${ORG_1}', 'volunteer', 'Dishwashers', 'https://x.example.org') returning id`)).rows![0].id as string
+    item = (await t.as(STAFF, `insert into org_needs (org_id, kind, title, help_url) values ('${ORG_1}', 'item', 'Pots', 'https://x.example.org') returning id`)).rows![0].id as string
+  })
+
+  it("F-058: only staff create events; anyone sees them", async () => {
+    expect((await t.as(DONOR, `insert into org_events (org_id, title, starts_at, location) values ('${ORG_1}', 'Fake', now() + interval '1 day', 'Nowhere')`)).error).toMatch(/row-level security/)
+    expect((await t.as(null, `select id from org_events where id = '${future}'`)).rows).toHaveLength(1)
+  })
+
+  it("F-058: RSVPs are private to the donor and the org's staff, and only for upcoming events", async () => {
+    expect((await t.as(DONOR, `insert into event_rsvps (event_id) values ('${future}')`)).error).toBeUndefined()
+    expect((await t.as(DONOR, `insert into event_rsvps (event_id) values ('${past}')`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `insert into event_rsvps (event_id, user_id) values ('${future}', '${OTHER}')`)).error).toMatch(/row-level security/)
+    expect((await t.as(STAFF, `select user_id from event_rsvps where event_id = '${future}'`)).rows).toHaveLength(1)
+    expect((await t.as(OTHER, `select user_id from event_rsvps where event_id = '${future}'`)).rows).toHaveLength(0)
+    expect((await t.as(null, `select user_id from event_rsvps`)).rows ?? []).toHaveLength(0)
+  })
+
+  it("F-059: volunteer interest only on open volunteer needs; seen by the donor and staff only", async () => {
+    expect((await t.as(DONOR, `insert into need_interest (need_id) values ('${volunteer}')`)).error).toBeUndefined()
+    expect((await t.as(DONOR, `insert into need_interest (need_id) values ('${item}')`)).error).toMatch(/row-level security/)
+    expect((await t.as(STAFF, `select user_id from need_interest where need_id = '${volunteer}'`)).rows).toHaveLength(1)
+    expect((await t.as(OTHER, `select user_id from need_interest`)).rows).toHaveLength(0)
+  })
+})
+
+describe("comments", () => {
+  const OTHER = "10000000-0000-4000-8000-0000000000e3"
+  let post = ""
+  let draft = ""
+
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${OTHER}', 'other3.donor@example.com') on conflict do nothing`)
+    post = (await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'comment me') returning id`))[0].id as string
+    draft = (await t.owner(`insert into posts (org_id, body, published) values ('${ORG_1}', 'hidden draft', false) returning id`))[0].id as string
+  })
+
+  it("F-062: signed-in people comment on visible posts; everyone can read; no comments on hidden posts", async () => {
+    expect((await t.as(null, `insert into comments (post_id, body) values ('${post}', 'hi')`)).error).toBeDefined()
+    expect((await t.as(DONOR, `insert into comments (post_id, body) values ('${post}', '  ')`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into comments (post_id, body) values ('${draft}', 'sneaky')`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `insert into comments (post_id, body) values ('${post}', 'Beautiful work')`)).error).toBeUndefined()
+    expect((await t.as(null, `select body from comments where post_id = '${post}'`)).rows).toEqual([{ body: "Beautiful work" }])
+  })
+
+  it("F-062: only the posting org's staff can reply as the org", async () => {
+    expect((await t.as(DONOR, `insert into comments (post_id, body, as_org) values ('${post}', 'Official!', true)`)).error).toMatch(/row-level security/)
+    expect((await t.as(STAFF, `insert into comments (post_id, body, as_org) values ('${post}', 'Thank you!', true)`)).error).toBeUndefined()
+  })
+
+  it("F-062: authors and the org's staff can remove comments; others can't; nobody edits", async () => {
+    const id = (await t.as(OTHER, `insert into comments (post_id, body) values ('${post}', 'remove me') returning id`)).rows![0].id
+    expect((await t.as(DONOR, `delete from comments where id = '${id}' returning id`)).rows).toHaveLength(0)
+    expect((await t.as(OTHER, `update comments set body = 'edited' where id = '${id}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(STAFF, `delete from comments where id = '${id}' returning id`)).rows).toHaveLength(1)
+  })
+})
+
+describe("comment replies", () => {
+  it("F-063: replies stay on the parent's post and one level deep", async () => {
+    const a = (await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'post a') returning id`))[0].id
+    const b = (await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'post b') returning id`))[0].id
+    const top = (await t.as(DONOR, `insert into comments (post_id, body) values ('${a}', 'top') returning id`)).rows![0].id
+    const reply = await t.as(STAFF, `insert into comments (post_id, body, parent_id, as_org) values ('${a}', 'thanks', '${top}', true) returning id`)
+    expect(reply.error).toBeUndefined()
+    expect((await t.as(DONOR, `insert into comments (post_id, body, parent_id) values ('${b}', 'wrong post', '${top}')`)).error).toMatch(/same post/)
+    expect((await t.as(DONOR, `insert into comments (post_id, body, parent_id) values ('${a}', 'too deep', '${reply.rows![0].id}')`)).error).toMatch(/one level/)
+    // Removing a comment removes its replies.
+    await t.as(DONOR, `delete from comments where id = '${top}'`)
+    expect(await t.owner(`select 1 from comments where parent_id = '${top}'`)).toHaveLength(0)
+  })
+})
+
+describe("comment preview", () => {
+  it("F-064: latest_comments returns the newest top-level comment per visible post only", async () => {
+    const a = (await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'preview a') returning id`))[0].id
+    const hidden = (await t.owner(`insert into posts (org_id, body, published) values ('${ORG_1}', 'preview hidden', false) returning id`))[0].id
+    await t.owner(`insert into comments (post_id, user_id, body, created_at) values
+      ('${a}', '${DONOR}', 'older', now() - interval '2 hours'), ('${a}', '${STAFF}', 'newest', now() - interval '1 hour'),
+      ('${hidden}', '${DONOR}', 'secret', now())`)
+    const top = (await t.owner(`select id from comments where body = 'older'`))[0].id
+    await t.owner(`insert into comments (post_id, parent_id, user_id, body) values ('${a}', '${top}', '${STAFF}', 'a reply is never the preview')`)
+    const rows = (await t.as(null, `select post_id, body, more from latest_comments(array['${a}', '${hidden}']::uuid[])`)).rows
+    expect(rows).toEqual([{ post_id: a, body: "newest", more: true }])
+  })
+})
+
+describe("donor badge", () => {
+  it("F-065: 'donor' is true only for opted-in commenters with a logged gift to the post's org; gifts stay private", async () => {
+    const GIVER = "10000000-0000-4000-8000-0000000000e4"
+    await t.owner(`insert into auth.users (id, email) values ('${GIVER}', 'giver@example.com') on conflict do nothing`)
+    const post = (await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'donor badge post') returning id`))[0].id
+    await t.as(GIVER, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_2}', 25, current_date)`) // a different org
+    const cid = (await t.as(GIVER, `insert into comments (post_id, body) values ('${post}', 'love this') returning id`)).rows![0].id
+    const donor = async () => (await t.as(null, `select donor(c) as d from comments c where id = '${cid}'`)).rows![0].d
+
+    expect(await donor()).toBe(false) // no gift to this org, not opted in
+    await t.as(GIVER, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 50, current_date)`)
+    expect(await donor()).toBe(false) // gift, but not opted in
+    expect((await t.as(GIVER, `update profiles set donor_badge = true where id = '${GIVER}' returning id`)).rows).toHaveLength(1)
+    expect(await donor()).toBe(true)
+    expect((await t.as(DONOR, `update profiles set donor_badge = true where id = '${GIVER}' returning id`)).rows ?? []).toHaveLength(0) // can't opt someone else in
+    expect((await t.as(null, `select amount_usd from gifts where user_id = '${GIVER}'`)).rows ?? []).toHaveLength(0) // amounts stay private
+  })
+})
+
+describe("analytics and profile giving", () => {
+  it("B-022 / F-067: analytics are totals computed in the database, for the org's staff only", async () => {
+    const post = (await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'analytics post') returning id`))[0].id
+    await t.owner(`insert into events (type, org_id, post_id) select 'view', '${ORG_1}', '${post}' from generate_series(1, 1200)`)
+    const staff = await t.as(STAFF, `select sum(n)::int total from org_daily_events('${ORG_1}') where type = 'view'`)
+    expect(staff.rows![0].total).toBeGreaterThanOrEqual(1200)
+    expect((await t.as(DONOR, `select * from org_daily_events('${ORG_1}')`)).rows).toHaveLength(0)
+    const top = await t.as(STAFF, `select post_id, views from org_top_posts('${ORG_1}', 30, 1)`)
+    expect(top.rows![0]).toMatchObject({ post_id: post })
+    expect(Number(top.rows![0].views)).toBe(1200)
+    expect((await t.as(DONOR, `select * from org_top_posts('${ORG_1}')`)).rows).toHaveLength(0)
+  })
+
+  it("F-066: 'Gave to' lists only opted-in donors' orgs, names only", async () => {
+    const P = "10000000-0000-4000-8000-0000000000e5"
+    await t.owner(`insert into auth.users (id, email) values ('${P}', 'profile.giver@example.com') on conflict do nothing`)
+    await t.as(P, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 30, current_date)`)
+    expect((await t.as(null, `select name from donor_orgs('${P}')`)).rows).toHaveLength(0)
+    await t.as(P, `update profiles set donor_badge = true where id = '${P}'`)
+    expect((await t.as(null, `select name from donor_orgs('${P}')`)).rows).toEqual([{ name: "Harbor Table" }])
+  })
+})
+
+describe("avatars", () => {
+  it("F-070: avatar_url can only be our own /avatars/<seed> route", async () => {
+    expect((await t.as(DONOR, `update profiles set avatar_url = 'https://evil.example/pixel.gif' where id = '${DONOR}'`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `update profiles set avatar_url = '/avatars/dana' where id = '${DONOR}' returning avatar_url`)).rows).toEqual([{ avatar_url: "/avatars/dana" }])
+  })
+})

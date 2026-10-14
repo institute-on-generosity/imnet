@@ -7,10 +7,18 @@ import { draftProfileFromWebsite, fetchWebsiteText, suggestCauses } from "@/lib/
 import { toEmbed } from "@/lib/embeds"
 import { formValues } from "@/lib/form-values"
 import { validateImages } from "@/lib/post-images"
+import { thread } from "@/lib/comments"
+import { parseEventFields } from "@/lib/events"
+import { parseGiftFields } from "@/lib/gifts"
 import { parseGrantFields } from "@/lib/grants"
+import { parseStatFields } from "@/lib/impact-stat-fields"
+import { logoPathIsValid } from "@/lib/logo"
+import { parseNeedFields } from "@/lib/needs"
 import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
 import { todayISO } from "@/lib/open-calls"
+import { safeNext } from "@/lib/safe-next"
 import { escapeLike } from "@/lib/search"
+import { donorBadgeHint, getComments, getPost, getViewer, isOrgStaff } from "@/lib/queries"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
 // values: what the user typed, sent back on error so forms can refill (React 19 resets forms after an action).
@@ -32,10 +40,11 @@ async function requireUser() {
 export async function sendMagicLink(_: ActionState, form: FormData): Promise<ActionState> {
   const email = z.email().safeParse(form.get("email"))
   if (!email.success) return fail(form, "Enter a valid email.")
+  const next = safeNext(form.get("next"))
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithOtp({
     email: email.data,
-    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm` },
+    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm${next === "/" ? "" : `?next=${encodeURIComponent(next)}`}` },
   })
   if (error) return fail(form, error.message)
   return { ok: true, message: "Check your email for a sign-in link." }
@@ -50,36 +59,6 @@ export async function signOut() {
 // ---------------------------------------------------------------------------
 // Donor actions
 // ---------------------------------------------------------------------------
-export async function toggleFollow(orgId: string, slug: string, following: boolean) {
-  const userId = await requireUser()
-  const supabase = await createClient()
-  if (following) {
-    await supabase.from("follows").delete().match({ user_id: userId, org_id: orgId })
-  } else {
-    await supabase.from("follows").insert({ user_id: userId, org_id: orgId })
-  }
-  revalidatePath(`/o/${slug}`)
-}
-
-export async function setSupporter(orgId: string, supporter: boolean) {
-  const userId = await requireUser()
-  const supabase = await createClient()
-  await supabase
-    .from("follows")
-    .upsert({ user_id: userId, org_id: orgId, supporter }, { onConflict: "user_id,org_id" })
-  revalidatePath("/", "layout")
-}
-
-export async function toggleMoved(postId: string, moved: boolean) {
-  const userId = await requireUser()
-  const supabase = await createClient()
-  if (moved) {
-    await supabase.from("moved").delete().match({ user_id: userId, post_id: postId })
-  } else {
-    await supabase.from("moved").insert({ user_id: userId, post_id: postId })
-  }
-}
-
 export async function logEvent(type: "view" | "share" | "donate_click", orgId: string, postId?: string) {
   const supabase = await createClient()
   const userId = await getUserId()
@@ -132,10 +111,25 @@ const OrgSchema = z.object({
 
 export async function updateOrg(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
   await requireUser()
-  const parsed = OrgSchema.safeParse(Object.fromEntries(form))
+  const parsed = OrgSchema.safeParse({
+    name: form.get("name"),
+    mission: form.get("mission") ?? undefined,
+    what_gifts_fund: form.get("what_gifts_fund") ?? undefined,
+    everyorg_slug: form.get("everyorg_slug") ?? undefined,
+  })
   if (!parsed.success) return fail(form, parsed.error.issues[0].message)
+
+  // Logo: a fresh upload in the org's folder, "remove", or unchanged.
+  const logoPath = String(form.get("logo_path") ?? "")
+  let logo: { logo_url?: string | null } = {}
+  if (form.get("remove_logo") === "on") logo = { logo_url: null }
+  else if (logoPath) {
+    if (!logoPathIsValid(orgId, logoPath)) return fail(form, "The logo upload didn't finish. Try again.")
+    logo = { logo_url: logoPath }
+  }
+
   const supabase = await createClient()
-  const { data, error } = await supabase.from("orgs").update(parsed.data).eq("id", orgId).select("slug").single()
+  const { error } = await supabase.from("orgs").update({ ...parsed.data, ...logo }).eq("id", orgId).select("slug").single()
   if (error) return fail(form, error.message)
 
   const causes = form.getAll("causes").map(String)
@@ -143,7 +137,7 @@ export async function updateOrg(orgId: string, _: ActionState, form: FormData): 
   if (causes.length) {
     await supabase.from("org_causes").insert(causes.map((cause_slug) => ({ org_id: orgId, cause_slug })))
   }
-  revalidatePath(`/o/${data.slug}`)
+  revalidatePath("/", "layout")
   return { ok: true, message: "Profile saved." }
 }
 
@@ -229,6 +223,99 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
   }
 }
 
+export async function updatePostBody(postId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const body = z.string().trim().min(1, "Write something first.").max(5000).safeParse(form.get("body"))
+  if (!body.success) return fail(form, body.error.issues[0].message)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("posts").update({ body: body.data }).eq("id", postId).select("id")
+  if (error) return fail(form, error.message)
+  if (!data?.length) return fail(form, "You can only edit your organization's posts.")
+  revalidatePath("/", "layout")
+  return { ok: true, message: "Saved." }
+}
+
+export async function deletePost(postId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("posts").delete().eq("id", postId)
+  revalidatePath("/", "layout")
+}
+
+export async function markNotificationsSeen() {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("profiles").update({ notifications_seen_at: new Date().toISOString() }).eq("id", userId)
+  revalidatePath("/", "layout")
+}
+
+// ---------------------------------------------------------------------------
+// Team
+// ---------------------------------------------------------------------------
+export async function createInvite(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  const userId = await requireUser()
+  const email = z.email("Enter your colleague's email.").safeParse(String(form.get("email") ?? "").trim())
+  if (!email.success) return fail(form, email.error.issues[0].message)
+  const supabase = await createClient()
+  const { error } = await supabase.from("org_invites").insert({ org_id: orgId, email: email.data, invited_by: userId })
+  if (error) return fail(form, error.code === "23505" ? "That email already has an invite." : error.message)
+  revalidatePath(`/dashboard/${orgId}`)
+  return { ok: true, message: "Invite created. Copy the link and send it to them." }
+}
+
+export async function revokeInvite(inviteId: string, orgId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("org_invites").delete().eq("id", inviteId)
+  revalidatePath(`/dashboard/${orgId}`)
+}
+
+export async function removeMember(orgId: string, userId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("remove_org_member", { target_org: orgId, target_user: userId })
+  if (error) throw error
+  revalidatePath(`/dashboard/${orgId}`)
+}
+
+export async function acceptInvite(token: string) {
+  await requireUser()
+  const supabase = await createClient()
+  const { data: orgId, error } = await supabase.rpc("accept_org_invite", { invite_token: token })
+  if (error) redirect(`/invite/${token}?error=${encodeURIComponent(error.message)}`)
+  redirect(`/dashboard/${orgId}`)
+}
+
+// ---------------------------------------------------------------------------
+// Impact stats (every figure needs a source)
+// ---------------------------------------------------------------------------
+export async function addImpactStat(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const parsed = parseStatFields(
+    {
+      label: String(form.get("label") ?? ""),
+      value: String(form.get("value") ?? ""),
+      sourceUrl: String(form.get("source_url") ?? ""),
+      asOf: String(form.get("as_of") ?? ""),
+    },
+    todayISO(),
+  )
+  if ("error" in parsed) return fail(form, parsed.error)
+  const supabase = await createClient()
+  const { count } = await supabase.from("impact_stats").select("*", { count: "exact", head: true }).eq("org_id", orgId)
+  const { data, error } = await supabase.from("impact_stats").insert({ ...parsed.fields, org_id: orgId, sort: count ?? 0 }).select("id").single()
+  if (error) return fail(form, error.message)
+  revalidatePath("/", "layout")
+  return { ok: true, id: data.id, message: "Added." }
+}
+
+export async function deleteImpactStat(statId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("impact_stats").delete().eq("id", statId)
+  revalidatePath("/", "layout")
+}
+
 // ---------------------------------------------------------------------------
 // Grants
 // ---------------------------------------------------------------------------
@@ -309,4 +396,162 @@ export async function rejectClaim(claimId: string) {
     .update({ status: "rejected", reviewed_by: userId, reviewed_at: new Date().toISOString() })
     .eq("id", claimId)
   revalidatePath("/admin")
+}
+
+// ---------------------------------------------------------------------------
+// Needs (F-051)
+// ---------------------------------------------------------------------------
+export async function addNeed(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const parsed = parseNeedFields({
+    kind: String(form.get("kind") ?? ""),
+    title: String(form.get("title") ?? ""),
+    detail: String(form.get("detail") ?? ""),
+    helpUrl: String(form.get("help_url") ?? ""),
+  })
+  if ("error" in parsed) return fail(form, parsed.error)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("org_needs").insert({ ...parsed.fields, org_id: orgId }).select("id").single()
+  if (error) return fail(form, error.message)
+  revalidatePath("/", "layout")
+  return { ok: true, id: data.id, message: "Added." }
+}
+
+export async function setNeedMet(needId: string, met: boolean) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("org_needs").update({ met_at: met ? new Date().toISOString() : null }).eq("id", needId)
+  revalidatePath("/", "layout")
+}
+
+export async function deleteNeed(needId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("org_needs").delete().eq("id", needId)
+  revalidatePath("/", "layout")
+}
+
+// ---------------------------------------------------------------------------
+// Giving journal (F-052): private to the donor
+// ---------------------------------------------------------------------------
+export async function addGift(_: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const parsed = parseGiftFields(
+    {
+      orgId: String(form.get("org_id") ?? ""),
+      amount: String(form.get("amount") ?? ""),
+      givenOn: String(form.get("given_on") ?? ""),
+      note: String(form.get("note") ?? ""),
+    },
+    todayISO(),
+  )
+  if ("error" in parsed) return fail(form, parsed.error)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("gifts").insert(parsed.fields).select("id").single()
+  if (error) return fail(form, error.message)
+  revalidatePath("/giving")
+  return { ok: true, id: data.id, message: "Logged." }
+}
+
+export async function setDonorBadge(on: boolean) {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("profiles").update({ donor_badge: on }).eq("id", userId)
+  revalidatePath("/", "layout")
+}
+
+export async function deleteGift(giftId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("gifts").delete().eq("id", giftId)
+  revalidatePath("/giving")
+}
+
+// ---------------------------------------------------------------------------
+// Thank-you notes (F-053): seen only by the author and the org's staff
+// ---------------------------------------------------------------------------
+export async function sendThanks(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const body = z.string().trim().min(1, "Write a short note first.").max(500, "Keep it under 500 characters.").safeParse(form.get("body"))
+  if (!body.success) return fail(form, body.error.issues[0].message)
+  const supabase = await createClient()
+  const { error } = await supabase.from("thanks").insert({ org_id: orgId, body: body.data })
+  if (error) return fail(form, error.message)
+  revalidatePath(`/dashboard/${orgId}`)
+  return { ok: true, message: "Sent. Only their team will see it." }
+}
+
+export async function deleteThanks(noteId: string, orgId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("thanks").delete().eq("id", noteId)
+  revalidatePath(`/dashboard/${orgId}`)
+}
+
+// ---------------------------------------------------------------------------
+// Events (F-058); RSVPs go through /api/signals
+// ---------------------------------------------------------------------------
+export async function addEvent(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const parsed = parseEventFields(
+    {
+      title: String(form.get("title") ?? ""),
+      startsLocal: String(form.get("starts_local") ?? ""),
+      tzOffset: String(form.get("tz_offset") ?? ""),
+      location: String(form.get("location") ?? ""),
+      detail: String(form.get("detail") ?? ""),
+    },
+    new Date(),
+  )
+  if ("error" in parsed) return fail(form, parsed.error)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("org_events").insert({ ...parsed.fields, org_id: orgId }).select("id").single()
+  if (error) return fail(form, error.message)
+  revalidatePath("/", "layout")
+  return { ok: true, id: data.id, message: "Added." }
+}
+
+export async function deleteEvent(eventId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("org_events").delete().eq("id", eventId)
+  revalidatePath("/", "layout")
+}
+
+// ---------------------------------------------------------------------------
+// Comments (F-062)
+// ---------------------------------------------------------------------------
+// Load a post's thread plus who is viewing (for the composer's avatar and "comment as" switch).
+export async function loadComments(postId: string) {
+  const userId = await getUserId()
+  const post = await getPost(postId)
+  if (!post) return null
+  const [comments, isStaff, viewer, donorHint] = await Promise.all([getComments(postId), isOrgStaff(userId, post.org_id), getViewer(userId), donorBadgeHint(userId, post.org_id)])
+  return {
+    threads: thread(comments),
+    isStaff,
+    donorHint,
+    viewer: viewer ? { id: viewer.id, handle: viewer.handle, name: viewer.display_name ?? `@${viewer.handle}`, avatarUrl: viewer.avatar_url } : null,
+  }
+}
+
+export async function postComment(input: { postId: string; parentId?: string | null; body: string; asOrg?: boolean }): Promise<{ error?: string }> {
+  await requireUser()
+  const body = z.string().trim().min(1, "Write a comment first.").max(1000, "Keep it under 1,000 characters.").safeParse(input.body)
+  if (!body.success) return { error: body.error.issues[0].message }
+  if (input.parentId && !/^[0-9a-f-]{36}$/.test(input.parentId)) return { error: "That comment is gone." }
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from("comments")
+    .insert({ post_id: input.postId, parent_id: input.parentId ?? null, body: body.data, as_org: !!input.asOrg })
+  if (error) return { error: error.message.includes("row-level security") ? "You can't comment on this post." : error.message }
+  revalidatePath(`/p/${input.postId}`)
+  return {}
+}
+
+export async function deleteComment(commentId: string, postId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("comments").delete().eq("id", commentId)
+  revalidatePath(`/p/${postId}`)
 }

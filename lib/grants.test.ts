@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { backers, backersLabel, formatUsd, grantTotals, parseGrantFields } from "./grants"
+import { awardedAgo, backers, backersLabel, formatUsd, grantTotals, parseGrantFields } from "./grants"
 
 const A = "00000000-0000-4000-a000-000000000001"
 const B = "00000000-0000-4000-a000-000000000003"
@@ -53,8 +53,17 @@ describe("backers", () => {
     expect(list.map((x) => x.name)).toEqual(["Lakeshore", "Riverside"])
     expect(backersLabel([])).toBe("")
     expect(backersLabel(["Lakeshore"])).toBe("Backed by Lakeshore")
-    expect(backersLabel(["Lakeshore", "Riverside"])).toBe("Co-funded by Lakeshore and Riverside")
-    expect(backersLabel(["A", "B", "C"])).toBe("Co-funded by A and 2 other foundations")
+    expect(backersLabel(["Lakeshore", "Riverside"])).toBe("Co-funded by Lakeshore and 1 other")
+    expect(backersLabel(["A", "B", "C"])).toBe("Co-funded by A and 2 others")
   })
 })
 
+
+describe("F-056 awardedAgo", () => {
+  it("counts whole months", () => {
+    expect(awardedAgo("2026-10-01", "2026-10-13")).toBe("this month")
+    expect(awardedAgo("2026-09-13", "2026-10-13")).toBe("1 month ago")
+    expect(awardedAgo("2026-09-14", "2026-10-13")).toBe("this month")
+    expect(awardedAgo("2025-10-13", "2026-10-13")).toBe("12 months ago")
+  })
+})

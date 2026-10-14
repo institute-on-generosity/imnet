@@ -1,5 +1,6 @@
 import type { EmailOtpType } from "@supabase/supabase-js"
 import { NextResponse, type NextRequest } from "next/server"
+import { safeNext } from "@/lib/safe-next"
 import { createClient } from "@/lib/supabase/server"
 
 // Magic-link landing: supports both PKCE (?code=) and token-hash links.
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code")
   const tokenHash = searchParams.get("token_hash")
   const type = searchParams.get("type") as EmailOtpType | null
-  const next = searchParams.get("next")?.startsWith("/") ? searchParams.get("next")! : "/"
+  const next = safeNext(searchParams.get("next"))
 
   const supabase = await createClient()
   const { error } = code
@@ -17,5 +18,6 @@ export async function GET(request: NextRequest) {
       ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
       : { error: new Error("Missing auth parameters") }
 
-  return NextResponse.redirect(new URL(error ? "/login?error=link" : next, origin))
+  // String concat, not new URL(next, origin): a path can never change the host.
+  return NextResponse.redirect(`${origin}${error ? "/login?error=link" : next}`)
 }
