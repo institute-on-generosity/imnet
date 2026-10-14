@@ -342,7 +342,7 @@ test("F-068: search covers organizations, people and posts, with tabs", async ({
 })
 
 test("F-066: profiles have About and Activity; opted-in donors show 'Has given to'", async ({ page }) => {
-  const [p] = await sql`select pr.handle from profiles pr where pr.donor_badge and exists (select 1 from gifts g where g.user_id = pr.id)
+  const [p] = await sql`select pr.handle from profiles pr where pr.donor_badge and not pr.show_giving_totals and exists (select 1 from gifts g where g.user_id = pr.id)
     and exists (select 1 from comments c where c.user_id = pr.id and not c.as_org) order by pr.handle limit 1`
   await page.goto(`/u/${p.handle}`)
   await expect(page.getByRole("heading", { name: "Has given to" })).toBeVisible()
@@ -378,7 +378,7 @@ test("F-073: profiles look complete: cover photos, location, founded, team, prog
   await expect(page.locator('main img[src$="covers/mountain-lake.webp"]')).toBeVisible()
   await expect(page.getByText("Milwaukee, WI").first()).toBeVisible()
   await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible()
-  await expect(page.getByRole("heading", { name: "Has given to" })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Giving" })).toBeVisible()
   await expect(page.getByRole("link", { name: "Edit profile" })).toHaveCount(0) // not yours
 })
 
@@ -405,6 +405,9 @@ test("F-076: an opted-in donor's profile shows total giving and the split by cau
   await expect(panel.getByText(/^\$[\d,]+$/).first()).toBeVisible()
   await expect(panel.getByText(/given to \d+ organizations? since/)).toBeVisible()
   await expect(panel.getByRole("link", { name: "Hunger & Food" })).toBeVisible()
+  // F-077: amount to each organization, largest first.
+  const orgRow = panel.getByRole("listitem").filter({ has: page.getByRole("link", { name: "Harbor Table" }) })
+  await expect(orgRow.getByText(/^\$[\d,]+$/)).toBeVisible()
   await expect(panel.getByText(/Self-reported/)).toBeVisible()
   // What their giving became no longer repeats grant reports.
   await expect(page.getByText(/Latest report/)).toHaveCount(0)

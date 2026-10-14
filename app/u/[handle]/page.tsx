@@ -59,7 +59,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   // Giving lists sit beside the story on desktop and after it on phones.
   const giving = (where: string) => (
     <>
-      <OrgListCard id={`gave-to-${where}`} title={isOwn ? "I've given to" : "Has given to"} note="Self-reported in their giving journal. Amounts stay private." orgs={gaveTo} icon />
+      {!totals && <OrgListCard id={`gave-to-${where}`} title={isOwn ? "I've given to" : "Has given to"} note="Self-reported in their giving journal. Amounts stay private." orgs={gaveTo} icon />}
       <OrgListCard id={`supports-${where}`} title={isOwn ? "Organizations I support" : "Organizations they support"} note="Self-reported" orgs={supports} />
     </>
   )

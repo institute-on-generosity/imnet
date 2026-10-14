@@ -667,5 +667,9 @@ describe("giving totals", () => {
       { cause_slug: "housing", amount: 50, total: 250, orgs: 2 },
     ].sort((a, b) => b.amount - a.amount || 0))
     expect((await t.as(DONOR, `update profiles set show_giving_totals = true where id = '${G}' returning id`)).rows ?? []).toHaveLength(0)
+    // F-077: by organization, under the same opt-in.
+    expect((await t.as(null, `select name, amount::int from giving_by_org('${G}')`)).rows).toEqual([{ name: "Harbor Table", amount: 200 }, { name: "Open Door Homes", amount: 50 }])
+    await t.as(G, `update profiles set show_giving_totals = false where id = '${G}'`)
+    expect((await t.as(null, `select * from giving_by_org('${G}')`)).rows).toHaveLength(0)
   })
 })

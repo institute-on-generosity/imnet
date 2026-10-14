@@ -623,17 +623,21 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
   return { ...(data as unknown as OrgEvent), org, causes: org_causes.map((c) => c.cause_slug) }
 }
 
-export type GivingSummary = { total: number; orgs: number; since: string; causes: { slug: string; name: string; amount: number }[] }
+export type GivingSummary = { total: number; orgs: number; since: string; causes: { slug: string; name: string; amount: number }[]; byOrg: (OrgSummary & { amount: number })[] }
 
 // A donor's opted-in giving totals (self-reported, from their journal); null when not shared.
 export async function getGivingSummary(userId: string): Promise<GivingSummary | null> {
   const supabase = await createClient()
-  const { data } = await supabase.rpc("giving_summary", { target: userId })
+  const [{ data }, { data: orgRows }] = await Promise.all([
+    supabase.rpc("giving_summary", { target: userId }),
+    supabase.rpc("giving_by_org", { target: userId }),
+  ])
   type Row = { cause_slug: string; cause_name: string; amount: number; total: number; orgs: number; since: string }
   const rows = (data ?? []) as Row[]
   if (rows.length === 0) return null
   return {
     total: Number(rows[0].total), orgs: Number(rows[0].orgs), since: rows[0].since,
     causes: rows.map((r) => ({ slug: r.cause_slug, name: r.cause_name, amount: Number(r.amount) })),
+    byOrg: ((orgRows ?? []) as (OrgSummary & { amount: number })[]).map((o) => ({ ...o, amount: Number(o.amount) })),
   }
 }

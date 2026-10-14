@@ -2,11 +2,13 @@ import { HandHeart } from "lucide-react"
 import Link from "@/components/intent-link"
 import { formatUsd } from "@/lib/grants"
 import type { GivingSummary } from "@/lib/queries"
+import { OrgMark } from "./org-mark"
+import { FoundationMark } from "./org-type-badge"
 import { Panel } from "./shell"
 
 const sinceLabel = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { month: "long", year: "numeric" })
 
-// Opted-in totals from the giving journal: how much, to how many organizations, and by cause.
+// Opted-in totals from the giving journal: how much, to which organizations, and by cause.
 // Self-reported; individual gifts stay private.
 export function GivingSummaryPanel({ summary, isOwn }: { summary: GivingSummary; isOwn: boolean }) {
   const max = Math.max(...summary.causes.map((c) => c.amount))
@@ -19,6 +21,17 @@ export function GivingSummaryPanel({ summary, isOwn }: { summary: GivingSummary;
       <p className="text-sm text-muted-foreground">
         given to {summary.orgs} {summary.orgs === 1 ? "organization" : "organizations"} since {sinceLabel(summary.since)}
       </p>
+      <h3 className="mt-5 text-sm font-semibold">By organization</h3>
+      <ul className="mt-2 divide-y border-y">
+        {summary.byOrg.map((o) => (
+          <li key={o.id} className="flex items-center gap-3 py-2.5">
+            <OrgMark org={o} size="sm" />
+            <Link href={`/o/${o.slug}`} className="min-w-0 flex-1 truncate text-sm font-medium hover:underline">{o.name}</Link>
+            {o.org_type === "foundation" && <FoundationMark />}
+            <span className="text-sm tabular-nums">{formatUsd(o.amount)}</span>
+          </li>
+        ))}
+      </ul>
       <h3 className="mt-5 text-sm font-semibold">By cause</h3>
       <ul className="mt-2 space-y-2.5">
         {summary.causes.map((c) => (
@@ -34,7 +47,7 @@ export function GivingSummaryPanel({ summary, isOwn }: { summary: GivingSummary;
         ))}
       </ul>
       <p className="mt-4 text-xs text-muted-foreground">
-        Self-reported in {isOwn ? "my" : "their"} giving journal. Gifts to organizations with several causes are split evenly. Individual gifts stay private.
+        Self-reported in {isOwn ? "my" : "their"} giving journal. Gifts to organizations with several causes are split evenly across them. Individual gifts and dates stay private.
         {isOwn && <> <Link href="/giving#giving-totals-toggle" className="text-leaf hover:underline">Change what&apos;s shown</Link></>}
       </p>
     </Panel>

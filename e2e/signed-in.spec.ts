@@ -438,7 +438,7 @@ test("F-052: log a gift in the private giving journal; totals by year; nobody el
   await page.getByLabel(/Show my giving totals on my profile/).check()
   await expect.poll(async () => (await sql`select show_giving_totals s from profiles where id = ${userId}`)[0].s).toBe(true)
   await anon.goto(`/u/${handle}`)
-  await expect(anon.getByRole("region", { name: "Giving" }).getByText("$75", { exact: true })).toBeVisible()
+  await expect(anon.getByRole("region", { name: "Giving" }).getByText("$75", { exact: true }).first()).toBeVisible()
   await anon.close()
 })
 
