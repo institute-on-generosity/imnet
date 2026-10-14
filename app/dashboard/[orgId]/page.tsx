@@ -1,9 +1,11 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCauses, getGrantsAwaitingReport, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgEventCounts, getEventsForStaff, getInterestForStaff, getOrgNeeds, getReportableGrants, getThanks } from "@/lib/queries"
+import { getCauses, getGrantsAwaitingReport, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgDaily, getOrgTopPosts, getEventsForStaff, getInterestForStaff, getOrgNeeds, getReportableGrants, getThanks } from "@/lib/queries"
+import { total } from "@/lib/analytics"
 import type { ImpactStat, Org } from "@/lib/types"
 import { createClient, getUserId } from "@/lib/supabase/server"
+import { AnalyticsCard } from "./analytics-card"
 import { Composer } from "./composer"
 import { ImpactStatsEditor } from "./impact-stats-editor"
 import { EventsEditor } from "./events-editor"
@@ -26,13 +28,15 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
   const { data: member } = await supabase.from("org_members").select("user_id").match({ org_id: orgId, user_id: userId }).maybeSingle()
   if (!member) notFound()
 
-  const [{ data: org }, { data: orgCauses }, causes, counts, { data: followers }] = await Promise.all([
+  const [{ data: org }, { data: orgCauses }, causes, series, { data: followers }, top] = await Promise.all([
     supabase.from("orgs").select("id, slug, name, ein, website, mission, what_gifts_fund, logo_url, everyorg_slug, status, org_type").eq("id", orgId).single<Org>(),
     supabase.from("org_causes").select("cause_slug").eq("org_id", orgId),
     getCauses(),
-    getOrgEventCounts(orgId),
+    getOrgDaily(orgId),
     supabase.rpc("follower_count", { target: orgId }),
+    getOrgTopPosts(orgId),
   ])
+  const counts = { view: total(series, "view"), share: total(series, "share"), donate_click: total(series, "donate_click") }
   if (!org) notFound()
 
   return (
@@ -48,6 +52,11 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
         <Stat label="Shares (30d)" value={counts.share} />
         <Stat label="Donate clicks (30d)" value={counts.donate_click} />
       </section>
+
+      <Card>
+        <CardHeader><CardTitle>Analytics</CardTitle></CardHeader>
+        <CardContent><AnalyticsCard series={series} top={top} /></CardContent>
+      </Card>
 
       {org.org_type === "foundation" && <GrantsAwaitingReport grants={await getGrantsAwaitingReport(org.id)} />}
       {org.org_type === "nonprofit" && <GrantsToConfirm orgId={org.id} grants={await getGrantsToConfirm(org.id)} />}

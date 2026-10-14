@@ -602,3 +602,26 @@ describe("donor badge", () => {
     expect((await t.as(null, `select amount_usd from gifts where user_id = '${GIVER}'`)).rows ?? []).toHaveLength(0) // amounts stay private
   })
 })
+
+describe("analytics and profile giving", () => {
+  it("B-022 / F-067: analytics are totals computed in the database, for the org's staff only", async () => {
+    const post = (await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'analytics post') returning id`))[0].id
+    await t.owner(`insert into events (type, org_id, post_id) select 'view', '${ORG_1}', '${post}' from generate_series(1, 1200)`)
+    const staff = await t.as(STAFF, `select sum(n)::int total from org_daily_events('${ORG_1}') where type = 'view'`)
+    expect(staff.rows![0].total).toBeGreaterThanOrEqual(1200)
+    expect((await t.as(DONOR, `select * from org_daily_events('${ORG_1}')`)).rows).toHaveLength(0)
+    const top = await t.as(STAFF, `select post_id, views from org_top_posts('${ORG_1}', 30, 1)`)
+    expect(top.rows![0]).toMatchObject({ post_id: post })
+    expect(Number(top.rows![0].views)).toBe(1200)
+    expect((await t.as(DONOR, `select * from org_top_posts('${ORG_1}')`)).rows).toHaveLength(0)
+  })
+
+  it("F-066: 'Gave to' lists only opted-in donors' orgs, names only", async () => {
+    const P = "10000000-0000-4000-8000-0000000000e5"
+    await t.owner(`insert into auth.users (id, email) values ('${P}', 'profile.giver@example.com') on conflict do nothing`)
+    await t.as(P, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 30, current_date)`)
+    expect((await t.as(null, `select name from donor_orgs('${P}')`)).rows).toHaveLength(0)
+    await t.as(P, `update profiles set donor_badge = true where id = '${P}'`)
+    expect((await t.as(null, `select name from donor_orgs('${P}')`)).rows).toEqual([{ name: "Harbor Table" }])
+  })
+})

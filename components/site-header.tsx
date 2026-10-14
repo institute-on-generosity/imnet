@@ -29,8 +29,8 @@ export async function SiteHeader() {
           <input
             type="search"
             name="q"
-            placeholder="Search nonprofits and foundations"
-            aria-label="Search organizations"
+            placeholder="Search orgs, people, posts"
+            aria-label="Search"
             className="h-9 w-full rounded-md bg-muted pr-3 pl-9 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
         </form>
@@ -58,7 +58,7 @@ export async function SiteHeader() {
             </>
           ) : (
             <div className="flex items-center gap-2 py-2.5">
-              <Link href="/search" className="text-muted-foreground sm:hidden" aria-label="Search organizations"><Search className="size-5" /></Link>
+              <Link href="/search" className="text-muted-foreground sm:hidden" aria-label="Search"><Search className="size-5" /></Link>
               <Link href="/login" className={buttonVariants({ variant: "ghost" })}>Join now</Link>
               <Link href="/login" className={buttonVariants({ variant: "outline" })}>Sign in</Link>
             </div>

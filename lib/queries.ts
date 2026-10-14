@@ -1,10 +1,11 @@
 import { cache } from "react"
 import { type Cursor, encodeCursor, olderThan } from "@/lib/cursor"
+import { type DayRow, fillDays, type Series, total } from "@/lib/analytics"
 import type { Comment } from "@/lib/comments"
 import type { EventWithOrg, OrgEvent } from "@/lib/events"
 import type { Gift } from "@/lib/gifts"
 import { MET_SHOWN_DAYS, type Need, type NeedWithOrg } from "@/lib/needs"
-import { escapeLike } from "@/lib/search"
+import { escapeLike, orFilterTerm, wordStartPattern } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
 import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
 
@@ -109,13 +110,23 @@ export function postImageUrl(path: string) {
 }
 
 // Last-30-day engagement for an org's dashboard (RLS limits this to its staff).
+// 30-day totals for the dashboard, summed in the database (B-022: the API caps rows at 1,000).
 export async function getOrgEventCounts(orgId: string) {
+  const series = await getOrgDaily(orgId)
+  return { view: total(series, "view"), share: total(series, "share"), donate_click: total(series, "donate_click") }
+}
+
+export async function getOrgDaily(orgId: string, days = 30): Promise<Series> {
   const supabase = await createClient()
-  const since = new Date(Date.now() - 30 * 86_400_000).toISOString()
-  const { data } = await supabase.from("events").select("type").eq("org_id", orgId).gte("created_at", since)
-  const counts: Record<string, number> = { view: 0, share: 0, donate_click: 0 }
-  for (const e of data ?? []) counts[e.type] = (counts[e.type] ?? 0) + 1
-  return counts
+  const { data } = await supabase.rpc("org_daily_events", { target: orgId, days })
+  return fillDays((data ?? []) as DayRow[], days, new Date().toISOString().slice(0, 10))
+}
+
+export type TopPost = { post_id: string; body: string; created_at: string; views: number; shares: number; moved: number; saves: number; comments: number }
+export async function getOrgTopPosts(orgId: string): Promise<TopPost[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("org_top_posts", { target: orgId, days: 30, lim: 5 })
+  return ((data ?? []) as TopPost[]).map((r) => ({ ...r, views: Number(r.views), shares: Number(r.shares), moved: Number(r.moved), saves: Number(r.saves), comments: Number(r.comments) }))
 }
 
 // ---------------------------------------------------------------------------
@@ -541,4 +552,55 @@ export async function getLatestComments(postIds: string[]): Promise<Map<string, 
   const { data } = await supabase.rpc("latest_comments", { post_ids: postIds })
   type Row = Omit<Comment, "author"> & { post_id: string; handle: string; display_name: string | null; bio: string | null; more: boolean }
   return new Map(((data ?? []) as Row[]).map(({ handle, display_name, bio, post_id, ...c }) => [post_id, { ...c, author: { handle, display_name, bio } }]))
+}
+
+// Profile "Gave to": orgs a person logged gifts to, only if they opted in (names only).
+export async function getDonorOrgs(userId: string): Promise<OrgSummary[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("donor_orgs", { target: userId })
+  return ((data ?? []) as OrgSummary[]).sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// Profile Activity: a person's public comments, newest first, with the post they're on.
+export type ActivityItem = { id: string; body: string; created_at: string; donor: boolean; parent_id: string | null; post: { id: string; body: string; org: OrgSummary } }
+export async function getActivity(userId: string): Promise<ActivityItem[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("comments")
+    .select("id, body, created_at, donor, parent_id, post:posts!inner(id, body, org:orgs!inner(id, slug, name, logo_url, org_type))")
+    .eq("user_id", userId)
+    .eq("as_org", false)
+    .order("created_at", { ascending: false })
+    .limit(30)
+  return (data ?? []) as unknown as ActivityItem[]
+}
+
+// Search people by name or handle (profiles are public).
+export async function searchPeople(q: string) {
+  const term = q.trim().slice(0, 100)
+  if (!term) return []
+  const supabase = await createClient()
+  const e = orFilterTerm(term)
+  if (!e) return []
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, handle, display_name, bio")
+    .or(`display_name.ilike.%${e}%,handle.ilike.%${e}%`)
+    .order("display_name")
+    .limit(20)
+  return data ?? []
+}
+
+// Search post text by word start, newest first (published posts of visible orgs, under RLS).
+export async function searchPosts(q: string) {
+  const term = q.trim().slice(0, 100)
+  if (!term) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("posts")
+    .select("id, body, kind, created_at, org:orgs!inner(id, slug, name, logo_url, org_type)")
+    .filter("body", "imatch", wordStartPattern(term)) // "river" finds "riverbank", not "drivers"
+    .order("created_at", { ascending: false })
+    .limit(20)
+  return (data ?? []) as unknown as { id: string; body: string; kind: string; created_at: string; org: OrgSummary }[]
 }

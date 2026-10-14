@@ -548,6 +548,16 @@ test("F-065: a donor who logged a gift sees a hint, opts in from the journal, an
   await expect(mine.getByTitle("Has given to Harbor Table (self-reported)")).toBeVisible()
 })
 
+test("F-067 / B-022: staff see 30-day charts and top posts; totals match the database", async () => {
+  const FOUNDATION = "00000000-0000-4000-a000-000000000005"
+  await page.goto(`/dashboard/${FOUNDATION}`)
+  await expect(page.getByRole("img", { name: /Views per day/ })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Most viewed posts" })).toBeVisible()
+  const [{ n }] = await sql`select count(*)::int n from events where org_id = ${FOUNDATION} and type = 'view'
+    and created_at >= (((now() at time zone 'UTC')::date - 29)::timestamp at time zone 'UTC')`
+  await expect(page.locator("figure").filter({ hasText: "Views" }).first()).toContainText(n.toLocaleString("en-US"))
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

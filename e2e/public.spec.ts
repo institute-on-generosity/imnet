@@ -218,9 +218,9 @@ test("F-003: unknown org is a 404", async ({ page }) => {
 
 test("F-025: search finds orgs by name", async ({ page }) => {
   await page.goto("/")
-  await page.getByRole("searchbox", { name: "Search organizations" }).first().fill("river")
+  await page.getByRole("searchbox", { name: "Search", exact: true }).first().fill("river")
   await page.keyboard.press("Enter")
-  await expect(page.getByRole("link", { name: /Riverbend Readers/ })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Organizations" }).getByRole("link", { name: /Riverbend Readers/ })).toBeVisible()
 })
 
 test("F-002: Following requires sign-in", async ({ page }) => {
@@ -314,4 +314,29 @@ test("F-065: comments from opted-in donors to the org carry a Donor badge", asyn
   const badge = page.getByRole("region", { name: "Comments" }).getByTitle(/Has given to .* \(self-reported\)/).first()
   await expect(badge).toBeVisible()
   await expect(badge).toContainText("Donor")
+})
+
+test("F-068: search covers organizations, people and posts, with tabs", async ({ page }) => {
+  await page.goto("/search?q=harbor")
+  await expect(page.getByRole("region", { name: "Organizations" }).getByRole("link", { name: /Harbor Table/ })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Posts" })).toBeVisible()
+  await page.getByRole("navigation", { name: "Result types" }).getByRole("link", { name: "People" }).click()
+  await page.getByRole("searchbox", { name: "Search", exact: true }).first().fill("Dana Rivera")
+  await page.getByRole("searchbox", { name: "Search", exact: true }).first().press("Enter")
+  await expect(page.getByRole("region", { name: "People" }).getByRole("link", { name: /Dana Rivera/ })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Organizations" })).toHaveCount(0)
+  // Characters that could inject filter conditions are harmless.
+  const res = await page.goto("/search?q=" + encodeURIComponent("a,handle.neq.x)") + "&type=people")
+  expect(res?.status()).toBe(200)
+})
+
+test("F-066: profiles have About and Activity; opted-in donors show 'Has given to'", async ({ page }) => {
+  const [p] = await sql`select pr.handle from profiles pr where pr.donor_badge and exists (select 1 from gifts g where g.user_id = pr.id)
+    and exists (select 1 from comments c where c.user_id = pr.id and not c.as_org) order by pr.handle limit 1`
+  await page.goto(`/u/${p.handle}`)
+  await expect(page.getByRole("heading", { name: "Has given to" })).toBeVisible()
+  await page.getByRole("navigation", { name: "Profile sections" }).getByRole("link", { name: "activity" }).click()
+  await expect(page).toHaveURL(/tab=activity/)
+  const [c] = await sql`select c.body from comments c join profiles pr on pr.id = c.user_id where pr.handle = ${p.handle} and not c.as_org order by c.created_at desc limit 1`
+  await expect(page.getByRole("region", { name: "Comments" }).getByText(c.body, { exact: true }).first()).toBeVisible()
 })
