@@ -1,7 +1,7 @@
 import { CauseFilter } from "@/components/cause-filter"
 import { Feed } from "@/components/post-card"
 import { Panel, TwoColumn } from "@/components/shell"
-import { getCauses, getGrantsForPosts, getMovedPostIds, getOpenCalls } from "@/lib/queries"
+import { getCauses, getGrantsForPosts, getMovedPostIds, getSavedPostIds, getOpenCalls } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 
 export const metadata = { title: "Open calls" }
@@ -13,7 +13,7 @@ export default async function CallsPage({ searchParams }: PageProps<"/calls">) {
   const userId = await getUserId()
   const [calls, causes] = await Promise.all([getOpenCalls({ causes: active ? [active] : undefined }), getCauses()])
   const ids = calls.map((c) => c.id)
-  const [movedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getGrantsForPosts(ids)])
+  const [movedIds, savedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getSavedPostIds(userId, ids), getGrantsForPosts(ids)])
 
   return (
     <TwoColumn
@@ -33,7 +33,7 @@ export default async function CallsPage({ searchParams }: PageProps<"/calls">) {
       <Feed
         posts={calls}
         empty={active ? "No open calls for this cause right now. Try all causes." : "No open calls right now."}
-        movedIds={movedIds}
+        movedIds={movedIds} savedIds={savedIds}
         signedIn={!!userId}
         grantsByPost={grantsByPost}
       />

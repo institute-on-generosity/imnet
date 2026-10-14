@@ -314,3 +314,22 @@ export async function getOrgPostsForStaff(orgId: string) {
   return data ?? []
 }
 
+export async function getSavedPostIds(userId: string | null, postIds: string[]): Promise<Set<string>> {
+  if (!userId || postIds.length === 0) return new Set()
+  const supabase = await createClient()
+  const { data } = await supabase.from("saved_posts").select("post_id").eq("user_id", userId).in("post_id", postIds)
+  return new Set((data ?? []).map((s) => s.post_id))
+}
+
+// The viewer's saved posts, most recently saved first.
+export async function getSavedPosts(userId: string): Promise<Post[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("saved_posts")
+    .select(`created_at, post:posts!inner(${POST_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type))`)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(50)
+  return ((data ?? []) as unknown as { post: Post }[]).map((r) => r.post)
+}
+

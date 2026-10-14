@@ -211,6 +211,15 @@ describe("network", () => {
     expect((await t.as(null, `select moved_count('${post.id}') n`)).rows![0].n).toBeNull()
   })
 
+  it("F-046: saved posts are private to the person who saved them", async () => {
+    const [post] = await t.owner(`select id from posts limit 1`)
+    expect((await t.as(DONOR, `insert into saved_posts (user_id, post_id) values ('${DONOR}', '${post.id}')`)).error).toBeUndefined()
+    expect(n((await t.as(DONOR, `select count(*)::int n from saved_posts`)).rows)).toBe(1)
+    expect(n((await t.as(STAFF, `select count(*)::int n from saved_posts`)).rows)).toBe(0)
+    expect(n((await t.as(null, `select count(*)::int n from saved_posts`)).rows)).toBe(0)
+    expect((await t.as(STAFF, `insert into saved_posts (user_id, post_id) values ('${DONOR}', '${post.id}')`)).error).toMatch(/row-level security/)
+  })
+
   it("F-014: anyone logs events; only the org's staff read them; no spoofing", async () => {
     expect((await t.as(null, `insert into events (type, org_id) values ('view', '${ORG_1}')`)).error).toBeUndefined()
     expect((await t.as(DONOR, `insert into events (type, org_id, user_id) values ('share', '${ORG_1}', '${DONOR}')`)).error).toBeUndefined()

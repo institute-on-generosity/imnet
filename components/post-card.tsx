@@ -7,6 +7,7 @@ import { GrantChips } from "./grant-chips"
 import { GrantReportBanner } from "./grant-report-banner"
 import { MovedButton } from "./moved-button"
 import { OpenCallBlock } from "./open-call-block"
+import { SaveButton } from "./save-button"
 import { OrgMark } from "./org-mark"
 import { FoundationMark } from "./org-type-badge"
 import { IconTip } from "./icon-tip"
@@ -24,12 +25,12 @@ const relative = (iso: string) => {
 }
 
 // context: the followed foundation this post appears for (portfolio), shown above the header.
-type CardProps = { post: Post; full?: boolean; moved?: boolean; signedIn?: boolean; grants?: Grant[]; context?: OrgSummary }
+type CardProps = { post: Post; full?: boolean; moved?: boolean; saved?: boolean; signedIn?: boolean; grants?: Grant[]; context?: OrgSummary }
 
 // A LinkedIn-style post: author header, text with "see more", media, then an action bar.
-export function PostCard({ post, full = false, moved = false, signedIn = false, grants = [], context }: CardProps) {
+export function PostCard({ post, full = false, moved = false, saved = false, signedIn = false, grants = [], context }: CardProps) {
   return (
-    <Panel>
+    <article className="rounded-xl border bg-card">
       {context && (
         <p className="border-b px-4 py-2 text-xs text-muted-foreground">
           From the portfolio of{" "}
@@ -68,6 +69,7 @@ export function PostCard({ post, full = false, moved = false, signedIn = false, 
       <footer className="mt-2 flex items-center gap-0.5 px-2 pb-1.5">
         <MovedButton postId={post.id} moved={moved} signedIn={signedIn} />
         <ShareButton path={`/p/${post.id}`} title={`${post.org.name} on imnet`} orgId={post.org_id} postId={post.id} />
+        <SaveButton postId={post.id} saved={saved} signedIn={signedIn} />
         {!full && (
           <IconTip label="Open post">
             <Link href={`/p/${post.id}`} className="ml-auto inline-flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted">
@@ -76,18 +78,18 @@ export function PostCard({ post, full = false, moved = false, signedIn = false, 
           </IconTip>
         )}
       </footer>
-    </Panel>
+    </article>
   )
 }
 
-type FeedProps = { posts: Post[]; empty: React.ReactNode; movedIds?: Set<string>; signedIn?: boolean; grantsByPost?: Map<string, Grant[]>; context?: Map<string, OrgSummary> }
+type FeedProps = { posts: Post[]; empty: React.ReactNode; movedIds?: Set<string>; savedIds?: Set<string>; signedIn?: boolean; grantsByPost?: Map<string, Grant[]>; context?: Map<string, OrgSummary> }
 
-export function Feed({ posts, empty, movedIds, signedIn = false, grantsByPost, context }: FeedProps) {
+export function Feed({ posts, empty, movedIds, savedIds, signedIn = false, grantsByPost, context }: FeedProps) {
   if (posts.length === 0) return <Panel className="p-6 text-muted-foreground">{empty}</Panel>
   return (
     <div className="space-y-3">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} moved={movedIds?.has(post.id)} signedIn={signedIn} grants={grantsByPost?.get(post.id)} context={context?.get(post.id)} />
+        <PostCard key={post.id} post={post} moved={movedIds?.has(post.id)} saved={savedIds?.has(post.id)} signedIn={signedIn} grants={grantsByPost?.get(post.id)} context={context?.get(post.id)} />
       ))}
     </div>
   )

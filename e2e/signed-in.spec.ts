@@ -173,11 +173,11 @@ test("F-037: following a foundation brings its grantees' reports into Following,
 
   await page.goto("/following")
   // This user doesn't follow their own Test Kitchen org, so its report appears via Lakeshore's portfolio.
-  const report = page.locator("section").filter({ hasText: `Report ${id}` })
+  const report = page.locator("article").filter({ hasText: `Report ${id}` })
   await expect(report.getByText("From the portfolio of")).toBeVisible()
   await expect(report.getByRole("link", { name: "Lakeshore Community Foundation (Demo)" }).first()).toBeVisible()
   // Harbor Table is followed directly, so its report has no portfolio line.
-  const harbor = page.locator("section").filter({ hasText: "The new walk-in freezer is in." })
+  const harbor = page.locator("article").filter({ hasText: "The new walk-in freezer is in." })
   await expect(harbor.getByText("From the portfolio of")).toHaveCount(0)
 })
 
@@ -217,7 +217,7 @@ test("F-039: a foundation posts an open call; matching nonprofits see it on thei
   await expect(page.getByText("Posted.")).toBeVisible()
 
   await page.goto("/calls?cause=hunger")
-  const call = page.locator("section").filter({ hasText: `Call ${id}` })
+  const call = page.locator("article").filter({ hasText: `Call ${id}` })
   await expect(call.getByText("Up to $12,000")).toBeVisible()
 
   // A hunger nonprofit sees it in "Open calls for your causes".
@@ -295,6 +295,21 @@ test("F-045: staff upload a logo; it replaces the monogram and points only at ou
   expect(org.logo_url).toMatch(new RegExp(`/storage/v1/object/public/post-images/${kitchen.id}/logo-[0-9a-f-]{36}\\.jpg$`))
   await page.goto(`/o/${slug}`)
   await expect(page.locator(`main img[src="${org.logo_url}"]`).first()).toBeVisible()
+})
+
+test("F-046: save a post with the bookmark; it's on /saved; unsave removes it", async () => {
+  await page.goto("/o/greenway-stewards")
+  const post = page.locator("article").filter({ hasText: "re-cut two miles of eroded trail" }).first()
+  await post.getByRole("button", { name: "Save for later" }).click()
+  await expect(post.getByRole("button", { name: /Saved \(only you can see this\)/ })).toBeVisible()
+  await expect.poll(async () => (await sql`select count(*)::int n from saved_posts where user_id = ${userId}`)[0].n).toBe(1)
+
+  await page.goto("/saved")
+  await expect(page.getByText("re-cut two miles of eroded trail")).toBeVisible()
+  await page.getByRole("button", { name: /Saved \(only you can see this\)/ }).click()
+  await expect.poll(async () => (await sql`select count(*)::int n from saved_posts where user_id = ${userId}`)[0].n).toBe(0)
+  await page.reload()
+  await expect(page.getByText("Nothing saved yet.")).toBeVisible()
 })
 
 test("F-015: staff can't open another org's dashboard", async () => {

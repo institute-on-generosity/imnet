@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 
 // Small, idempotent "set" operations behind the keepalive /api/signals endpoint.
 // RLS still decides what each user may change.
-export type Signal = { kind: "follow" | "supporter"; id: string; on: boolean } | { kind: "moved"; id: string; on: boolean }
+export type Signal = { kind: "follow" | "supporter" | "moved" | "saved"; id: string; on: boolean }
 
 export async function applySignal(userId: string, s: Signal): Promise<{ error?: string }> {
   const supabase = await createClient()
@@ -20,8 +20,9 @@ export async function applySignal(userId: string, s: Signal): Promise<{ error?: 
       : await supabase.from("follows").update({ supporter: false }).match({ user_id: userId, org_id: s.id })
     return { error: error?.message }
   }
+  const table = s.kind === "saved" ? "saved_posts" : "moved"
   const { error } = s.on
-    ? await supabase.from("moved").upsert({ user_id: userId, post_id: s.id }, { onConflict: "user_id,post_id", ignoreDuplicates: true })
-    : await supabase.from("moved").delete().match({ user_id: userId, post_id: s.id })
+    ? await supabase.from(table).upsert({ user_id: userId, post_id: s.id }, { onConflict: "user_id,post_id", ignoreDuplicates: true })
+    : await supabase.from(table).delete().match({ user_id: userId, post_id: s.id })
   return { error: error?.message }
 }

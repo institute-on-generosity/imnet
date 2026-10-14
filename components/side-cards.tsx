@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react"
+import { Bookmark, Plus } from "lucide-react"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import type { OrgSummaryWithMission, Viewer } from "@/lib/queries"
@@ -21,12 +21,15 @@ export function ViewerCard({ viewer }: { viewer: Viewer }) {
         <Link href={`/u/${viewer.handle}`} className="mt-2 block font-semibold hover:underline">{name}</Link>
         <p className="text-sm text-muted-foreground">@{viewer.handle}</p>
       </div>
-      <dl className="border-t px-4 py-3 text-sm">
+      <dl className="space-y-1.5 border-t px-4 py-3 text-sm">
         <div className="flex justify-between">
           <dt className="text-muted-foreground">Following</dt>
           <dd><Link href="/following" className="font-semibold text-leaf hover:underline">{viewer.following}</Link></dd>
         </div>
       </dl>
+      <Link href="/saved" className="flex items-center gap-2 border-t px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+        <Bookmark className="size-4" aria-hidden /> Saved posts
+      </Link>
       {viewer.causes.length > 0 && (
         <div className="border-t px-4 py-3">
           <p className="text-sm text-muted-foreground">Causes you care about</p>

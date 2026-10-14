@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { OrgProfile } from "@/components/org-profile"
 import { decodeCursor } from "@/lib/cursor"
 import { parseOrgTab } from "@/lib/org-tabs"
-import { getFeedPage, getFollow, getGrantsForPosts, getMovedPostIds, getOrgBySlug, getOrgGrants, getPortfolioPosts, getSuggestedOrgs } from "@/lib/queries"
+import { getFeedPage, getFollow, getGrantsForPosts, getMovedPostIds, getSavedPostIds, getOrgBySlug, getOrgGrants, getPortfolioPosts, getSuggestedOrgs } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 
 export async function generateMetadata({ params }: PageProps<"/o/[slug]">): Promise<Metadata> {
@@ -34,7 +34,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/o/[s
   ])
   const { posts, next } = page
   const ids = [...posts, ...portfolio].map((p) => p.id)
-  const [movedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getGrantsForPosts(ids)])
+  const [movedIds, savedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getSavedPostIds(userId, ids), getGrantsForPosts(ids)])
 
   return (
     <OrgProfile
@@ -45,7 +45,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/o/[s
       similar={similar}
       signedIn={!!userId}
       follow={follow}
-      movedIds={movedIds}
+      movedIds={movedIds} savedIds={savedIds}
       grants={grants}
       grantsByPost={grantsByPost}
       tab={activeTab}

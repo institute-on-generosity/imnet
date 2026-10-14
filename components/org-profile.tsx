@@ -35,12 +35,13 @@ type Props = {
   follow: { following: boolean; supporter: boolean }
   portfolio: Post[]
   movedIds?: Set<string>
+  savedIds?: Set<string>
   grants: Grant[]
   grantsByPost: Map<string, Grant[]>
   tab: OrgTab
 }
 
-export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, grants, grantsByPost, tab }: Props) {
+export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, savedIds, grants, grantsByPost, tab }: Props) {
   const base = `/o/${org.slug}`
   return (
     <TwoColumn right={<SuggestedOrgs title="Similar organizations" orgs={similar} signedIn={signedIn} />}>
@@ -103,7 +104,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
           <GrantsPanel org={org} grants={grants} />
           <section aria-labelledby="recent" className="space-y-3">
             <h2 id="recent" className="px-1 font-sans text-lg font-semibold tracking-normal">Recent posts</h2>
-            <Feed posts={posts.slice(0, 3)} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
+            <Feed posts={posts.slice(0, 3)} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} savedIds={savedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
             {posts.length > 3 && (
               <Link href={`${base}?tab=posts`} className={buttonVariants({ variant: "outline", className: "w-full" })}>Show all posts</Link>
             )}
@@ -151,7 +152,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
 
       {tab === "posts" && (
         <>
-          <Feed posts={posts} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
+          <Feed posts={posts} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} savedIds={savedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
           <OlderPosts
             olderHref={postsPaging.next ? `${base}?tab=posts&before=${postsPaging.next}` : null}
             newestHref={`${base}?tab=posts`}
@@ -166,7 +167,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
             <h2 className="font-sans text-lg font-semibold tracking-normal">Portfolio</h2>
             <p className="mt-1 text-sm text-muted-foreground">Grant reports from the nonprofits {org.name} funds: what each grant made possible, in the grantee&apos;s own words.</p>
           </Panel>
-          <Feed posts={portfolio} empty="No grant reports yet. They appear here when grantees post them." movedIds={movedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
+          <Feed posts={portfolio} empty="No grant reports yet. They appear here when grantees post them." movedIds={movedIds} savedIds={savedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
         </>
       )}
     </TwoColumn>

@@ -49,9 +49,9 @@ test.describe("with reduced motion", () => {
 test("F-033: foundations and nonprofits look different, and the feed filters by type", async ({ page }) => {
   await page.goto("/")
   // Post headers stay quiet: foundations get a small landmark marker; nonprofits none.
-  const grantPost = page.locator("section").filter({ hasText: "Fall Community Fund grants are out" }).first()
+  const grantPost = page.locator("article").filter({ hasText: "Fall Community Fund grants are out" }).first()
   await expect(grantPost.locator('header [title="Foundation"]')).toHaveCount(1)
-  const harborPost = page.locator("section").filter({ hasText: "10,000th family visit" }).first()
+  const harborPost = page.locator("article").filter({ hasText: "10,000th family visit" }).first()
   await expect(harborPost.locator('header [title="Foundation"]')).toHaveCount(0)
 
   await page.getByRole("navigation", { name: "Filter by organization type" }).getByRole("link", { name: "Foundations" }).click()
@@ -118,7 +118,7 @@ test("F-039: /calls lists open calls soonest deadline first; closed calls drop o
   expect(text.indexOf("Youth reading micro-grants")).toBeLessThan(text.indexOf("Spring Community Fund grants are open"))
   await expect(page.getByText("Summer meals grants")).toHaveCount(0)
 
-  const youth = page.locator("section").filter({ hasText: "Youth reading micro-grants" })
+  const youth = page.locator("article").filter({ hasText: "Youth reading micro-grants" })
   await expect(youth.getByText("Closing soon")).toBeVisible()
   await expect(youth.getByRole("link", { name: "Apply" })).toHaveAttribute("href", "https://example.org/riverside/reading-grants")
 
@@ -127,7 +127,7 @@ test("F-039: /calls lists open calls soonest deadline first; closed calls drop o
   await expect(page.getByText("Youth reading micro-grants")).toHaveCount(0)
 
   await page.goto("/o/riverside-family-foundation?tab=posts")
-  const closed = page.locator("section").filter({ hasText: "Summer meals grants" })
+  const closed = page.locator("article").filter({ hasText: "Summer meals grants" })
   await expect(closed.getByText("Closed", { exact: true })).toBeVisible()
   await expect(closed.getByRole("link", { name: "Apply" })).toHaveCount(0)
 })
@@ -155,7 +155,7 @@ test("F-041: feeds page with 'Show older posts'; every post appears exactly once
     }
     const [{ ties }] = await sql`select count(*)::int - count(distinct created_at)::int as ties from posts where org_id = ${org.id}`
     expect(ties).toBe(1)
-    const bodiesOnPage = async () => (await page.locator("main section p").allInnerTexts()).filter((t) => t.includes(`of ${id}`))
+    const bodiesOnPage = async () => (await page.locator("main article p").allInnerTexts()).filter((t) => t.includes(`of ${id}`))
 
     await page.goto(`/o/${slug}?tab=posts`)
     const first = await bodiesOnPage()

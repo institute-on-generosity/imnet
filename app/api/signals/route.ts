@@ -16,6 +16,7 @@ export async function POST(request: Request) {
 
   const { error } = await applySignal(userId, parsed.signal)
   if (error) return NextResponse.json({ error }, { status: 400 })
-  if (parsed.signal.kind !== "moved") revalidatePath("/", "layout")
+  if (parsed.signal.kind === "follow" || parsed.signal.kind === "supporter") revalidatePath("/", "layout")
+  if (parsed.signal.kind === "saved") revalidatePath("/saved")
   return new NextResponse(null, { status: 204 })
 }
