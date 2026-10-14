@@ -259,8 +259,14 @@ describe("upload cleanup", () => {
       ('other-bucket', 'old.jpg', now() - interval '3 days')`)
     await t.owner(`insert into posts (org_id, body, image_paths, image_alts, beneficiary_consent) values ('${ORG_1}', 'uses a photo', '{${used}}', '{photo}', true)`)
 
+    // An org logo is in use too, even though no post references it.
+    const logo = `${ORG_1}/logo-aaaaaaaa-0000-4000-8000-000000000004.png`
+    await t.owner(`insert into storage.objects (bucket_id, name, created_at) values ('post-images', '${logo}', now() - interval '3 days')`)
+    await t.owner(`update orgs set logo_url = 'http://127.0.0.1:54321/storage/v1/object/public/post-images/${logo}' where id = '${ORG_1}'`)
+
     const listed = await t.asService(`select name from orphan_post_images()`)
     expect(listed.rows!.map((r) => r.name)).toEqual([orphanOld])
+    await t.owner(`update orgs set logo_url = null where id = '${ORG_1}'`)
 
     expect((await t.as(STAFF, `select * from orphan_post_images()`)).error).toMatch(/permission denied/)
     expect((await t.as(null, `select * from orphan_post_images()`)).error).toMatch(/permission denied/)

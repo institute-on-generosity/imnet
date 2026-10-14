@@ -9,6 +9,7 @@ import { formValues } from "@/lib/form-values"
 import { validateImages } from "@/lib/post-images"
 import { parseGrantFields } from "@/lib/grants"
 import { parseStatFields } from "@/lib/impact-stat-fields"
+import { logoPathIsValid, logoPublicUrl } from "@/lib/logo"
 import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
 import { todayISO } from "@/lib/open-calls"
 import { escapeLike } from "@/lib/search"
@@ -103,10 +104,25 @@ const OrgSchema = z.object({
 
 export async function updateOrg(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
   await requireUser()
-  const parsed = OrgSchema.safeParse(Object.fromEntries(form))
+  const parsed = OrgSchema.safeParse({
+    name: form.get("name"),
+    mission: form.get("mission") ?? undefined,
+    what_gifts_fund: form.get("what_gifts_fund") ?? undefined,
+    everyorg_slug: form.get("everyorg_slug") ?? undefined,
+  })
   if (!parsed.success) return fail(form, parsed.error.issues[0].message)
+
+  // Logo: a fresh upload in the org's folder, "remove", or unchanged.
+  const logoPath = String(form.get("logo_path") ?? "")
+  let logo: { logo_url?: string | null } = {}
+  if (form.get("remove_logo") === "on") logo = { logo_url: null }
+  else if (logoPath) {
+    if (!logoPathIsValid(orgId, logoPath)) return fail(form, "The logo upload didn't finish. Try again.")
+    logo = { logo_url: logoPublicUrl(process.env.NEXT_PUBLIC_SUPABASE_URL!, logoPath) }
+  }
+
   const supabase = await createClient()
-  const { data, error } = await supabase.from("orgs").update(parsed.data).eq("id", orgId).select("slug").single()
+  const { error } = await supabase.from("orgs").update({ ...parsed.data, ...logo }).eq("id", orgId).select("slug").single()
   if (error) return fail(form, error.message)
 
   const causes = form.getAll("causes").map(String)
@@ -114,7 +130,7 @@ export async function updateOrg(orgId: string, _: ActionState, form: FormData): 
   if (causes.length) {
     await supabase.from("org_causes").insert(causes.map((cause_slug) => ({ org_id: orgId, cause_slug })))
   }
-  revalidatePath(`/o/${data.slug}`)
+  revalidatePath("/", "layout")
   return { ok: true, message: "Profile saved." }
 }
 

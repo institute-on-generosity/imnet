@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { Cause, Org } from "@/lib/types"
+import { LogoPicker } from "./logo-picker"
 
 export function ProfileForm({ org, causes, selected }: { org: Org; causes: Cause[]; selected: string[] }) {
   const [state, action, pending] = useActionState(updateOrg.bind(null, org.id), null)
@@ -36,6 +37,7 @@ export function ProfileForm({ org, causes, selected }: { org: Org; causes: Cause
         </Button>
         {draftNote && <span className="text-sm text-muted-foreground">{draftNote}</span>}
       </div>
+      <LogoPicker key={state?.message ?? "logo"} org={org} />
       <div className="space-y-1">
         <Label htmlFor="name">Name</Label>
         <Input id="name" name="name" defaultValue={state?.values?.name ?? org.name} required />

@@ -85,7 +85,7 @@ test("F-028 / F-010: staff post with a photo (description and consent required) 
   await page.goto(`/dashboard/${org.id}`)
   await page.getByLabel("What happened?").fill("Our first community dinner served 60 neighbors tonight.")
   await page.getByLabel(/Video link/).fill("https://youtu.be/dQw4w9WgXcQ")
-  await page.locator('input[type="file"]').setInputFiles(SEED_PHOTO)
+  await page.locator('label:has-text("Add photos") input[type="file"]').setInputFiles(SEED_PHOTO)
   const alt = page.getByLabel("Description for photo 1")
   await expect(alt).toBeVisible()
 
@@ -281,6 +281,20 @@ test("F-044: staff edit a post (marked Edited) and delete one", async () => {
   page.once("dialog", (d) => d.accept())
   await page.locator("li").filter({ hasText: "count corrected" }).getByRole("button", { name: "Delete post" }).click()
   await expect.poll(async () => (await sql`select count(*)::int n from posts where id = ${post.id}`)[0].n).toBe(0)
+})
+
+test("F-045: staff upload a logo; it replaces the monogram and points only at our storage", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await page.locator('label:has-text("Upload logo") input[type="file"]').setInputFiles(SEED_PHOTO)
+  await expect(page.getByText("Change logo")).toBeVisible()
+  await page.getByRole("button", { name: "Save profile" }).click()
+  await expect(page.getByText("Profile saved.")).toBeVisible()
+
+  const [org] = await sql`select logo_url from orgs where id = ${kitchen.id}`
+  expect(org.logo_url).toMatch(new RegExp(`/storage/v1/object/public/post-images/${kitchen.id}/logo-[0-9a-f-]{36}\\.jpg$`))
+  await page.goto(`/o/${slug}`)
+  await expect(page.locator(`main img[src="${org.logo_url}"]`).first()).toBeVisible()
 })
 
 test("F-015: staff can't open another org's dashboard", async () => {
