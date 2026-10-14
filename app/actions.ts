@@ -8,6 +8,7 @@ import { toEmbed } from "@/lib/embeds"
 import { formValues } from "@/lib/form-values"
 import { validateImages } from "@/lib/post-images"
 import { parseGrantFields } from "@/lib/grants"
+import { parseStatFields } from "@/lib/impact-stat-fields"
 import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
 import { todayISO } from "@/lib/open-calls"
 import { escapeLike } from "@/lib/search"
@@ -197,6 +198,55 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
     id: data.id,
     message: grantFields.grants.length ? "Posted. Grants show once each nonprofit confirms them." : "Posted.",
   }
+}
+
+export async function updatePostBody(postId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const body = z.string().trim().min(1, "Write something first.").max(5000).safeParse(form.get("body"))
+  if (!body.success) return fail(form, body.error.issues[0].message)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("posts").update({ body: body.data }).eq("id", postId).select("id")
+  if (error) return fail(form, error.message)
+  if (!data?.length) return fail(form, "You can only edit your organization's posts.")
+  revalidatePath("/", "layout")
+  return { ok: true, message: "Saved." }
+}
+
+export async function deletePost(postId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("posts").delete().eq("id", postId)
+  revalidatePath("/", "layout")
+}
+
+// ---------------------------------------------------------------------------
+// Impact stats (every figure needs a source)
+// ---------------------------------------------------------------------------
+export async function addImpactStat(orgId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const parsed = parseStatFields(
+    {
+      label: String(form.get("label") ?? ""),
+      value: String(form.get("value") ?? ""),
+      sourceUrl: String(form.get("source_url") ?? ""),
+      asOf: String(form.get("as_of") ?? ""),
+    },
+    todayISO(),
+  )
+  if ("error" in parsed) return fail(form, parsed.error)
+  const supabase = await createClient()
+  const { count } = await supabase.from("impact_stats").select("*", { count: "exact", head: true }).eq("org_id", orgId)
+  const { data, error } = await supabase.from("impact_stats").insert({ ...parsed.fields, org_id: orgId, sort: count ?? 0 }).select("id").single()
+  if (error) return fail(form, error.message)
+  revalidatePath("/", "layout")
+  return { ok: true, id: data.id, message: "Added." }
+}
+
+export async function deleteImpactStat(statId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("impact_stats").delete().eq("id", statId)
+  revalidatePath("/", "layout")
 }
 
 // ---------------------------------------------------------------------------

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post } from "@/lib/types"
 
 const PAGE_SIZE = 20
-const POST_FIELDS = `id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at, call_deadline, call_apply_url, call_max_award, call_causes,
+const POST_FIELDS = `id, org_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at, edited_at, call_deadline, call_apply_url, call_max_award, call_causes,
   report_grant:grants!posts_reports_grant_id_fkey(id, amount_usd, purpose, foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type))`
 
 type FeedOpts = { cause?: string; orgIds?: string[]; orgType?: OrgType; reportGrantIds?: string[]; before?: Cursor }
@@ -300,5 +300,17 @@ export async function getOpenCalls(opts: { causes?: string[]; limit?: number } =
   if (opts.causes?.length) query = query.or(`call_causes.ov.{${opts.causes.join(",")}},call_causes.eq.{}`)
   const { data } = await query
   return (data ?? []) as unknown as Post[]
+}
+
+// An org's own recent posts, for the dashboard's edit/delete list.
+export async function getOrgPostsForStaff(orgId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("posts")
+    .select("id, kind, body, created_at, edited_at")
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false })
+    .limit(10)
+  return data ?? []
 }
 

@@ -244,6 +244,45 @@ test("B-013: a follow is saved even if you leave the page right after clicking",
   await expect.poll(async () => (await sql`select count(*)::int n from moved where user_id = ${userId} and post_id = ${post.id}`)[0].n).toBe(1)
 })
 
+test("F-043: staff add a sourced impact figure; it shows footnoted on the profile; they can remove it", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await page.getByLabel("Figure").fill("120")
+  await page.getByLabel("What it counts").fill("Dinners served")
+  await page.getByLabel("Source link (required)").fill("https://example.org/kitchen/log")
+  await page.getByRole("button", { name: "Add figure" }).click()
+  await expect(page.getByRole("button", { name: 'Remove "Dinners served"' })).toBeVisible()
+
+  await page.goto(`/o/${slug}`)
+  await expect(page.getByText("Dinners served")).toBeVisible()
+  await expect(page.locator("#source-1")).toContainText("example.org/kitchen/log")
+
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await page.getByRole("button", { name: 'Remove "Dinners served"' }).click()
+  await expect(page.getByRole("button", { name: 'Remove "Dinners served"' })).toHaveCount(0)
+})
+
+test("F-044: staff edit a post (marked Edited) and delete one", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  await page.goto(`/dashboard/${kitchen.id}`)
+  const row = page.locator("li").filter({ hasText: "first community dinner" })
+  await row.getByRole("button", { name: "Edit text" }).click()
+  await page.getByLabel("Post text").fill(`Our first community dinner served 64 neighbors tonight (count corrected). ${id}`)
+  await page.getByRole("button", { name: "Save", exact: true }).click()
+  await expect(page.getByLabel("Post text")).toHaveCount(0)
+
+  const [post] = await sql`select id, edited_at from posts where org_id = ${kitchen.id} and body like '%count corrected%'`
+  expect(post.edited_at).not.toBeNull()
+  await page.goto(`/p/${post.id}`)
+  await expect(page.getByText("count corrected")).toBeVisible()
+  await expect(page.getByText("Edited", { exact: true })).toBeVisible()
+
+  await page.goto(`/dashboard/${kitchen.id}`)
+  page.once("dialog", (d) => d.accept())
+  await page.locator("li").filter({ hasText: "count corrected" }).getByRole("button", { name: "Delete post" }).click()
+  await expect.poll(async () => (await sql`select count(*)::int n from posts where id = ${post.id}`)[0].n).toBe(0)
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

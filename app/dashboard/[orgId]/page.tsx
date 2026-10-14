@@ -1,10 +1,12 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCauses, getGrantsNeedingReport, getGrantsToConfirm, getOpenCalls, getOrgEventCounts, getReportableGrants } from "@/lib/queries"
-import type { Org } from "@/lib/types"
+import { getCauses, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgEventCounts, getReportableGrants } from "@/lib/queries"
+import type { ImpactStat, Org } from "@/lib/types"
 import { createClient, getUserId } from "@/lib/supabase/server"
 import { Composer } from "./composer"
+import { ImpactStatsEditor } from "./impact-stats-editor"
+import { PostManager } from "./post-manager"
 import { GrantsNeedingReport } from "./grants-needing-report"
 import { GrantsToConfirm } from "./grants-to-confirm"
 import { OpenCallsForYou } from "./open-calls-for-you"
@@ -62,6 +64,18 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
       </Card>
 
       <Card>
+        <CardHeader><CardTitle>Your posts</CardTitle></CardHeader>
+        <CardContent><PostManager posts={await getOrgPostsForStaff(org.id)} /></CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Impact stats</CardTitle></CardHeader>
+        <CardContent>
+          <ImpactStatsEditor orgId={org.id} stats={await getStats(org.id)} />
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
         <CardContent>
           <ProfileForm org={org} causes={causes} selected={(orgCauses ?? []).map((c) => c.cause_slug)} />
@@ -81,3 +95,10 @@ function Stat({ label, value }: { label: string; value: number }) {
     </Card>
   )
 }
+
+async function getStats(orgId: string): Promise<ImpactStat[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("impact_stats").select("id, label, value, source_url, as_of").eq("org_id", orgId).order("sort")
+  return data ?? []
+}
+

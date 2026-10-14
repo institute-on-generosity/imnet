@@ -156,6 +156,17 @@ describe("posts", () => {
     expect((await post("video_path, video_alt, video_poster_path, video_credit", `'${ORG_1}/a.webm', 'Crew at work', '${ORG_1}/a.jpg', 'Someone, CC BY'`)).error).toBeUndefined()
   })
 
+  it("F-044: staff can edit and delete their org's posts; edits are stamped; others can't", async () => {
+    const [post] = await t.owner(`insert into posts (org_id, author_id, body) values ('${ORG_1}', '${STAFF}', 'first draft') returning id`)
+    expect((await t.as(DONOR, `update posts set body = 'hijacked' where id = '${post.id}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(STAFF, `update posts set body = 'fixed typo' where id = '${post.id}'`)).error).toBeUndefined()
+    const [row] = await t.owner(`select body, edited_at from posts where id = '${post.id}'`)
+    expect(row.body).toBe("fixed typo")
+    expect(row.edited_at).not.toBeNull()
+    expect((await t.as(DONOR, `delete from posts where id = '${post.id}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(STAFF, `delete from posts where id = '${post.id}' returning id`)).rows).toHaveLength(1)
+  })
+
   it("B-003: staff can't move a post to another org", async () => {
     const [post] = await t.owner(`insert into posts (org_id, author_id, body) values ('${ORG_1}', '${STAFF}', 'stay here') returning id`)
     const moved = await t.as(STAFF, `update posts set org_id = '${ORG_2}' where id = '${post.id}'`)

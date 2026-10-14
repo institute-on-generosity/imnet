@@ -46,6 +46,7 @@ export function PostCard({ post, full = false, moved = false, signedIn = false, 
           <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
             <PostKindLabel kind={post.kind} />
             <time dateTime={post.created_at}>{relative(post.created_at)}</time>
+            {post.edited_at && <span title={`Edited ${new Date(post.edited_at).toLocaleString("en-US")}`}>Edited</span>}
           </p>
         </div>
       </header>
