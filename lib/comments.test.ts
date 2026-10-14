@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { ago, thread, type Comment } from "./comments"
 
 const c = (id: string, created_at: string, parent_id: string | null = null): Comment => ({
-  id, parent_id, created_at, body: id, as_org: false, user_id: "u", author: { handle: "h", display_name: null, bio: null },
+  id, parent_id, created_at, body: id, as_org: false, donor: false, user_id: "u", author: { handle: "h", display_name: null, bio: null },
 })
 
 describe("F-063 threads", () => {

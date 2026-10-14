@@ -18,7 +18,7 @@ import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
 import { todayISO } from "@/lib/open-calls"
 import { safeNext } from "@/lib/safe-next"
 import { escapeLike } from "@/lib/search"
-import { getComments, getPost, getViewer, isOrgStaff } from "@/lib/queries"
+import { donorBadgeHint, getComments, getPost, getViewer, isOrgStaff } from "@/lib/queries"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
 // values: what the user typed, sent back on error so forms can refill (React 19 resets forms after an action).
@@ -453,6 +453,13 @@ export async function addGift(_: ActionState, form: FormData): Promise<ActionSta
   return { ok: true, id: data.id, message: "Logged." }
 }
 
+export async function setDonorBadge(on: boolean) {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("profiles").update({ donor_badge: on }).eq("id", userId)
+  revalidatePath("/", "layout")
+}
+
 export async function deleteGift(giftId: string) {
   await requireUser()
   const supabase = await createClient()
@@ -519,10 +526,11 @@ export async function loadComments(postId: string) {
   const userId = await getUserId()
   const post = await getPost(postId)
   if (!post) return null
-  const [comments, isStaff, viewer] = await Promise.all([getComments(postId), isOrgStaff(userId, post.org_id), getViewer(userId)])
+  const [comments, isStaff, viewer, donorHint] = await Promise.all([getComments(postId), isOrgStaff(userId, post.org_id), getViewer(userId), donorBadgeHint(userId, post.org_id)])
   return {
     threads: thread(comments),
     isStaff,
+    donorHint,
     viewer: viewer ? { id: viewer.id, handle: viewer.handle, name: viewer.display_name ?? `@${viewer.handle}` } : null,
   }
 }

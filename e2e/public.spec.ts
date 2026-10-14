@@ -307,3 +307,11 @@ test("F-064: feed posts preview their newest comment; 'See more comments' opens 
   await card.getByRole("button", { name: "See more comments" }).click()
   await expect(card.getByRole("region", { name: "Comments" })).toBeVisible()
 })
+
+test("F-065: comments from opted-in donors to the org carry a Donor badge", async ({ page }) => {
+  const [row] = await sql`select distinct on (c.post_id) c.post_id, donor(c) d from comments c where c.parent_id is null order by c.post_id, c.created_at desc`.then((rows) => rows.filter((r) => r.d))
+  await page.goto(`/p/${row.post_id}`)
+  const badge = page.getByRole("region", { name: "Comments" }).getByTitle(/Has given to .* \(self-reported\)/).first()
+  await expect(badge).toBeVisible()
+  await expect(badge).toContainText("Donor")
+})

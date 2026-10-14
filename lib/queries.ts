@@ -501,7 +501,7 @@ export async function getComments(postId: string): Promise<Comment[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from("comments")
-    .select("id, parent_id, body, as_org, created_at, user_id, author:profiles(handle, display_name, bio)")
+    .select("id, parent_id, body, as_org, donor, created_at, user_id, author:profiles(handle, display_name, bio)")
     .eq("post_id", postId)
     .order("created_at")
     .limit(500)
@@ -514,6 +514,17 @@ export async function getFollowerCounts(orgIds: string[]): Promise<Map<string, n
   const supabase = await createClient()
   const { data } = await supabase.rpc("follower_counts", { targets: [...new Set(orgIds)] })
   return new Map(((data ?? []) as { org_id: string; n: number }[]).map((r) => [r.org_id, Number(r.n)]))
+}
+
+// Whether the viewer could show a Donor badge on this org's posts but hasn't opted in.
+export async function donorBadgeHint(userId: string | null, orgId: string): Promise<boolean> {
+  if (!userId) return false
+  const supabase = await createClient()
+  const [{ data: profile }, { count }] = await Promise.all([
+    supabase.from("profiles").select("donor_badge").eq("id", userId).single(),
+    supabase.from("gifts").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("org_id", orgId),
+  ])
+  return !profile?.donor_badge && (count ?? 0) > 0
 }
 
 export async function isOrgStaff(userId: string | null, orgId: string): Promise<boolean> {

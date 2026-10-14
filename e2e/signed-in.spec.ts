@@ -530,6 +530,24 @@ test("F-062 / F-063: comment, reply and delete; staff comment as the org and hea
   await expect(reply.getByRole("link", { name: orgName })).toBeVisible()
 })
 
+test("F-065: a donor who logged a gift sees a hint, opts in from the journal, and their comment shows Donor", async () => {
+  const [harborPost] = await sql`select id from posts where org_id = ${HARBOR} order by created_at desc limit 1`
+  await sql`update profiles set donor_badge = false where id = ${userId}`
+  await page.goto(`/p/${harborPost.id}`)
+  const section = page.getByRole("region", { name: "Comments" })
+  await section.getByRole("link", { name: "Show a Donor badge on your comments" }).click()
+  await expect(page).toHaveURL(/\/giving#donor-badge/)
+  await page.getByLabel(/Show a Donor badge on my comments/).check()
+  await expect.poll(async () => (await sql`select donor_badge from profiles where id = ${userId}`)[0].donor_badge).toBe(true)
+
+  await page.goto(`/p/${harborPost.id}`)
+  await expect(section.getByRole("link", { name: "Show a Donor badge on your comments" })).toHaveCount(0)
+  await section.getByLabel("Add a comment").fill(`Proud donor here ${id}`)
+  await section.getByRole("button", { name: "Post", exact: true }).click()
+  const mine = section.locator("li").filter({ hasText: `Proud donor here ${id}` }).first()
+  await expect(mine.getByTitle("Has given to Harbor Table (self-reported)")).toBeVisible()
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

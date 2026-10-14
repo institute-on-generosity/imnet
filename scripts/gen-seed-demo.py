@@ -540,6 +540,19 @@ select c.post_id, c.id, r.id, ({sql_arr(PEER)})[1 + abs(hashtext(c.id::text || r
  where c.parent_id is null and not c.as_org and abs(hashtext(c.id::text || 'peer')) % 6 = 0;
 """)
 
+
+# --- Donor badges (F-065): many commenters gave to the org they comment on; most opt in --------------
+out.append("""-- About 4 in 10 commenters logged a gift to that org before commenting.
+insert into gifts (user_id, org_id, amount_usd, given_on, note)
+select distinct on (c.user_id, p.org_id) c.user_id, p.org_id,
+       (array[10, 20, 25, 50, 50, 100, 100, 250, 500])[1 + abs(hashtext(c.user_id::text || p.org_id::text)) % 9],
+       (c.created_at - make_interval(days => 3 + abs(hashtext(c.id::text || 'gift')) % 200))::date, null
+  from comments c join posts p on p.id = c.post_id
+ where not c.as_org and c.user_id::text like '00000000-0000-4000-c000-%' and abs(hashtext(c.user_id::text || p.org_id::text || 'gave')) % 10 < 4;
+-- Two in three demo people show the Donor badge.
+update profiles set donor_badge = true where id::text like '00000000-0000-4000-c000-%' and abs(hashtext(id::text || 'badge')) % 3 < 2;
+""")
+
 # Private reactions and saves, and 30 days of analytics
 out.append(f"""-- "Moved" and saves: random donors on random posts (private; only totals show to staff).
 insert into moved (user_id, post_id)

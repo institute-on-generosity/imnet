@@ -5,7 +5,8 @@ import { summarize } from "@/lib/gifts"
 import { formatUsd } from "@/lib/grants"
 import { getFollowedOrgs, getGifts, getOrgName, getSinceYourGifts } from "@/lib/queries"
 import { todayISO } from "@/lib/open-calls"
-import { getUserId } from "@/lib/supabase/server"
+import { createClient, getUserId } from "@/lib/supabase/server"
+import { DonorBadgeToggle } from "./donor-badge-toggle"
 import { DeleteGift, GiftForm } from "./gift-form"
 import { SinceYourGifts } from "./since-your-gifts"
 
@@ -22,13 +23,15 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
   // Coming from a Donate click: offer that org even if you don't follow it.
   const orgs = preselect && !followed.some((o) => o.id === preselect.id) ? [preselect, ...followed] : followed
   const years = summarize(gifts)
-  const since = await getSinceYourGifts(gifts)
+  const supabase = await createClient()
+  const [since, { data: profile }] = await Promise.all([getSinceYourGifts(gifts), supabase.from("profiles").select("donor_badge").eq("id", userId).single()])
 
   return (
     <TwoColumn>
       <Panel className="p-4">
         <h1 className="font-sans text-lg font-semibold tracking-normal">Giving journal</h1>
         <p className="text-sm text-muted-foreground">Only you see this. Handy at tax time.</p>
+        <div className="mt-3 border-t pt-3"><DonorBadgeToggle on={!!profile?.donor_badge} /></div>
       </Panel>
 
       <Panel className="p-4">

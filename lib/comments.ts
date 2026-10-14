@@ -4,6 +4,8 @@ export type Comment = {
   parent_id: string | null
   body: string
   as_org: boolean
+  // Opted-in commenter who logged a gift to the post's org (self-reported; yes/no only).
+  donor: boolean
   created_at: string
   user_id: string
   author: { handle: string; display_name: string | null; bio: string | null }

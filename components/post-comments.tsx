@@ -1,5 +1,6 @@
 "use client"
 
+import { HandHeart } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useRef, useState, useTransition } from "react"
 import { deleteComment, loadComments, postComment } from "@/app/actions"
@@ -35,7 +36,7 @@ export function PostComments({ postId, org, initial }: { postId: string; org: Or
   }, [initial, postId])
 
   if (!data) return <p className="px-4 pb-4 text-sm text-muted-foreground">Loading comments…</p>
-  const { threads, viewer, isStaff } = data
+  const { threads, viewer, isStaff, donorHint } = data
 
   return (
     <section id="comments" aria-label="Comments" className="scroll-mt-20 px-4 pt-1 pb-3">
@@ -43,6 +44,11 @@ export function PostComments({ postId, org, initial }: { postId: string; org: Or
         <Composer postId={postId} org={org} viewer={viewer} isStaff={isStaff} onPosted={refresh} />
       ) : (
         <p className="py-2 text-sm text-muted-foreground"><Link href="/login" className="font-semibold text-leaf hover:underline">Sign in</Link> to comment.</p>
+      )}
+      {donorHint && (
+        <p className="py-1 pl-12 text-xs text-muted-foreground">
+          You&apos;ve logged a gift to {org.name}. <Link href="/giving#donor-badge" className="font-semibold text-leaf hover:underline">Show a Donor badge on your comments</Link>
+        </p>
       )}
       {threads.length === 0 && <p className="py-2 text-sm text-muted-foreground">No comments yet. Say what this meant to you.</p>}
       <ul className="mt-2 space-y-3">
@@ -96,6 +102,11 @@ export function CommentItem({ comment: c, org, viewer, isStaff, postId, onChange
               <p className="flex items-center gap-1.5 text-sm">
                 <Link href={href} className="truncate font-semibold hover:text-leaf hover:underline">{name}</Link>
                 {c.as_org && <span className="shrink-0 rounded bg-muted-foreground/80 px-1 py-px text-[10px] font-semibold text-background">Author</span>}
+                {c.donor && (
+                  <span title={`Has given to ${org.name} (self-reported)`} className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-marigold-soft px-1.5 py-px text-[10px] font-semibold text-amber-800 dark:text-amber-300">
+                    <HandHeart className="size-3" aria-hidden />Donor<span className="sr-only">: has given to {org.name} (self-reported)</span>
+                  </span>
+                )}
               </p>
               {headline && <p className="truncate text-xs text-muted-foreground">{headline}</p>}
             </div>

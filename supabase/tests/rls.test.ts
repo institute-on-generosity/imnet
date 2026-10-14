@@ -583,3 +583,22 @@ describe("comment preview", () => {
     expect(rows).toEqual([{ post_id: a, body: "newest", more: true }])
   })
 })
+
+describe("donor badge", () => {
+  it("F-065: 'donor' is true only for opted-in commenters with a logged gift to the post's org; gifts stay private", async () => {
+    const GIVER = "10000000-0000-4000-8000-0000000000e4"
+    await t.owner(`insert into auth.users (id, email) values ('${GIVER}', 'giver@example.com') on conflict do nothing`)
+    const post = (await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'donor badge post') returning id`))[0].id
+    await t.as(GIVER, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_2}', 25, current_date)`) // a different org
+    const cid = (await t.as(GIVER, `insert into comments (post_id, body) values ('${post}', 'love this') returning id`)).rows![0].id
+    const donor = async () => (await t.as(null, `select donor(c) as d from comments c where id = '${cid}'`)).rows![0].d
+
+    expect(await donor()).toBe(false) // no gift to this org, not opted in
+    await t.as(GIVER, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 50, current_date)`)
+    expect(await donor()).toBe(false) // gift, but not opted in
+    expect((await t.as(GIVER, `update profiles set donor_badge = true where id = '${GIVER}' returning id`)).rows).toHaveLength(1)
+    expect(await donor()).toBe(true)
+    expect((await t.as(DONOR, `update profiles set donor_badge = true where id = '${GIVER}' returning id`)).rows ?? []).toHaveLength(0) // can't opt someone else in
+    expect((await t.as(null, `select amount_usd from gifts where user_id = '${GIVER}'`)).rows ?? []).toHaveLength(0) // amounts stay private
+  })
+})
