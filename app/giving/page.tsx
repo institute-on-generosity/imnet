@@ -66,7 +66,7 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
               <li key={h.id} className="flex items-center gap-3 py-2">
                 <span className="w-24 shrink-0 text-muted-foreground">{day(h.served_on)}</span>
                 <span className="min-w-0 flex-1 truncate">{h.org.name}{h.note && <span className="text-muted-foreground">: {h.note}</span>}</span>
-                <span className="tabular-nums">{hoursLabel(h.hours)}</span>
+                <span>{hoursLabel(h.hours)}</span>
                 <DeleteHours id={h.id} label={`${hoursLabel(h.hours)} with ${h.org.name}`} />
               </li>
             ))}

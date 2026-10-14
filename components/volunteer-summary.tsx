@@ -15,7 +15,7 @@ export function VolunteerSummaryPanel({ summary, isOwn }: { summary: VolunteerSu
       <h2 id="volunteering" className="flex items-center gap-2 font-sans text-lg font-semibold tracking-normal">
         <Clock className="size-5 text-leaf" aria-hidden />Volunteering
       </h2>
-      <p className="mt-3 font-heading text-4xl font-semibold tabular-nums">{hoursLabel(summary.total)}</p>
+      <p className="mt-3 font-heading text-4xl font-semibold">{hoursLabel(summary.total)}</p>
       <p className="text-sm text-muted-foreground">
         with {summary.byOrg.length} {summary.byOrg.length === 1 ? "organization" : "organizations"} since {sinceLabel(summary.since)}
       </p>
@@ -25,7 +25,7 @@ export function VolunteerSummaryPanel({ summary, isOwn }: { summary: VolunteerSu
             <OrgMark org={o} size="sm" />
             <Link href={`/o/${o.slug}`} className="min-w-0 flex-1 truncate text-sm font-medium hover:underline">{o.name}</Link>
             {o.org_type === "foundation" && <FoundationMark />}
-            <span className="text-sm tabular-nums">{hoursLabel(o.hours)}</span>
+            <span className="text-sm">{hoursLabel(o.hours)}</span>
           </li>
         ))}
       </ul>
