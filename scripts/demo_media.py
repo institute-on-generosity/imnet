@@ -179,7 +179,7 @@ PHOTO_POSTS = [
   "Holiday season starts early in the warehouse: 38 pallets out the door this week to 22 county pantries.",
   2.6,
   [
-   "20220919-da-tew-00501-dec439.webp"
+   "20170922-osec-lsc-0197-366252589-3642b5.webp"
   ]
  ],
  [

@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { formatUsd } from "@/lib/grants"
 import type { Cause, Grant, OrgType, PostKind } from "@/lib/types"
 import { GranteePicker } from "./grantee-picker"
-import { ImagePicker } from "./image-picker"
+import { ImagePicker } from "@/components/image-picker"
 
 type ComposerProps = { orgId: string; orgType?: OrgType; reportableGrants?: Grant[]; reportOn?: string; causes?: Cause[] }
 
@@ -36,7 +36,7 @@ export function Composer({ orgId, orgType = "nonprofit", reportableGrants = [], 
       </div>
       <div className="space-y-1">
         <span className="text-sm font-medium">Photos (optional, up to 4)</span>
-        <ImagePicker key={state?.id ?? "new"} orgId={orgId} />
+        <ImagePicker key={state?.id ?? "new"} folder={orgId} />
       </div>
       {reportableGrants.length > 0 && (
         <div className="space-y-1">

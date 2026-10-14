@@ -689,6 +689,16 @@ describe("top supporters", () => {
   })
 })
 
+describe("donor photo storage", () => {
+  it("F-080: people upload only into their own folder; org folders still work for staff", async () => {
+    const up = (who: string, name: string) => t.as(who, `insert into storage.objects (bucket_id, name) values ('post-images', '${name}')`)
+    expect((await up(DONOR, `people/${DONOR}/a.webp`)).error).toBeUndefined()
+    expect((await up(DONOR, `people/${STAFF}/a.webp`)).error).toMatch(/row-level security/)
+    expect((await up(DONOR, `${ORG_1}/a.webp`)).error).toMatch(/row-level security/)
+    expect((await up(STAFF, `${ORG_1}/b.webp`)).error).toBeUndefined()
+  })
+})
+
 describe("donor posts", () => {
   const OTHER = "10000000-0000-4000-8000-0000000000e9"
   beforeAll(async () => {
@@ -702,7 +712,11 @@ describe("donor posts", () => {
     expect((await t.as(null, `select body from posts where id = '${id}'`)).rows).toHaveLength(1)
     expect((await t.as(DONOR, `insert into posts (author_id, body) values ('${OTHER}', 'impersonating')`)).error).toMatch(/row-level security/)
     expect((await t.as(DONOR, `insert into posts (author_id, body, kind) values ('${DONOR}', 'x', 'ask')`)).error).toMatch(/check constraint/)
-    expect((await t.as(DONOR, `insert into posts (author_id, body, image_paths, image_alts, image_credits, beneficiary_consent) values ('${DONOR}', 'x', '{a.jpg}', '{alt}', '{""}', true)`)).error).toBeDefined()
+    // F-080: photos only from your own folder, with alt text and consent.
+    expect((await t.as(DONOR, `insert into posts (author_id, body, image_paths, image_alts, beneficiary_consent) values ('${DONOR}', 'x', '{${ORG_1}/a.jpg}', '{alt}', true)`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into posts (author_id, body, image_paths, image_alts, beneficiary_consent) values ('${DONOR}', 'x', '{people/${OTHER}/a.jpg}', '{alt}', true)`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into posts (author_id, body, image_paths, image_alts, beneficiary_consent) values ('${DONOR}', 'x', '{people/${DONOR}/a.jpg}', '{alt}', false)`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into posts (author_id, body, image_paths, image_alts, beneficiary_consent) values ('${DONOR}', 'x', '{people/${DONOR}/a.jpg}', '{alt}', true)`)).error).toBeUndefined()
     expect((await t.as(DONOR, `insert into posts (author_id, body, about_org_id) values ('${DONOR}', 'x', '${ORG_PENDING}')`)).error).toMatch(/row-level security/)
   })
 

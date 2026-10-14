@@ -614,11 +614,18 @@ test("F-079: a donor posts from Home with a spotlight; it shows on their profile
   await page.getByRole("button", { name: "Start a post" }).click()
   await page.getByLabel("What do you want to share?").fill(`Harbor Table needs pot washers this weekend ${id}`)
   await page.getByLabel("Spotlight an organization").selectOption({ label: "Harbor Table" })
+  // F-080: a photo, uploaded to the person's own folder, with a description and consent.
+  await page.locator('input[type="file"]').first().setInputFiles(SEED_PHOTO)
+  await page.getByLabel("Description for photo 1").fill(`Our pot-washing crew ${id}`)
+  await page.getByLabel(/Anyone identifiable in my photos/).check()
   await page.getByRole("button", { name: "Post", exact: true }).click()
   await expect(page.getByText("Posted. It's at the top of your feed.")).toBeVisible()
+  const [row] = await sql`select image_paths from posts where body like ${`%pot washers this weekend ${id}%`}`
+  expect(row.image_paths[0]).toMatch(new RegExp(`^people/${userId}/`))
   const mine = page.locator("article").filter({ hasText: `pot washers this weekend ${id}` }).first()
   await expect(mine).toBeVisible()
   await expect(mine.getByRole("link", { name: /Harbor Table.*View/ })).toBeVisible()
+  await expect(mine.getByAltText(`Our pot-washing crew ${id}`)).toBeVisible()
 
   const [{ handle }] = await sql`select handle from profiles where id = ${userId}`
   await page.goto(`/u/${handle}`)

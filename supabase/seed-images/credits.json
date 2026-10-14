@@ -1130,16 +1130,6 @@
   "credit": "Daniel Frank fr3nks, CC0, via Wikimedia Commons"
  },
  {
-  "path": "00000000-0000-4000-a000-000000000028/20220919-da-tew-00501-dec439.webp",
-  "alt": "A forklift moving pallets of boxes in a warehouse",
-  "title": "File:20220919-DA-TEW-00501.jpg",
-  "artist": "USDAgov",
-  "license": "Public domain",
-  "source": "https://commons.wikimedia.org/wiki/File:20220919-DA-TEW-00501.jpg",
-  "bytes": 64512,
-  "credit": "USDAgov, Public domain, via Wikimedia Commons"
- },
- {
   "path": "00000000-0000-4000-a000-000000000029/bell-works-interior-theater-with-5f0f3d.webp",
   "alt": "A theater stage with red curtains and empty seats",
   "title": "File:Bell Works Interior Theater with Band (December 2025).jpg",
@@ -1378,5 +1368,375 @@
   "source": "https://commons.wikimedia.org/wiki/File:EARLY_MORNING_AT_MORRO_BAY_HARBOR_-012_(920789729).jpg",
   "bytes": 141036,
   "credit": "ALAN SCHMIERER, CC0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000003/2015-feds-feeds-families-gleanin-3c6a93.webp",
+  "alt": "Volunteers sorting donated produce in a warehouse",
+  "title": "File:2015 Feds Feeds Families-Gleaning at MAGNET (Food) Warehouse (20150911-DM-LSC-3009).jpg",
+  "artist": "USDAgov",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:2015_Feds_Feeds_Families-Gleaning_at_MAGNET_(Food)_Warehouse_(20150911-DM-LSC-3009).jpg",
+  "bytes": 75150,
+  "credit": "USDAgov, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000017/2015-feds-feeds-families-gleanin-04bb4e.webp",
+  "alt": "A volunteer bagging potatoes",
+  "title": "File:2015 Feds Feeds Families-Gleaning at MAGNET (Food) Warehouse (20150911-DM-LSC-3017).jpg",
+  "artist": "USDAgov",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:2015_Feds_Feeds_Families-Gleaning_at_MAGNET_(Food)_Warehouse_(20150911-DM-LSC-3017).jpg",
+  "bytes": 44082,
+  "credit": "USDAgov, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000029/2015-feds-feeds-families-gleanin-6c685b.webp",
+  "alt": "A volunteer sorting potatoes into a bin",
+  "title": "File:2015 Feds Feeds Families-Gleaning at MAGNET (Food) Warehouse (20150911-DM-LSC-3004).jpg",
+  "artist": "USDAgov",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:2015_Feds_Feeds_Families-Gleaning_at_MAGNET_(Food)_Warehouse_(20150911-DM-LSC-3004).jpg",
+  "bytes": 67702,
+  "credit": "USDAgov, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000029/2015-feds-feeds-families-gleanin-81845a.webp",
+  "alt": "Volunteers bagging produce in a warehouse",
+  "title": "File:2015 Feds Feeds Families-Gleaning at MAGNET (Food) Warehouse (20150911-DM-LSC-3023).jpg",
+  "artist": "USDAgov",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:2015_Feds_Feeds_Families-Gleaning_at_MAGNET_(Food)_Warehouse_(20150911-DM-LSC-3023).jpg",
+  "bytes": 66076,
+  "credit": "USDAgov, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000041/deer-hill-trail-national-public-94ce20.webp",
+  "alt": "A volunteer in a hard hat clearing branches from a pine",
+  "title": "File:Deer Hill Trail National Public Lands Day 2017 (37623360456).jpg",
+  "artist": "Coconino National Forest",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Deer_Hill_Trail_National_Public_Lands_Day_2017_(37623360456).jpg",
+  "bytes": 120310,
+  "credit": "Coconino National Forest, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000041/deer-hill-trail-national-public-16c09d.webp",
+  "alt": "A volunteer cutting a dead branch on a forest trail",
+  "title": "File:Deer Hill Trail National Public Lands Day 2017 (37623363616).jpg",
+  "artist": "Coconino National Forest",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Deer_Hill_Trail_National_Public_Lands_Day_2017_(37623363616).jpg",
+  "bytes": 147404,
+  "credit": "Coconino National Forest, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000058/aufbuchen-planting-schlachtensee-895bd9.webp",
+  "alt": "Volunteers planting saplings on a forest floor",
+  "title": "File:AufBuchen planting Schlachtensee Berlin 01 Dec 2024 two volunteers planting.jpg",
+  "artist": "RobbieIanMorrison",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:AufBuchen_planting_Schlachtensee_Berlin_01_Dec_2024_two_volunteers_planting.jpg",
+  "bytes": 182370,
+  "credit": "RobbieIanMorrison, CC BY-SA 4.0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000066/sharps-fire-planting-and-habitat-c9a010.webp",
+  "alt": "Two volunteers in work gloves sorting seedlings",
+  "title": "File:Sharps Fire Planting and Habitat Restoration (19) (48942008283).jpg",
+  "artist": "BLMIdaho",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Sharps_Fire_Planting_and_Habitat_Restoration_(19)_(48942008283).jpg",
+  "bytes": 36756,
+  "credit": "BLMIdaho, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000066/sharps-fire-planting-and-habitat-75bd0c.webp",
+  "alt": "A volunteer planting in a wide dry valley",
+  "title": "File:Sharps Fire Planting and Habitat Restoration (20) (48942007943).jpg",
+  "artist": "BLMIdaho",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Sharps_Fire_Planting_and_Habitat_Restoration_(20)_(48942007943).jpg",
+  "bytes": 40996,
+  "credit": "BLMIdaho, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000077/american-soldiers-volunteer-at-g-ef6d50.webp",
+  "alt": "A volunteer walking a shelter dog on a wood-chip path",
+  "title": "File:American Soldiers volunteer at German animal shelter (7134825).jpg",
+  "artist": "U.S. Army photo by 1st Lt. Jonathan Hankey",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:American_Soldiers_volunteer_at_German_animal_shelter_(7134825).jpg",
+  "bytes": 198568,
+  "credit": "U.S. Army photo by 1st Lt. Jonathan Hankey, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000085/deployed-soldiers-volunteer-at-a-f174a2.webp",
+  "alt": "Volunteers walking dogs across a grassy yard",
+  "title": "File:Deployed Soldiers volunteer at animal shelter (8106127).jpg",
+  "artist": "U.S. Army photo by Spc. Elsi Delgado",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Deployed_Soldiers_volunteer_at_animal_shelter_(8106127).jpg",
+  "bytes": 182346,
+  "credit": "U.S. Army photo by Spc. Elsi Delgado, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000093/20111031-fns-lsc-0086-6677153173-620623.webp",
+  "alt": "Cooks in white jackets prepping food in a kitchen",
+  "title": "File:20111031-FNS-LSC-0086 (6677153173).jpg",
+  "artist": "USDAgov",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:20111031-FNS-LSC-0086_(6677153173).jpg",
+  "bytes": 65846,
+  "credit": "USDAgov, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000093/20111031-fns-lsc-0092-6677160011-3a0a14.webp",
+  "alt": "A commercial kitchen during dinner prep",
+  "title": "File:20111031-FNS-LSC-0092 (6677160011).jpg",
+  "artist": "USDAgov",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:20111031-FNS-LSC-0092_(6677160011).jpg",
+  "bytes": 123314,
+  "credit": "USDAgov, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000104/expedition-yellowstone-group-hik-6a7d88.webp",
+  "alt": "A line of hikers crossing a wide valley",
+  "title": "File:Expedition Yellowstone group hiking on the Rescue Creek Trail (47712153932).jpg",
+  "artist": "Yellowstone National Park",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Expedition_Yellowstone_group_hiking_on_the_Rescue_Creek_Trail_(47712153932).jpg",
+  "bytes": 185938,
+  "credit": "Yellowstone National Park, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000118/geronimo-trail-scenic-byway-hiki-35cf0b.webp",
+  "alt": "Hikers on a forest trail",
+  "title": "File:Geronimo Trail Scenic Byway - Hiking Crest Trail North - NARA - 7718597.jpg",
+  "artist": "Unknown authorUnknown author or not provided",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Geronimo_Trail_Scenic_Byway_-_Hiking_Crest_Trail_North_-_NARA_-_7718597.jpg",
+  "bytes": 237110,
+  "credit": "Unknown authorUnknown author or not provided, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000118/grand-canyon-np-bright-angel-tra-fc475f.webp",
+  "alt": "Hikers on a canyon trail with a wide view",
+  "title": "File:Grand Canyon NP Bright Angel Trail Group Hiking 0215 (5446827686).jpg",
+  "artist": "Grand Canyon National Park",
+  "license": "CC BY 2.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Grand_Canyon_NP_Bright_Angel_Trail_Group_Hiking_0215_(5446827686).jpg",
+  "bytes": 159034,
+  "credit": "Grand Canyon National Park, CC BY 2.0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000127/20111020-fns-lsc-0028-6629220815-61bf26.webp",
+  "alt": "A volunteer stocking shelves in a pantry",
+  "title": "File:20111020-FNS-LSC-0028 (6629220815).jpg",
+  "artist": "USDAgov",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:20111020-FNS-LSC-0028_(6629220815).jpg",
+  "bytes": 91360,
+  "credit": "USDAgov, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000139/airmen-volunteer-set-record-at-o-992b4a.webp",
+  "alt": "Volunteers in gloves cooking in a kitchen",
+  "title": "File:Airmen volunteer, set record at Operation Thanksgiving 131127-F-ES731-002.jpg",
+  "artist": "Senior Airman Katrina Heikkinen",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Airmen_volunteer,_set_record_at_Operation_Thanksgiving_131127-F-ES731-002.jpg",
+  "bytes": 53348,
+  "credit": "Senior Airman Katrina Heikkinen, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000146/trinity-river-cleanup-npld-30860-5cfc54.webp",
+  "alt": "Volunteers in a kayak pulling a chair out of a river",
+  "title": "File:Trinity River Cleanup NPLD (30860684657).jpg",
+  "artist": "Region 5 Photography",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Trinity_River_Cleanup_NPLD_(30860684657).jpg",
+  "bytes": 139110,
+  "credit": "Region 5 Photography, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000152/20180828-fns-pjk-0129-toned-4344-4face9.webp",
+  "alt": "A farm stand with baskets of vegetables",
+  "title": "File:20180828-FNS-PJK-0129 TONED (43441950225).jpg",
+  "artist": "U.S. Department of Agriculture Preston Keres/Office of Communications-Photograp",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:20180828-FNS-PJK-0129_TONED_(43441950225).jpg",
+  "bytes": 142034,
+  "credit": "U.S. Department of Agriculture Preston Keres/Office of Communications-Photograp, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000152/20180828-fns-pjk-0148-toned-4434-e2d88e.webp",
+  "alt": "Fresh cauliflower and broccoli",
+  "title": "File:20180828-FNS-PJK-0148 TONED (44347596381).jpg",
+  "artist": "U.S. Department of Agriculture Preston Keres/Office of Communications-Photograp",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:20180828-FNS-PJK-0148_TONED_(44347596381).jpg",
+  "bytes": 150336,
+  "credit": "U.S. Department of Agriculture Preston Keres/Office of Communications-Photograp, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000152/20180828-fns-pjk-1038-toned-4434-28323d.webp",
+  "alt": "An ear of corn among green husks",
+  "title": "File:20180828-FNS-PJK-1038 TONED (44347618791).jpg",
+  "artist": "U.S. Department of Agriculture Preston Keres/Office of Communications-Photograp",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:20180828-FNS-PJK-1038_TONED_(44347618791).jpg",
+  "bytes": 61008,
+  "credit": "U.S. Department of Agriculture Preston Keres/Office of Communications-Photograp, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000161/1-month-old-kittens-32-c7a8d3.webp",
+  "alt": "A small tabby and white kitten",
+  "title": "File:1-month-old kittens 32.jpg",
+  "artist": "0x010C",
+  "license": "CC BY-SA 2.0",
+  "source": "https://commons.wikimedia.org/wiki/File:1-month-old_kittens_32.jpg",
+  "bytes": 43268,
+  "credit": "0x010C, CC BY-SA 2.0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000161/ben-bengalian-kitten-4492540155-5b3e70.webp",
+  "alt": "A young tabby cat looking up",
+  "title": "File:BEN Bengalian kitten (4492540155).jpg",
+  "artist": "Nickolas Titkov from Moscow, Russian Federation",
+  "license": "CC BY-SA 2.0",
+  "source": "https://commons.wikimedia.org/wiki/File:BEN_Bengalian_kitten_(4492540155).jpg",
+  "bytes": 47734,
+  "credit": "Nickolas Titkov from Moscow, Russian Federation, CC BY-SA 2.0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000175/coastal-restoration-52-100243225-a8600c.webp",
+  "alt": "A volunteer standing in a marsh in a sun hat",
+  "title": "File:Coastal Restoration-52 (10024322594).jpg",
+  "artist": "Tulane Public Relations",
+  "license": "CC BY 2.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Coastal_Restoration-52_(10024322594).jpg",
+  "bytes": 74014,
+  "credit": "Tulane Public Relations, CC BY 2.0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000175/muddy-restoration-ecologists-651-b689cd.webp",
+  "alt": "Volunteers resting on a mudflat during restoration",
+  "title": "File:Muddy restoration ecologists (6518327363).jpg",
+  "artist": "Pacific Southwest Region USFWS from Sacramento, US",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Muddy_restoration_ecologists_(6518327363).jpg",
+  "bytes": 116990,
+  "credit": "Pacific Southwest Region USFWS from Sacramento, US, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000188/skatepark-crabtree-park-camberle-56964d.webp",
+  "alt": "A skatepark with ramps and a tower among trees",
+  "title": "File:Skatepark, Crabtree Park, Camberley, Surrey.jpg",
+  "artist": "Mertbiol",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Skatepark,_Crabtree_Park,_Camberley,_Surrey.jpg",
+  "bytes": 190174,
+  "credit": "Mertbiol, CC0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000196/chethams-library-reading-room-9ea884.webp",
+  "alt": "An ornate library reading room",
+  "title": "File:Chethams Library Reading Room.jpg",
+  "artist": "Michael D Beckwith",
+  "license": "CC BY 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Chethams_Library_Reading_Room.jpg",
+  "bytes": 102610,
+  "credit": "Michael D Beckwith, CC BY 3.0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000196/loc-main-reading-room-highsmith-52444c.webp",
+  "alt": "A grand domed library reading room",
+  "title": "File:LOC Main Reading Room Highsmith.jpg",
+  "artist": "Carol M. Highsmith",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:LOC_Main_Reading_Room_Highsmith.jpg",
+  "bytes": 169098,
+  "credit": "Carol M. Highsmith, Public domain, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000203/early-morning-at-morro-bay-harbo-ac08e8.webp",
+  "alt": "Fishing boats docked at dawn",
+  "title": "File:EARLY MORNING AT MORRO BAY HARBOR -008 (921543256).jpg",
+  "artist": "ALAN SCHMIERER",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:EARLY_MORNING_AT_MORRO_BAY_HARBOR_-008_(921543256).jpg",
+  "bytes": 55574,
+  "credit": "ALAN SCHMIERER, CC0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000203/early-morning-at-morro-bay-harbo-c3b597.webp",
+  "alt": "A harbor at sunrise with boats on the water",
+  "title": "File:EARLY MORNING AT MORRO BAY HARBOR -051 (921019653).jpg",
+  "artist": "ALAN SCHMIERER",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:EARLY_MORNING_AT_MORRO_BAY_HARBOR_-051_(921019653).jpg",
+  "bytes": 61212,
+  "credit": "ALAN SCHMIERER, CC0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000217/danish-blue-large-abstract-paint-019122.webp",
+  "alt": "A large colorful abstract painting",
+  "title": "File:'Danish Blue' large abstract painting on canvas, created together by artists Ben Vollers & Fons Heijnsbroek in 2008; modern wall art painting - free download art image CC0, high resolutions TIFF.tif",
+  "artist": "Fons Heijnsbroek",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:%27Danish_Blue%27_large_abstract_painting_on_canvas,_created_together_by_artists_Ben_Vollers_%26_Fons_Heijnsbroek_in_2008;_modern_wall_art_painting_-_free_download_art_image_CC0,_high_resolutions_TIFF.tif",
+  "bytes": 117418,
+  "credit": "Fons Heijnsbroek, CC0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000217/tomorrow-large-abstract-painting-ff0a43.webp",
+  "alt": "A bright abstract painting in red, blue and yellow",
+  "title": "File:'Tomorrow' large abstract painting on canvas, created together by artists Ben Vollers & Fons Heijnsbroek in 2008; modern wall art painting - free download art image CC0, high resolutions TIFF.tif",
+  "artist": "Fons Heijnsbroek",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:%27Tomorrow%27_large_abstract_painting_on_canvas,_created_together_by_artists_Ben_Vollers_%26_Fons_Heijnsbroek_in_2008;_modern_wall_art_painting_-_free_download_art_image_CC0,_high_resolutions_TIFF.tif",
+  "bytes": 112282,
+  "credit": "Fons Heijnsbroek, CC0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000231/kids-soccer-practice-at-brastad-76eb6c.webp",
+  "alt": "A grass soccer field lined with trees",
+  "title": "File:Kids' soccer practice at Brastad Arena 2.jpg",
+  "artist": "W.carter",
+  "license": "CC BY 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Kids%27_soccer_practice_at_Brastad_Arena_2.jpg",
+  "bytes": 177832,
+  "credit": "W.carter, CC BY 4.0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000244/cleveland-state-community-colleg-b30878.webp",
+  "alt": "A modern brick community health center",
+  "title": "File:Cleveland State Community College's Health & Science Center in Bradley County, Tennessee 01.jpg",
+  "artist": "Harrison Keely",
+  "license": "CC BY 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Cleveland_State_Community_College%27s_Health_%26_Science_Center_in_Bradley_County,_Tennessee_01.jpg",
+  "bytes": 225206,
+  "credit": "Harrison Keely, CC BY 4.0, via Wikimedia Commons"
+ },
+ {
+  "path": "people/00000000-0000-4000-c000-000000000258/ansteth-flats-buffalo-new-york-2-9e07f2.webp",
+  "alt": "A row of apartment buildings on a city corner",
+  "title": "File:Ansteth Flats, Buffalo, New York - 20221028.jpg",
+  "artist": "Andre Carrotflower",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Ansteth_Flats,_Buffalo,_New_York_-_20221028.jpg",
+  "bytes": 83508,
+  "credit": "Andre Carrotflower, CC BY-SA 4.0, via Wikimedia Commons"
+ },
+ {
+  "path": "00000000-0000-4000-a000-000000000028/20170922-osec-lsc-0197-366252589-3642b5.webp",
+  "alt": "Pallets of boxed food on tall warehouse shelves",
+  "title": "File:20170922-OSEC-LSC-0197 (36625258914).jpg",
+  "artist": "U.S. Department of Agriculture",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:20170922-OSEC-LSC-0197_(36625258914).jpg",
+  "bytes": 122406,
+  "credit": "U.S. Department of Agriculture, Public domain, via Wikimedia Commons"
  }
 ]

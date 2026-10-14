@@ -80,7 +80,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
 async function Composer({ userId }: { userId: string }) {
   const [viewer, orgs] = await Promise.all([getViewer(userId), getFollowedOrgs(userId)])
   if (!viewer) return null
-  return <DonorComposer viewer={{ name: viewer.display_name ?? `@${viewer.handle}`, avatarUrl: viewer.avatar_url }} orgs={orgs} />
+  return <DonorComposer viewer={{ id: viewer.id, name: viewer.display_name ?? `@${viewer.handle}`, avatarUrl: viewer.avatar_url }} orgs={orgs} />
 }
 
 async function LeftRail({ userId }: { userId: string | null }) {

@@ -4,13 +4,15 @@ import { Megaphone, Send, X } from "lucide-react"
 import { useActionState, useState } from "react"
 import { createDonorPost } from "@/app/actions"
 import { Button } from "@/components/ui/button"
+import { ImagePicker } from "./image-picker"
 import { PersonAvatar } from "./person-avatar"
 import { Panel } from "./shell"
 
-type Viewer = { name: string; avatarUrl: string | null }
+type Viewer = { id: string; name: string; avatarUrl: string | null }
 
 // LinkedIn's "Start a post", for people (F-079): spread the word about a cause or an
-// organization. Text, plus an optional spotlight on a nonprofit or foundation you follow.
+// organization. Text, up to 4 photos (with descriptions and consent), and an optional spotlight on
+// a nonprofit or foundation you follow.
 export function DonorComposer({ viewer, orgs }: { viewer: Viewer; orgs: { id: string; name: string }[] }) {
   const [open, setOpen] = useState(false)
   // Close the editor once a post goes through (each new post has a new id).
@@ -39,6 +41,11 @@ export function DonorComposer({ viewer, orgs }: { viewer: Viewer; orgs: { id: st
           <textarea id="donor-post" name="body" required maxLength={3000} rows={4} autoFocus defaultValue={state?.values?.body}
             placeholder="Spread the word: a cause you care about, why you give, a need someone could help with."
             className="field-sizing-content min-h-24 w-full resize-none bg-transparent text-[1.0625rem] outline-none placeholder:text-muted-foreground" />
+          <ImagePicker key={state?.id ?? "photos"} folder={`people/${viewer.id}`} />
+          <label className="flex items-start gap-2 text-sm text-muted-foreground">
+            <input type="checkbox" name="beneficiary_consent" className="mt-1" defaultChecked={state?.values?.beneficiary_consent === "on"} />
+            <span>Anyone identifiable in my photos has agreed to be shown, and no one is shown while receiving help.</span>
+          </label>
           <div className="flex flex-wrap items-center gap-3 border-t pt-3">
             <label className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
               <Megaphone className="size-4 shrink-0" aria-hidden />

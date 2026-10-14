@@ -649,10 +649,14 @@ export async function createDonorPost(_: ActionState, form: FormData): Promise<A
   if (!body.success) return fail(form, body.error.issues[0].message)
   const about = String(form.get("about_org_id") ?? "")
   if (about && !/^[0-9a-f-]{36}$/.test(about)) return fail(form, "Pick an organization from the list.")
+  const images = validateImages(`people/${userId}`, form.getAll("image_paths").map(String), form.getAll("image_alts").map(String))
+  if ("error" in images) return fail(form, images.error)
+  const consent = form.get("beneficiary_consent") === "on"
+  if (images.paths.length > 0 && !consent) return fail(form, "Confirm consent before posting photos.")
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("posts")
-    .insert({ author_id: userId, body: body.data, about_org_id: about || null })
+    .insert({ author_id: userId, body: body.data, about_org_id: about || null, image_paths: images.paths, image_alts: images.alts, beneficiary_consent: consent })
     .select("id")
     .single()
   if (error) return fail(form, error.message.includes("row-level security") ? "You can't spotlight that organization." : error.message)

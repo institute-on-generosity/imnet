@@ -9,8 +9,9 @@ import { createClient } from "@/lib/supabase/client"
 type Picked = { path: string; preview: string; alt: string }
 const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" }
 
-// Uploads photos to the org's folder as soon as they're picked; the form submits the paths.
-export function ImagePicker({ orgId }: { orgId: string }) {
+// Uploads photos as soon as they're picked; the form submits the paths. folder: the org's id, or
+// "people/<user id>" for donor posts.
+export function ImagePicker({ folder }: { folder: string }) {
   const [images, setImages] = useState<Picked[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +28,7 @@ export function ImagePicker({ orgId }: { orgId: string }) {
     setBusy(true)
     const supabase = createClient()
     for (const file of chosen) {
-      const path = `${orgId}/${crypto.randomUUID()}.${EXT[file.type]}`
+      const path = `${folder}/${crypto.randomUUID()}.${EXT[file.type]}`
       const { error: upErr } = await supabase.storage.from("post-images").upload(path, file, { contentType: file.type })
       if (upErr) {
         setError(`${file.name} didn't upload: ${upErr.message}`)

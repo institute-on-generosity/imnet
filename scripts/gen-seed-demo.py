@@ -16,6 +16,7 @@ import demo_more_orgs as more  # noqa: E402
 import demo_profiles as prof  # noqa: E402
 import demo_media as media  # noqa: E402
 import demo_donor_posts as dposts  # noqa: E402
+import demo_donor_photos as dphotos  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "supabase", "seed_demo.sql")
@@ -478,6 +479,14 @@ out.append("insert into posts (author_id, kind, body, about_org_id, created_at) 
 out.append(",\n".join(
     f"  ('{a}', 'update', {q(body)}, {about_sql(about)}, now() - interval '{days * 24:.0f} hours')"
     for a, (about, body, days) in zip(authors, dposts.POSTS)) + ";")
+out.append("")
+
+# Donor posts with photos (F-080), files in post-images/people/<author>/
+out.append("insert into posts (author_id, kind, body, about_org_id, image_paths, image_alts, image_credits, beneficiary_consent, created_at) values")
+out.append(",\n".join(
+    f"  ('{a}', 'update', {q(body)}, {about_sql(about)}, {arr(paths)}, {arr([credits[x]['alt'] for x in paths])}, "
+    f"{arr([credits[x]['credit'] for x in paths])}, true, now() - interval '{days * 24:.0f} hours')"
+    for a, about, body, days, paths in dphotos.POSTS) + ";")
 out.append("")
 
 # --- Comments (F-062): many people comment on nonprofit and foundation posts; teams reply -------------
