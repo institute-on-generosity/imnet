@@ -494,3 +494,24 @@ export async function getSinceYourGifts(gifts: Gift[]) {
     .filter((p) => p.created_at.slice(0, 10) >= first.get(p.org.id)!)
     .slice(0, 8)
 }
+
+export type Comment = { id: string; body: string; as_org: boolean; created_at: string; user_id: string; author: { handle: string; display_name: string | null } }
+
+// A post's comments, oldest first (a conversation reads top to bottom). Public when the post is.
+export async function getComments(postId: string): Promise<Comment[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("comments")
+    .select("id, body, as_org, created_at, user_id, author:profiles(handle, display_name)")
+    .eq("post_id", postId)
+    .order("created_at")
+    .limit(200)
+  return (data ?? []) as unknown as Comment[]
+}
+
+export async function isOrgStaff(userId: string | null, orgId: string): Promise<boolean> {
+  if (!userId) return false
+  const supabase = await createClient()
+  const { data } = await supabase.from("org_members").select("user_id").match({ org_id: orgId, user_id: userId }).maybeSingle()
+  return !!data
+}

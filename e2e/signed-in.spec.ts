@@ -490,6 +490,32 @@ test("F-060: the giving journal shows news from orgs you gave to, since your gif
   await expect(since.getByRole("link", { name: /Harbor Table/ }).first()).toBeVisible()
 })
 
+test("F-062: comment on a post and remove it; staff reply as the org and hear about new comments", async () => {
+  const [harborPost] = await sql`select id from posts where org_id = ${HARBOR} order by created_at desc limit 1`
+  await page.goto(`/p/${harborPost.id}`)
+  const section = page.getByRole("region", { name: "Comments" })
+  await expect(section.getByText(/Reply as/)).toHaveCount(0) // not Harbor's staff
+  await section.getByLabel("Add a comment").fill(`So glad to read this ${id}`)
+  await section.getByRole("button", { name: "Comment", exact: true }).click()
+  const mine = section.getByRole("listitem").filter({ hasText: `So glad to read this ${id}` })
+  await expect(mine).toBeVisible()
+  await mine.getByRole("button", { name: "Remove comment" }).click()
+  await expect(mine).toHaveCount(0)
+
+  // A demo donor comments on this user's own org post; the team hears about it and replies as the org.
+  const [own] = await sql`select p.id from posts p join orgs o on o.id = p.org_id where o.slug = ${slug} order by p.created_at desc limit 1`
+  await sql`insert into comments (post_id, user_id, body) values (${own.id}, '00000000-0000-4000-c000-000000000001', ${`Thank you for this ${id}`})`
+  await page.goto("/notifications")
+  await page.getByRole("link", { name: /commented on your post/ }).first().click()
+  await expect(page).toHaveURL(new RegExp(`/p/${own.id}#comments`))
+  await section.getByLabel("Add a comment").fill(`Thanks for being here ${id}`)
+  await section.getByLabel(`Reply as ${orgName}`).check()
+  await section.getByRole("button", { name: "Comment", exact: true }).click()
+  const reply = section.getByRole("listitem").filter({ hasText: `Thanks for being here ${id}` })
+  await expect(reply.getByText("Team")).toBeVisible()
+  await expect(reply.getByRole("link", { name: orgName })).toBeVisible()
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

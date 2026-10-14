@@ -466,6 +466,65 @@ for uid in r3.sample(new_people, 220):
                    f"{r3.choice([5, 10, 20, 25, 50, 50, 75, 100, 150, 250, 500])}, current_date - {r3.randint(1, 500)});")
 out.append("")
 
+# --- Comments (F-062): many people comment on nonprofit and foundation posts; teams reply -------------
+GENERAL = [
+    "This is why I give. Thank you, {org}.", "Love seeing the actual numbers. Keep posting these.", "Shared this with my book club.",
+    "What a week. Thank you to every volunteer.", "This made my morning.", "Proud to be a monthly donor.",
+    "My neighbor volunteers with you and never stops talking about it.", "Thank you for telling this with so much respect.",
+    "How can someone new get involved?", "Sending this to my company's giving committee.", "Incredible progress since spring.",
+    "I walked past last Saturday and the energy was amazing.", "Small gift coming your way this month.",
+    "Thank you for being so transparent about where the money goes.", "The volunteers in this photo deserve all the credit.",
+    "We need more of this in our city.", "Keep going. People notice.", "Is there a way to sponsor this directly?",
+    "My kids and I picked {org} for our family gift this year. This is why.", "Amazing team. Amazing work.",
+    "Love that you share the hard parts too.", "This is what community looks like.", "Thank you for showing up, every single week.",
+    "Just signed up to volunteer. See you soon!", "Congrats to the whole crew.", "Reading this on the bus and smiling.",
+    "Our church collected for you last month. So glad to see the results.", "Wow. That's a lot of people helped.",
+    "You all make this city better.", "Following for more updates like this.", "Do you take in-kind donations?",
+    "The best kind of news.", "I was helped by a group like this years ago. Thank you for doing it now.",
+    "Can't wait to see what's next.", "Grateful you exist.", "Shared with my neighborhood group.",
+]
+FOUNDATION = [
+    "Thank you for funding local groups that actually do the work.", "Love that you publish every grant here.",
+    "Multi-year support is such a big deal for small nonprofits. Thank you.", "Great to see {org} backing grassroots groups.",
+    "I give through this fund. Seeing the grantee reports makes it real.", "Any plans to fund more youth programs next cycle?",
+    "Transparent grantmaking. More of this, please.", "So glad the grantees confirm each grant publicly.",
+    "How do small groups without a development team apply?", "This is the kind of philanthropy I want to support.",
+]
+ASK = ["Signed up!", "Dropping some off this weekend.", "Shared with my building's group chat.", "Just sent a little.",
+       "My office is doing a drive for this next week.", "Count me in for Saturday.", "Is there a wish list somewhere?"]
+REPLIES = [
+    "Thank you so much. This means a lot to our whole team.", "Thank you for being here with us.",
+    "We'd love to have you! Details are on our profile under Current needs.", "Thank you! We'll keep sharing updates.",
+    "Our volunteers will be so happy to read this.", "Thank you. Every gift really does add up.",
+    "Yes! Send us a note through the Help link and we'll get you started.", "Grateful for you. See you soon.",
+]
+def sql_arr(xs):
+    return "array[" + ", ".join(q(x) for x in xs) + "]"
+out.append(f"""-- Comments: 2 to 29 people per post, spread between the post time and now.
+insert into comments (post_id, user_id, body, created_at)
+select p.id, d.id,
+       replace((case when o.org_type = 'foundation' then {sql_arr(FOUNDATION + GENERAL)}
+                     when p.kind = 'ask' then {sql_arr(ASK + GENERAL)}
+                     else {sql_arr(GENERAL)} end)[1 + (abs(hashtext(p.id::text || 'body')) + d.rn) %
+               (case when o.org_type = 'foundation' then {len(FOUNDATION) + len(GENERAL)} when p.kind = 'ask' then {len(ASK) + len(GENERAL)} else {len(GENERAL)} end)], '{{org}}', o.name),
+       p.created_at + (now() - p.created_at) * ((abs(hashtext(p.id::text || d.id::text)) % 950) / 1000.0)
+  from posts p join orgs o on o.id = p.org_id
+  cross join lateral (
+    select id, row_number() over (order by md5(p.id::text || id::text || 'comment')) rn from profiles
+     where id::text like '00000000-0000-4000-c000-%'
+     order by md5(p.id::text || id::text || 'comment') limit 2 + abs(hashtext(p.id::text || 'comments')) % 28
+  ) d
+ where p.published;
+
+-- Team replies on about half the posts that have comments, after the latest comment.
+insert into comments (post_id, user_id, body, as_org, created_at)
+select p.id, m.user_id, ({sql_arr(REPLIES)})[1 + abs(hashtext(p.id::text || 'reply')) % {len(REPLIES)}], true,
+       least(now() - interval '5 minutes', (select max(created_at) from comments c where c.post_id = p.id) + interval '3 hours')
+  from posts p
+  cross join lateral (select user_id from org_members where org_id = p.org_id order by created_at, user_id limit 1) m
+ where abs(hashtext(p.id::text || 'reply')) % 10 < 5 and exists (select 1 from comments c where c.post_id = p.id);
+""")
+
 # Private reactions and saves, and 30 days of analytics
 out.append(f"""-- "Moved" and saves: random donors on random posts (private; only totals show to staff).
 insert into moved (user_id, post_id)

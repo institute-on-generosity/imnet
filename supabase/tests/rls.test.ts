@@ -522,3 +522,35 @@ describe("events and volunteer interest", () => {
     expect((await t.as(OTHER, `select user_id from need_interest`)).rows).toHaveLength(0)
   })
 })
+
+describe("comments", () => {
+  const OTHER = "10000000-0000-4000-8000-0000000000e3"
+  let post = ""
+  let draft = ""
+
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${OTHER}', 'other3.donor@example.com') on conflict do nothing`)
+    post = (await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'comment me') returning id`))[0].id as string
+    draft = (await t.owner(`insert into posts (org_id, body, published) values ('${ORG_1}', 'hidden draft', false) returning id`))[0].id as string
+  })
+
+  it("F-062: signed-in people comment on visible posts; everyone can read; no comments on hidden posts", async () => {
+    expect((await t.as(null, `insert into comments (post_id, body) values ('${post}', 'hi')`)).error).toBeDefined()
+    expect((await t.as(DONOR, `insert into comments (post_id, body) values ('${post}', '  ')`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into comments (post_id, body) values ('${draft}', 'sneaky')`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `insert into comments (post_id, body) values ('${post}', 'Beautiful work')`)).error).toBeUndefined()
+    expect((await t.as(null, `select body from comments where post_id = '${post}'`)).rows).toEqual([{ body: "Beautiful work" }])
+  })
+
+  it("F-062: only the posting org's staff can reply as the org", async () => {
+    expect((await t.as(DONOR, `insert into comments (post_id, body, as_org) values ('${post}', 'Official!', true)`)).error).toMatch(/row-level security/)
+    expect((await t.as(STAFF, `insert into comments (post_id, body, as_org) values ('${post}', 'Thank you!', true)`)).error).toBeUndefined()
+  })
+
+  it("F-062: authors and the org's staff can remove comments; others can't; nobody edits", async () => {
+    const id = (await t.as(OTHER, `insert into comments (post_id, body) values ('${post}', 'remove me') returning id`)).rows![0].id
+    expect((await t.as(DONOR, `delete from comments where id = '${id}' returning id`)).rows).toHaveLength(0)
+    expect((await t.as(OTHER, `update comments set body = 'edited' where id = '${id}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(STAFF, `delete from comments where id = '${id}' returning id`)).rows).toHaveLength(1)
+  })
+})

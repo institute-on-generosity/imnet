@@ -1,13 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { Comments } from "@/components/comments"
 import { PRIVATE_NOTE } from "@/components/moved-button"
 import { OrgMark } from "@/components/org-mark"
 import { PostCard } from "@/components/post-card"
 import { Panel, TwoColumn } from "@/components/shell"
 import { TrackView } from "@/components/track-view"
 import { buttonVariants } from "@/components/ui/button"
-import { getGrantsForPosts, getMovedPostIds, getPost, getSavedPostIds } from "@/lib/queries"
+import { getComments, getGrantsForPosts, getMovedPostIds, getPost, getSavedPostIds, isOrgStaff } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 
 export async function generateMetadata({ params }: PageProps<"/p/[id]">): Promise<Metadata> {
@@ -28,7 +29,9 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
   if (!post) notFound()
 
   const userId = await getUserId()
-  const [movedIds, savedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, [post.id]), getSavedPostIds(userId, [post.id]), getGrantsForPosts([post.id])])
+  const [movedIds, savedIds, grantsByPost, comments, isStaff] = await Promise.all([
+    getMovedPostIds(userId, [post.id]), getSavedPostIds(userId, [post.id]), getGrantsForPosts([post.id]), getComments(post.id), isOrgStaff(userId, post.org_id),
+  ])
   const moved = movedIds.has(post.id)
 
   return (
@@ -48,6 +51,7 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
       <TrackView orgId={post.org_id} postId={post.id} />
       <PostCard post={post} full moved={moved} saved={savedIds.has(post.id)} signedIn={!!userId} grants={grantsByPost.get(post.id)} />
       <p className="px-1 text-xs text-muted-foreground">&ldquo;Moved me&rdquo; is private. {PRIVATE_NOTE}.</p>
+      <Comments postId={post.id} org={post.org} comments={comments} userId={userId} isStaff={isStaff} />
     </TwoColumn>
   )
 }

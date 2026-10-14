@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import type { Grant, OrgSummary, Post } from "@/lib/types"
@@ -68,6 +68,11 @@ export function PostCard({ post, full = false, moved = false, saved = false, sig
 
       <footer className="mt-2 flex items-center gap-0.5 px-2 pb-1.5">
         <MovedButton postId={post.id} moved={moved} signedIn={signedIn} />
+        <IconTip label="Comments">
+          <Link href={`/p/${post.id}#comments`} className="inline-flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted">
+            <MessageCircle className="size-5" aria-hidden />
+          </Link>
+        </IconTip>
         <ShareButton path={`/p/${post.id}`} title={`${post.org.name} on imnet`} orgId={post.org_id} postId={post.id} />
         <SaveButton postId={post.id} saved={saved} signedIn={signedIn} />
         {!full && (

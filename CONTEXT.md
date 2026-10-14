@@ -21,6 +21,7 @@ Domain language for imnet. Use these terms in code, docs and UI. Table names in 
 - **Giving journal**: a donor's private log of gifts they made (`gifts`). Nobody else sees it, including the orgs.
 - **Event**: a volunteer day, open house or gathering an org hosts (`org_events`). RSVPs (`event_rsvps`) are private to the donor and the org's staff.
 - **Volunteer interest**: a donor's private "I'm interested" on an open volunteer need (`need_interest`).
+- **Comment**: a public reply under a post (`comments`), oldest first, no likes or counts. Staff can reply as the org.
 - **Thank-you note**: private encouragement from a donor to an org's team (`thanks`). Seen only by the author and the org's staff; no counts.
 - **What gifts fund**: plain-language examples of what a donation pays for.
 - **Cause**: a fixed category (`causes`), e.g. hunger, housing. Orgs pick causes; donors list causes they care about.
@@ -141,6 +142,7 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-059 Volunteer interest.** Open volunteer needs get "I'm interested" (private one-click signal) next to Help, on profiles and `/needs`. Staff see "N interested" with names on the dashboard. Only open volunteer needs accept interest. Test: `supabase/tests/rls.test.ts`, `e2e/signed-in.spec.ts`
 - **F-060 Since your gifts.** The giving journal shows recent posts from orgs you logged gifts to, published since your first gift to each. Test: `e2e/signed-in.spec.ts`
 - **F-061 1,000 demo people.** 600 more fictional people (1,000 total) with bios, causes and cause-based follows; 32 upcoming events (Pacific local times) with ~760 RSVPs; ~260 volunteer-interest signals; more notes, gift logs, reactions (~10,700), saves (~2,000) and 30-day analytics (~10,000 events). Separate random stream; earlier data unchanged. Test: full e2e suite runs against it
+- **F-062 Comments.** Signed-in people comment on any visible post (up to 1,000 characters); comments are public with the post, oldest first, with no likes and no counts (the feed shows a comment icon, never a number). The posting org's staff can tick "Reply as <org>": the reply shows the org's mark and a "Team" label. Authors remove their own comments; the org's staff (and admins) can remove any comment on the org's posts; nobody edits. Staff are notified of new comments on their posts; commenters are notified when the org replies. Demo: ~2,100 comments from ~880 people on every post, nonprofit and foundation, no repeats within a thread, with team replies on about half. Test: `supabase/tests/rls.test.ts`, `e2e/public.spec.ts`, `e2e/signed-in.spec.ts`
 
 ### Fixes
 

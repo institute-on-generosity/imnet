@@ -508,3 +508,28 @@ export async function deleteEvent(eventId: string) {
   await supabase.from("org_events").delete().eq("id", eventId)
   revalidatePath("/", "layout")
 }
+
+// ---------------------------------------------------------------------------
+// Comments (F-062)
+// ---------------------------------------------------------------------------
+export async function addComment(postId: string, _: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const body = z.string().trim().min(1, "Write a comment first.").max(1000, "Keep it under 1,000 characters.").safeParse(form.get("body"))
+  if (!body.success) return fail(form, body.error.issues[0].message)
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("comments")
+    .insert({ post_id: postId, body: body.data, as_org: form.get("as_org") === "on" })
+    .select("id")
+    .single()
+  if (error) return fail(form, error.message.includes("row-level security") ? "You can't comment on this post." : error.message)
+  revalidatePath(`/p/${postId}`)
+  return { ok: true, id: data.id }
+}
+
+export async function deleteComment(commentId: string, postId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("comments").delete().eq("id", commentId)
+  revalidatePath(`/p/${postId}`)
+}

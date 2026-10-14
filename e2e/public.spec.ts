@@ -274,3 +274,20 @@ test("F-058: events list soonest first with a cause filter; profiles and Home sh
   await page.goto("/")
   await expect(page.getByRole("region", { name: "Upcoming events" }).getByRole("link", { name: "See all events" })).toBeVisible()
 })
+
+test("F-062: posts show comments oldest first, team replies marked, and a sign-in prompt", async ({ page }) => {
+  const [post] = await sql`select p.id from posts p where exists (select 1 from comments c where c.post_id = p.id and c.as_org) and p.org_id = ${"00000000-0000-4000-a000-000000000001"} limit 1`
+  await page.goto("/")
+  await page.locator("article").first().getByRole("link", { name: "Comments" }).click()
+  await expect(page).toHaveURL(/\/p\/.+#comments$/)
+
+  await page.goto(`/p/${post.id}`)
+  const section = page.getByRole("region", { name: "Comments" })
+  await expect(section.getByText("Team").first()).toBeVisible()
+  await expect(section.getByRole("link", { name: "Harbor Table" }).first()).toBeVisible()
+  const times = await section.locator("time").evaluateAll((els) => els.map((e) => e.getAttribute("datetime")!))
+  expect([...times].sort()).toEqual(times)
+  await expect(section.getByRole("link", { name: "Sign in" })).toBeVisible()
+  // No counts anywhere.
+  await expect(page.getByText(/\d+ comments?/)).toHaveCount(0)
+})

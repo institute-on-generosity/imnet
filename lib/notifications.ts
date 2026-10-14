@@ -3,7 +3,7 @@ import { formatUsd } from "@/lib/grants"
 import { formatDeadline } from "@/lib/open-calls"
 import { createClient } from "@/lib/supabase/server"
 
-export type Notification = { key: string; at: string; text: string; href: string; kind: "grant" | "report" | "call" | "team" | "claim" | "thanks" }
+export type Notification = { key: string; at: string; text: string; href: string; kind: "grant" | "report" | "call" | "team" | "claim" | "thanks" | "comment" }
 
 const SINCE_DAYS = 60
 const name = (o: { name: string } | null | undefined) => o?.name ?? "An organization"
@@ -19,7 +19,7 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
   const foundations = orgs.filter((o) => o.org_type === "foundation").map((o) => o.id)
   const items: Notification[] = []
 
-  const [toConfirm, confirmed, reports, calls, claims, joined, notes] = await Promise.all([
+  const [toConfirm, confirmed, reports, calls, claims, joined, comments, replies, notes] = await Promise.all([
     nonprofits.length
       ? supabase.from("grants").select("id, amount_usd, created_at, grantee_id, foundation:orgs!grants_foundation_id_fkey(name)").in("grantee_id", nonprofits).is("confirmed_at", null).gte("created_at", since)
       : null,
@@ -34,6 +34,11 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
     orgs.length
       ? supabase.from("org_invites").select("id, email, accepted_at, org_id").in("org_id", orgs.map((o) => o.id)).not("accepted_at", "is", null).neq("accepted_by", userId).gte("accepted_at", since)
       : null,
+    // Comments on your org's posts (not your own, not the team's replies).
+    orgs.length
+      ? supabase.from("comments").select("id, post_id, created_at, author:profiles(display_name, handle), post:posts!inner(org_id)").in("post.org_id", orgs.map((o) => o.id)).eq("as_org", false).neq("user_id", userId).gte("created_at", since).order("created_at", { ascending: false }).limit(30)
+      : null,
+    repliesToYou(userId, since),
     orgs.length ? supabase.from("thanks").select("id, org_id, created_at").in("org_id", orgs.map((o) => o.id)).neq("user_id", userId).gte("created_at", since) : null,
   ])
 
@@ -58,6 +63,10 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
     const org = orgs.find((o) => o.id === t.org_id)
     items.push({ key: `thanks-${t.id}`, at: t.created_at, kind: "thanks", text: `A supporter sent ${org ? name(org) : "your team"} a thank-you note.`, href: `/dashboard/${t.org_id}` })
   }
+  for (const c of (comments?.data ?? []) as unknown as { id: string; post_id: string; created_at: string; author: { display_name: string | null; handle: string } }[]) {
+    items.push({ key: `comment-${c.id}`, at: c.created_at, kind: "comment", text: `${c.author.display_name ?? `@${c.author.handle}`} commented on your post.`, href: `/p/${c.post_id}#comments` })
+  }
+  for (const r of replies) items.push(r)
   return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30)
 }
 
@@ -80,6 +89,24 @@ async function openCallsForCauses(orgIds: string[], since: string): Promise<Noti
     text: `${name(c.org)} opened a call in your causes (apply by ${formatDeadline(c.call_deadline)}).`,
     href: `/p/${c.id}`,
   }))
+}
+
+// The org replied (as the org) on a post you commented on, after your comment.
+async function repliesToYou(userId: string, since: string): Promise<Notification[]> {
+  const supabase = await createClient()
+  const { data: mine } = await supabase.from("comments").select("post_id, created_at").eq("user_id", userId).gte("created_at", since)
+  if (!mine?.length) return []
+  const firstByPost = new Map<string, string>()
+  for (const c of mine) if (!firstByPost.has(c.post_id) || c.created_at < firstByPost.get(c.post_id)!) firstByPost.set(c.post_id, c.created_at)
+  const { data } = await supabase
+    .from("comments")
+    .select("id, post_id, created_at, post:posts!inner(org:orgs!inner(name))")
+    .in("post_id", [...firstByPost.keys()])
+    .eq("as_org", true)
+    .neq("user_id", userId)
+  return ((data ?? []) as unknown as { id: string; post_id: string; created_at: string; post: { org: { name: string } } }[])
+    .filter((r) => r.created_at > firstByPost.get(r.post_id)!)
+    .map((r) => ({ key: `reply-${r.id}`, at: r.created_at, kind: "comment" as const, text: `${name(r.post.org)} replied to your comment.`, href: `/p/${r.post_id}#comments` }))
 }
 
 export async function hasUnread(userId: string): Promise<boolean> {
