@@ -19,7 +19,7 @@ export function GrantsPanel({ org, grants }: { org: Pick<Org, "org_type" | "name
       <h2 className="h-section">{isFoundation ? "Grantees" : "Funded by"}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {grants.length === 0
-          ? "No confirmed grants yet."
+          ? "No confirmed grants yet"
           : isFoundation
             ? `${total ? `${formatUsd(total)} to ` : ""}${count} ${count === 1 ? "nonprofit" : "nonprofits"}, each confirmed by the grantee`
             : `Grants from ${count} ${count === 1 ? "foundation" : "foundations"}, confirmed by ${org.name}`}

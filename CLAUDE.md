@@ -12,6 +12,7 @@ LinkedIn for generosity. Phase I = the network. Phase II = AI media tools. See `
 - Mutations go in `app/actions.ts` as server actions; reads in `lib/queries.ts`. Exception: one-click signals (follow, support, moved) go through `app/api/signals` with keepalive.
 - Feeds page with "Show older posts" (cursor in `lib/cursor.ts`). No infinite scroll.
 - AI output is always a draft a human saves. AI never writes to the DB directly.
+- UI copy: one-sentence subtitles, captions, hints, empty states and placeholders have no trailing period (B-041). Errors and multi-sentence text keep normal punctuation.
 - Feeds stay chronological. No public like-style counts: "moved" totals reach only the author/org; comment counts are public (decision 0015).
 - Every feature or bug fix adds a dated entry to the Ledger in `CONTEXT.md` (next F-/B- ID, testable behavior, test file or `none`) in the same commit. Name regression tests after the ID.
 

@@ -71,7 +71,7 @@ export default async function CommunityPage({ params }: PageProps<"/communities/
             <span className="h-rail">Members</span><span className="text-sm text-faint">{members.toLocaleString("en-US")}</span>
           </h2>
           {/* Member lists are for signed-in people (decision 0017). */}
-          {!userId && <p className="px-4 py-4 text-sm text-muted-foreground"><Link href={`/login?next=/communities/${group.slug}`} className="font-semibold text-leaf hover:underline">Sign in</Link> to see who&apos;s in it.</p>}
+          {!userId && <p className="px-4 py-4 text-sm text-muted-foreground"><Link href={`/login?next=/communities/${group.slug}`} className="font-semibold text-leaf hover:underline">Sign in</Link> to see who&apos;s in it</p>}
           <ul className="max-h-[min(56dvh,520px)] divide-y overflow-y-auto">
             {people.map((p) => {
               const name = p.id === userId ? "You" : (p.display_name ?? `@${p.handle}`)

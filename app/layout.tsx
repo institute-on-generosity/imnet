@@ -21,7 +21,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <TooltipProvider delay={300}>
           {process.env.NEXT_PUBLIC_DEMO === "1" && (
             <p className="bg-marigold-soft px-4 py-1.5 text-center text-xs text-foreground">
-              Demo data: the organizations, people and numbers here are fictional.
+              Demo data: the organizations, people and numbers here are fictional
             </p>
           )}
           <SiteHeader />

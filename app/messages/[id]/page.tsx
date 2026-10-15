@@ -26,7 +26,7 @@ export default async function ConversationPage({ params }: PageProps<"/messages/
           <PersonAvatar name={name} avatarUrl={convo.other.avatar_url} size="md" />
           <div className="min-w-0">
             <Link href={`/u/${convo.other.handle}`} className="block truncate font-semibold hover:underline">{name}</Link>
-            <p className="text-xs text-faint">Only the two of you see this conversation.</p>
+            <p className="text-xs text-faint">Only the two of you see this conversation</p>
           </div>
         </header>
         <ChatThread key={id} target={{ conversation: id }} initial={messages} viewerId={userId} placeholder={`Message ${name}`} className="min-h-0 flex-1" />

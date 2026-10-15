@@ -10,7 +10,7 @@ export function OlderPosts({ olderHref, newestHref, isFirstPage }: { olderHref: 
       {olderHref ? (
         <Link href={olderHref} className={buttonVariants({ variant: "outline" })}>Show older posts</Link>
       ) : (
-        <span className="text-sm text-muted-foreground">You&apos;re all caught up.</span>
+        <span className="text-sm text-muted-foreground">You&apos;re all caught up</span>
       )}
     </nav>
   )

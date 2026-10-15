@@ -12,7 +12,7 @@ export function GrantsAwaitingReport({ grants }: { grants: Grant[] }) {
     <Card>
       <CardHeader><CardTitle>Reports not yet posted</CardTitle></CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">Confirmed grants without a grant report, oldest first.</p>
+        <p className="text-sm text-muted-foreground">Confirmed grants without a grant report, oldest first</p>
         {grants.map((g) => (
           <div key={g.id} className="flex items-center gap-3 rounded-lg border p-3">
             <OrgMark org={g.grantee} />

@@ -41,7 +41,7 @@ export function ProfileEditor({ profile, causes, selected }: { profile: Profile;
         </div>
         <div className="space-y-1">
           <Label htmlFor="about">About</Label>
-          <Textarea id="about" name="about" rows={5} maxLength={2000} defaultValue={v?.about ?? profile.about ?? ""} placeholder="Why you give, what you care about, where you volunteer." />
+          <Textarea id="about" name="about" rows={5} maxLength={2000} defaultValue={v?.about ?? profile.about ?? ""} placeholder="Why you give, what you care about, where you volunteer" />
         </div>
       </div>
       <div className="space-y-4 border-t pt-5">

@@ -19,7 +19,7 @@ export function NewCommunityForm({ causes }: { causes: Cause[] }) {
       </div>
       <div className="space-y-1">
         <Label htmlFor="description">What it&apos;s for</Label>
-        <Textarea id="description" name="description" rows={3} maxLength={500} placeholder="Who should join and what you'll talk about." />
+        <Textarea id="description" name="description" rows={3} maxLength={500} placeholder="Who should join and what you'll talk about" />
       </div>
       <div className="space-y-1">
         <Label htmlFor="cause">Cause</Label>

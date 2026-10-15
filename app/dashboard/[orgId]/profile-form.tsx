@@ -54,7 +54,7 @@ export function ProfileForm({ org, causes, selected }: { org: Org; causes: Cause
       </div>
       <div className="space-y-1">
         <Label htmlFor="about">About (shown on your About tab)</Label>
-        <Textarea id="about" name="about" rows={4} maxLength={2000} defaultValue={state?.values?.about ?? org.about ?? ""} placeholder="Your story: how you started, how you work, what makes you different." />
+        <Textarea id="about" name="about" rows={4} maxLength={2000} defaultValue={state?.values?.about ?? org.about ?? ""} placeholder="Your story: how you started, how you work, what makes you different" />
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-1">

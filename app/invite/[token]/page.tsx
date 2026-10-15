@@ -22,7 +22,7 @@ export default async function InvitePage({ params, searchParams }: PageProps<"/i
       <Panel className="space-y-4 p-6">
         <h1 className="h-page">Join {invite.org_name}</h1>
         {invite.accepted ? (
-          <p className="text-muted-foreground">This invite has already been used.</p>
+          <p className="text-muted-foreground">This invite has already been used</p>
         ) : userId ? (
           <>
             <p className="text-muted-foreground">You&apos;ll be able to post, edit the profile and manage grants for {invite.org_name}.</p>
@@ -32,7 +32,7 @@ export default async function InvitePage({ params, searchParams }: PageProps<"/i
           </>
         ) : (
           <>
-            <p className="text-muted-foreground">Sign in with the email address the invite was sent to.</p>
+            <p className="text-muted-foreground">Sign in with the email address the invite was sent to</p>
             <Link href={`/login?next=${encodeURIComponent(`/invite/${token}`)}`} className={buttonVariants()}>Sign in to join</Link>
           </>
         )}

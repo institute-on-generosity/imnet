@@ -155,7 +155,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
           <h2 id="activity" className="h-section">{tab === "activity" ? "Comments" : "Recent comments"}</h2>
         </div>
         {shownActivity.length === 0 ? (
-          <p className="px-4 pt-1 pb-4 text-sm text-muted-foreground sm:px-6">No comments yet.</p>
+          <p className="px-4 pt-1 pb-4 text-sm text-muted-foreground sm:px-6">No comments yet</p>
         ) : (
           <ul className="mt-2 divide-y">
             {shownActivity.map((a) => (

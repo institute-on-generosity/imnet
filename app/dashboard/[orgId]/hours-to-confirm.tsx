@@ -16,7 +16,7 @@ export function HoursToConfirmCard({ orgId, hours }: { orgId: string; hours: Hou
     <Card>
       <CardHeader><CardTitle>Volunteer hours to confirm</CardTitle></CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">Confirmed hours show a check on the volunteer&apos;s profile.</p>
+        <p className="text-sm text-muted-foreground">Confirmed hours show a check on the volunteer&apos;s profile</p>
         <ul className="divide-y rounded-lg border">
           {hours.map((h) => {
             const name = h.person.display_name ?? `@${h.person.handle}`

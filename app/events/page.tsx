@@ -23,13 +23,14 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
       <Panel className="space-y-3 p-4">
         <div>
           <h1 className="h-page">Events</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">Volunteer days and gatherings, soonest first. <span className="text-faint">Your RSVP is private: only you and the host&apos;s team see it.</span></p>
+          <p className="mt-1.5 text-sm text-muted-foreground">Volunteer days and gatherings, soonest first</p>
+          <p className="text-sm text-faint">Your RSVP is private: only you and the host&apos;s team see it</p>
         </div>
         <CauseFilter causes={causes} active={active} basePath="/events" />
       </Panel>
       <Panel className="px-4">
         {events.length === 0 ? (
-          <p className="py-6 text-sm text-muted-foreground">{active ? "No upcoming events for this cause. Try all causes." : "No upcoming events."}</p>
+          <p className="py-6 text-sm text-muted-foreground">{active ? "No upcoming events for this cause. Try all causes." : "No upcoming events"}</p>
         ) : (
           <ul className="divide-y">{events.map((e) => <EventRow key={e.id} event={e} going={rsvpIds.has(e.id)} signedIn={!!userId} />)}</ul>
         )}

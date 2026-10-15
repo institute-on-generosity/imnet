@@ -30,7 +30,7 @@ export function CallsCard({ volunteer, donate, cause, signedIn = false }: { volu
         ))}
       </div>
       <ul role="tabpanel" aria-label={tab === "volunteer" ? "Calls for volunteers" : "Calls for donations"} className="mt-1 divide-y">
-        {calls.length === 0 && <li className="py-3 text-sm text-muted-foreground">No open calls right now.</li>}
+        {calls.length === 0 && <li className="py-3 text-sm text-muted-foreground">No open calls right now</li>}
         {/* Compact (F-092): who's asking and when on one line, the ask on the next, the button beside. */}
         {calls.map((c) => (
           <li key={c.id} className="group relative flex items-center gap-2.5 py-2.5">

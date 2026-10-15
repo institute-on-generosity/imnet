@@ -1,4 +1,4 @@
-import type { MapItem } from "@/lib/geo"
+import { milesBetween, type MapItem } from "@/lib/geo"
 import { communityIconSrc } from "@/lib/community-icon"
 import { logoSrc } from "@/lib/logo"
 import { cache } from "react"
@@ -1082,4 +1082,64 @@ export async function getProfileCity(userId: string | null): Promise<{ at: { lat
   if (!p?.location) return null
   const { data: c } = await supabase.from("cities").select("name, lat, lng").ilike("name", p.location.trim()).maybeSingle()
   return c ? { at: { lat: c.lat, lng: c.lng }, label: c.name } : null
+}
+
+// ---------------------------------------------------------------------------
+// F-107 Your giving at work: impact stories and grant reports from organizations you gave to or
+// volunteered with, posted after your first gift or shift there. Reads only your own journal rows.
+// ---------------------------------------------------------------------------
+export type ImpactUpdate = { id: string; body: string; created_at: string; org: OrgSummary; how: "gave" | "volunteered"; report: boolean }
+export const getGivingAtWork = cache(async (userId: string, days = 60): Promise<ImpactUpdate[]> => {
+  const supabase = await createClient()
+  const [{ data: gifts }, { data: shifts }] = await Promise.all([
+    supabase.from("gifts").select("org_id, given_on").eq("user_id", userId),
+    supabase.from("volunteer_hours").select("org_id, served_on").eq("user_id", userId).is("declined_at", null),
+  ])
+  const first = new Map<string, { since: string; how: "gave" | "volunteered" }>()
+  for (const g of gifts ?? []) { const f = first.get(g.org_id); if (!f || g.given_on < f.since) first.set(g.org_id, { since: g.given_on, how: "gave" }) }
+  for (const h of shifts ?? []) { const f = first.get(h.org_id); if (!f || h.served_on < f.since) first.set(h.org_id, { since: h.served_on, how: f?.how ?? "volunteered" }) }
+  if (first.size === 0) return []
+  const { data } = await supabase
+    .from("posts")
+    .select("id, body, kind, reports_grant_id, created_at, org:orgs!posts_org_id_fkey!inner(id, slug, name, logo_url, org_type)")
+    .in("org_id", [...first.keys()])
+    .or("kind.eq.impact_story,reports_grant_id.not.is.null")
+    .gte("created_at", new Date(Date.now() - days * 86_400_000).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(30)
+  type Row = { id: string; body: string; kind: string; reports_grant_id: string | null; created_at: string; org: OrgSummary }
+  return ((data ?? []) as unknown as Row[])
+    .filter((p) => p.created_at.slice(0, 10) >= first.get(p.org.id)!.since)
+    .map((p) => ({ id: p.id, body: p.body, created_at: p.created_at, org: p.org, how: first.get(p.org.id)!.how, report: !!p.reports_grant_id }))
+})
+
+// ---------------------------------------------------------------------------
+// F-108 This week near you: upcoming events (next 7 days) and volunteer calls (dated in the next
+// 14 days, or undated and posted in the last 30) within `radius` miles of a point, soonest first.
+// ---------------------------------------------------------------------------
+export type NearbySoon = { id: string; kind: "event" | "volunteer"; title: string; when: string | null; href: string; actionUrl: string | null; org: OrgSummary & { location: string | null }; place: string | null; miles: number }
+export async function getThisWeekNear(at: { lat: number; lng: number }, radius = 25, limit = 3): Promise<NearbySoon[]> {
+  const supabase = await createClient()
+  const now = new Date()
+  const today = now.toISOString().slice(0, 10)
+  const in14 = new Date(now.getTime() + 14 * 86_400_000).toISOString().slice(0, 10)
+  const ORG = "id, slug, name, logo_url, org_type, location, lat, lng"
+  const [events, calls] = await Promise.all([
+    supabase.from("org_events").select(`id, title, starts_at, location, lat, lng, org:orgs!inner(${ORG})`).gt("starts_at", now.toISOString()).lte("starts_at", new Date(now.getTime() + 7 * 86_400_000).toISOString()).not("lat", "is", null).limit(200),
+    supabase.from("posts").select(`id, body, action_date, action_url, created_at, org:orgs!posts_org_id_fkey!inner(${ORG})`).eq("kind", "call_volunteers").not("org.lat", "is", null)
+      .or(`and(action_date.gte.${today},action_date.lte.${in14}),and(action_date.is.null,created_at.gte.${new Date(now.getTime() - 30 * 86_400_000).toISOString()})`).limit(200),
+  ])
+  type O = OrgSummary & { location: string | null; lat: number; lng: number }
+  const items: NearbySoon[] = []
+  for (const e of (events.data ?? []) as unknown as { id: string; title: string; starts_at: string; location: string; lat: number; lng: number; org: O }[]) {
+    items.push({ id: e.id, kind: "event", title: e.title, when: e.starts_at, href: `/e/${e.id}`, actionUrl: null, org: e.org, place: e.location, miles: milesBetween(at, e) })
+  }
+  for (const c of (calls.data ?? []) as unknown as { id: string; body: string; action_date: string | null; action_url: string | null; org: O }[]) {
+    items.push({ id: c.id, kind: "volunteer", title: c.body.split(/(?<=[.!?])\s/)[0].slice(0, 90), when: c.action_date ? `${c.action_date}T12:00:00` : null, href: `/p/${c.id}`, actionUrl: c.action_url, org: c.org, place: c.org.location, miles: milesBetween(at, c.org) })
+  }
+  return items
+    .filter((i) => i.miles <= radius)
+    // Soonest first; undated calls after dated ones; nearer breaks ties.
+    .sort((a, b) => (a.when ?? "9999").localeCompare(b.when ?? "9999") || a.miles - b.miles)
+    .slice(0, limit)
 }

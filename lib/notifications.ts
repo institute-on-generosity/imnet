@@ -3,13 +3,14 @@ import { cache } from "react"
 import { formatUsd } from "@/lib/grants"
 import { formatDeadline } from "@/lib/open-calls"
 import { createClient } from "@/lib/supabase/server"
+import { getGivingAtWork } from "@/lib/queries"
 
 type Person = { display_name: string | null; handle: string; avatar_url: string | null }
 type OrgRef = { name: string; slug: string; logo_url: string | null; org_type: "nonprofit" | "foundation" }
 // Who the notification is about: shown as the avatar and the bold name (LinkedIn-style).
 export type Actor = { type: "person"; name: string; handle: string; avatar_url: string | null } | ({ type: "org" } & OrgRef)
 export type Notification = {
-  key: string; at: string; href: string; kind: "grant" | "report" | "call" | "team" | "claim" | "thanks" | "comment" | "hours" | "event"
+  key: string; at: string; href: string; kind: "grant" | "report" | "call" | "team" | "claim" | "thanks" | "comment" | "hours" | "event" | "impact"
   actor?: Actor
   text: string // follows the actor's name; the whole sentence when there's no actor
   cta?: string
@@ -117,6 +118,12 @@ export const getNotifications = cache(async (userId: string): Promise<Notificati
     items.push({ key: `soon-${r.event.id}`, at: r.created_at > window ? r.created_at : window, kind: "event", actor: org(r.event.org), text: `Coming up: ${r.event.title}. You're going.`, eventAt: r.event.starts_at, href: `/e/${r.event.id}`, cta: "View event" })
   }
   for (const c of newCalls) items.push(c)
+  // F-107: what your giving became (impact stories and grant reports from orgs you supported).
+  for (const u of await getGivingAtWork(userId, SINCE_DAYS)) {
+    const what = u.how === "gave" ? "your gift" : "your volunteering"
+    items.push({ key: `impact-${u.id}`, at: u.created_at, kind: "impact", actor: org(u.org as OrgRef),
+      text: u.report ? `reported on a grant. You've supported them with ${what}.` : `shared what ${what} helped make possible.`, quote: u.body, href: `/p/${u.id}`, cta: "See the impact" })
+  }
   // B-039: a reply to your comment on your own (or your org's) post matched two queries; keep the reply.
   const replyIds = new Set(items.filter((n) => n.key.startsWith("reply-")).map((n) => n.key.slice(6)))
   const unique = items.filter((n) => !((n.key.startsWith("mine-") || n.key.startsWith("comment-")) && replyIds.has(n.key.slice(n.key.indexOf("-") + 1))))

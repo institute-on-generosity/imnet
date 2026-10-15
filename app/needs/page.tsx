@@ -49,7 +49,8 @@ export default async function NeedsPage({ searchParams }: PageProps<"/needs">) {
       <Panel className="space-y-3 p-4">
         <div>
           <h1 className="h-page">Ways to help</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">What organizations are asking for right now. Newest first. <span className="text-faint">&quot;I&apos;m interested&quot; tells only their team.</span> <Link href="/nearby" className="font-semibold text-leaf hover:underline">See them on a map</Link></p>
+          <p className="mt-1.5 text-sm text-muted-foreground">What organizations are asking for right now, newest first</p>
+          <p className="text-sm text-faint">&quot;I&apos;m interested&quot; tells only their team · <Link href="/nearby" className="font-semibold text-leaf hover:underline">See them on a map</Link></p>
         </div>
         <nav aria-label="Ways to help" className="inline-flex rounded-full bg-muted p-1 text-sm">
           {(Object.keys(SHOW) as Show[]).map((s) => (
@@ -75,7 +76,7 @@ export default async function NeedsPage({ searchParams }: PageProps<"/needs">) {
         <h2 id="needs-list" className="px-1 h-section">Current needs</h2>
         <Panel className="px-4">
           {needs.length === 0 ? (
-            <p className="py-6 text-sm text-muted-foreground">{active ? "No open needs for this cause. Try all causes." : "No open needs right now."}</p>
+            <p className="py-6 text-sm text-muted-foreground">{active ? "No open needs for this cause. Try all causes." : "No open needs right now"}</p>
           ) : (
             <ul className="divide-y">{needs.map((n) => <NeedRow key={n.id} need={n} interested={interestIds.has(n.id)} signedIn={!!userId} />)}</ul>
           )}

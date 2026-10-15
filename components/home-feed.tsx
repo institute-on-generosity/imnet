@@ -7,10 +7,11 @@ import { feedHref } from "@/lib/feed-href"
 import { Feed } from "@/components/post-card"
 import { ThreeColumn } from "@/components/shell"
 import { UpcomingEvents } from "@/components/events-panel"
+import { GivingAtWork, ThisWeekNearYou } from "@/components/engagement-cards"
 import { CallsCard } from "@/components/calls-card"
 import { JoinCard, ViewerCard } from "@/components/side-cards"
 import { portfolioContext } from "@/lib/portfolio"
-import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getFollowedOrgs, getFollowedPersonIds, getGrantsForPosts, getCallPosts, getMovedPostIds, getMyRsvpIds, getUpcomingEvents, getSavedPostIds, getViewer, getViewerExtras } from "@/lib/queries"
+import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getFollowedOrgs, getFollowedPersonIds, getGrantsForPosts, getCallPosts, getMovedPostIds, getMyRsvpIds, getUpcomingEvents, getSavedPostIds, getViewer, getViewerExtras, getGivingAtWork, getProfileCity, getThisWeekNear } from "@/lib/queries"
 import { createClient } from "@/lib/supabase/server"
 import { getUserId } from "@/lib/supabase/server"
 import type { FeedType } from "@/lib/feed-href"
@@ -36,7 +37,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
 
   const empty = followingOnly
     ? orgIds?.length || personIds?.length
-      ? "The people and organizations you follow haven't posted for this filter yet."
+      ? "The people and organizations you follow haven't posted for this filter yet"
       : "You don't follow anyone yet. Follow nonprofits, foundations and people from their profiles or posts."
     : orgType === "donor"
       ? "No posts from donors yet. Start one above."
@@ -50,11 +51,12 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
         <div className="sticky top-20 space-y-3">
           <Suspense fallback={<RailSkeleton rows={4} />}><RightRail userId={userId} cause={cause} /></Suspense>
           <p className="px-4 text-xs leading-relaxed text-faint">
-            Your feed: newest first, never ranked by popularity.
+            Your feed: newest first, never ranked by popularity
           </p>
         </div>
       }
     >
+      {userId && !followingOnly && <Suspense fallback={null}><GivingAtWorkCard userId={userId} skip={posts[0]?.id} /></Suspense>}
       {userId && !followingOnly && <Suspense fallback={null}><Composer userId={userId} /></Suspense>}
       <h1 className="sr-only">{followingOnly ? "From organizations you follow" : "What giving made possible"}</h1>
       {/* F-097: filters are a toolbar on the page, not another card between you and the posts. */}
@@ -85,16 +87,20 @@ async function LeftRail({ userId }: { userId: string | null }) {
 
 async function RightRail({ userId, cause }: { userId: string | null; cause?: string }) {
   // F-091: Home's right column is only ways to help: calls and upcoming events.
-  const [volunteer, donate, events] = await Promise.all([
+  // F-108: with a known home city, the rail leads with what you can do nearby this week.
+  const city = await getProfileCity(userId)
+  const [volunteer, donate, events, soon] = await Promise.all([
     getCallPosts({ kinds: ["call_volunteers"], cause, limit: 3 }),
     getCallPosts({ kinds: ["call_donations"], cause, limit: 3 }),
-    getUpcomingEvents({ cause, limit: 3 }),
+    city ? Promise.resolve([]) : getUpcomingEvents({ cause, limit: 3 }),
+    city ? getThisWeekNear(city.at) : Promise.resolve([]),
   ])
-  const rsvpIds = await getMyRsvpIds(userId, events.map((e) => e.id))
+  const rsvpIds = await getMyRsvpIds(userId, [...events.map((e) => e.id), ...soon.filter((s) => s.kind === "event").map((s) => s.id)])
   return (
     <>
+      {city && <ThisWeekNearYou items={soon} city={city.label} signedIn={!!userId} rsvpIds={rsvpIds} />}
       <CallsCard volunteer={volunteer} donate={donate} cause={cause} signedIn={!!userId} />
-      <UpcomingEvents events={events} rsvpIds={rsvpIds} signedIn={!!userId} cause={cause} />
+      {!city && <UpcomingEvents events={events} rsvpIds={rsvpIds} signedIn={!!userId} cause={cause} />}
     </>
   )
 }
@@ -105,3 +111,10 @@ async function foundationsAmong(orgIds: string[]) {
   return (data ?? []).map((o) => o.id)
 }
 
+
+// F-107: the newest impact from an org you supported, if it's from the last two weeks.
+// Skips the post already at the top of the feed, so the same story never shows twice in a row.
+async function GivingAtWorkCard({ userId, skip }: { userId: string; skip?: string }) {
+  const updates = (await getGivingAtWork(userId, 14)).filter((u) => u.id !== skip)
+  return updates[0] ? <GivingAtWork update={updates[0]} more={updates.length - 1} /> : null
+}

@@ -113,7 +113,7 @@ export default async function EventPage({ params }: PageProps<"/e/[id]">) {
             )}
             <ShareButton path={`/e/${event.id}`} title={event.title} orgId={event.org.id} variant="pill" />
           </div>
-          {!past && <p className="mt-2 text-xs text-muted-foreground">Your RSVP is private: only you and the host&apos;s team see it.</p>}
+          {!past && <p className="mt-2 text-xs text-muted-foreground">Your RSVP is private: only you and the host&apos;s team see it</p>}
         </div>
       </Panel>
 

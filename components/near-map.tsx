@@ -102,7 +102,7 @@ export function NearMap({ items, profile }: { items: MapItem[]; profile: { at: L
           <div>
             <h1 id="near-title" className="h-page">Near you</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {origin.source === "device" ? "Around your current location." : origin.source === "profile" ? `Around ${origin.label}, from your profile.` : "Everywhere. Share your location to see what's close."}
+              {origin.source === "device" ? "Around your current location" : origin.source === "profile" ? `Around ${origin.label}, from your profile` : "Everywhere. Share your location to see what's close."}
             </p>
           </div>
           <button type="button" onClick={locate} disabled={locating}
@@ -111,7 +111,7 @@ export function NearMap({ items, profile }: { items: MapItem[]; profile: { at: L
             <LocateFixed className="size-4" aria-hidden />{locating ? "Finding you..." : origin.source === "device" ? "Using your location" : "Use my location"}
           </button>
           {locError && <p role="status" className="text-xs text-muted-foreground">{locError}</p>}
-          <p className="text-[11px] text-faint">Your location stays in this browser. imnet never stores it.</p>
+          <p className="text-[11px] text-faint">Your location stays in this browser; imnet never stores it</p>
 
           <div role="group" aria-label="Show" className="flex flex-wrap gap-1.5">
             {(Object.keys(KINDS) as MapKind[]).map((k) => (

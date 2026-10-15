@@ -13,7 +13,7 @@ type StaffPost = { id: string; kind: PostKind; body: string; created_at: string;
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 
 export function PostManager({ posts }: { posts: StaffPost[] }) {
-  if (posts.length === 0) return <p className="text-sm text-muted-foreground">No posts yet.</p>
+  if (posts.length === 0) return <p className="text-sm text-muted-foreground">No posts yet</p>
   return (
     <ul className="divide-y rounded-lg border">
       {posts.map((p) => <PostRow key={p.id} post={p} />)}

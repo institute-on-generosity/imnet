@@ -55,7 +55,7 @@ export function ViewerCard({ viewer, extras }: { viewer: Viewer; extras: ViewerE
             <dd><Link href="/following" className="font-semibold text-leaf hover:underline">{viewer.following}</Link></dd>
           </div>
         </dl>
-        <p className="border-t px-4 py-2 text-xs text-faint">Only you see these.</p>
+        <p className="border-t px-4 py-2 text-xs text-faint">Only you see these</p>
       </Panel>
 
       {extras.org && (
@@ -99,7 +99,7 @@ export function JoinCard() {
   return (
     <Panel className="space-y-3 p-4">
       <p className="font-heading text-lg font-semibold leading-snug">Follow the nonprofits and foundations you care about</p>
-      <p className="text-sm text-muted-foreground">Their stories, in one feed.</p>
+      <p className="text-sm text-muted-foreground">Their stories, in one feed</p>
       <Link href="/login" className={buttonVariants({ className: "w-full" })}>Join now</Link>
     </Panel>
   )

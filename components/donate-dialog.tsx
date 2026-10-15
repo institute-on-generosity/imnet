@@ -79,7 +79,7 @@ function Flow({ org, giftFunds }: { org: Org; giftFunds?: string | null }) {
           <Dialog.Title className="h-section">{step === "done" ? "Thank you" : `Give to ${org.name}`}</Dialog.Title>
           <Dialog.Description className="mt-0.5 flex items-center gap-1.5 text-xs text-faint">
             <span className="rounded-full bg-marigold-soft px-2 py-0.5 font-semibold text-amber-900">Test mode</span>
-            No real money moves.
+            No real money moves
           </Dialog.Description>
         </div>
         <Dialog.Close aria-label="Close" className="-mt-1 -mr-1 grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
@@ -120,7 +120,7 @@ function Flow({ org, giftFunds }: { org: Org; giftFunds?: string | null }) {
           <div className="space-y-2.5 text-sm">
             <label className="flex cursor-pointer items-start gap-2.5">
               <input type="checkbox" checked={coverFees} onChange={(e) => setCoverFees(e.target.checked)} className="mt-0.5 size-4 accent-[var(--leaf)]" />
-              <span>Add {validAmount ? money(fee) : "the fee"} so {org.name} gets the full {validAmount ? formatUsd(amountUsd) : "gift"}<span className="block text-xs text-faint">Covers the processing fee (2.2% + 30¢).</span></span>
+              <span>Add {validAmount ? money(fee) : "the fee"} so {org.name} gets the full {validAmount ? formatUsd(amountUsd) : "gift"}<span className="block text-xs text-faint">Covers the processing fee (2.2% + 30¢)</span></span>
             </label>
             <label className="flex cursor-pointer items-start gap-2.5">
               <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} className="mt-0.5 size-4 accent-[var(--leaf)]" />

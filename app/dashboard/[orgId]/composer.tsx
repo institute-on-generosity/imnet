@@ -91,7 +91,7 @@ export function Composer({ orgId, orgType = "nonprofit", reportableGrants = [], 
       </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="beneficiary_consent" className="mt-1" defaultChecked={v?.beneficiary_consent === "on"} />
-        <span>Anyone identifiable in this post (name, face, story) has given consent to share it publicly.</span>
+        <span>Anyone identifiable in this post (name, face, story) has given consent to share it publicly</span>
       </label>
       <Button type="submit" disabled={pending}><Send aria-hidden />{pending ? "Posting..." : "Post"}</Button>
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
