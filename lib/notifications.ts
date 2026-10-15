@@ -13,6 +13,7 @@ export type Notification = {
   actor?: Actor
   text: string // follows the actor's name; the whole sentence when there's no actor
   cta?: string
+  eventAt?: string // B-039: shown with LocalTime
   quote?: string // the comment itself, for comments and replies
   volunteers?: { people: { name: string; avatar_url: string | null }[]; total: number } // F-090
 }
@@ -69,7 +70,7 @@ export const getNotifications = cache(async (userId: string): Promise<Notificati
     // F-089 (donors): your shifts confirmed by the org.
     supabase.from("volunteer_hours").select(`id, hours, confirmed_at, org:orgs(${O})`).eq("user_id", userId).not("confirmed_at", "is", null).gte("confirmed_at", since).order("confirmed_at", { ascending: false }).limit(10),
     // Events you're going to in the next 7 days.
-    supabase.from("event_rsvps").select(`event:org_events!inner(id, title, starts_at, org:orgs(${O}))`).eq("user_id", userId).gt("event.starts_at", new Date().toISOString()).lte("event.starts_at", new Date(Date.now() + 7 * 86_400_000).toISOString()),
+    supabase.from("event_rsvps").select(`created_at, event:org_events!inner(id, title, starts_at, org:orgs(${O}))`).eq("user_id", userId).gt("event.starts_at", new Date().toISOString()).lte("event.starts_at", new Date(Date.now() + 7 * 86_400_000).toISOString()),
     // New calls for volunteers or donations from organizations you follow (last 14 days).
     followedCalls(userId),
   ])
@@ -109,13 +110,17 @@ export const getNotifications = cache(async (userId: string): Promise<Notificati
   for (const h of (myHours?.data ?? []) as unknown as { id: string; hours: number; confirmed_at: string; org: OrgRef }[]) {
     items.push({ key: `hours-ok-${h.id}`, at: h.confirmed_at, kind: "hours", actor: org(h.org), text: `confirmed your ${Number(h.hours)} volunteer hours.`, href: "/giving#hours" })
   }
-  for (const r of (soon?.data ?? []) as unknown as { event: { id: string; title: string; starts_at: string; org: OrgRef } }[]) {
-    // Shown as "now" so it sits at the top while the event is coming up.
-    const day = new Date(r.event.starts_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
-    items.push({ key: `soon-${r.event.id}`, at: new Date().toISOString(), kind: "event", actor: org(r.event.org), text: `Coming up: ${r.event.title}, ${day}. You're going.`, href: `/e/${r.event.id}`, cta: "View event" })
+  for (const r of (soon?.data ?? []) as unknown as { created_at: string; event: { id: string; title: string; starts_at: string; org: OrgRef } }[]) {
+    // B-039: new when it enters the 7-day window (or when you RSVP'd, if later), so reading the
+    // inbox clears the dot. The day is rendered in the viewer's time zone (eventAt).
+    const window = new Date(Date.parse(r.event.starts_at) - 7 * 86_400_000).toISOString()
+    items.push({ key: `soon-${r.event.id}`, at: r.created_at > window ? r.created_at : window, kind: "event", actor: org(r.event.org), text: `Coming up: ${r.event.title}. You're going.`, eventAt: r.event.starts_at, href: `/e/${r.event.id}`, cta: "View event" })
   }
   for (const c of newCalls) items.push(c)
-  return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30)
+  // B-039: a reply to your comment on your own (or your org's) post matched two queries; keep the reply.
+  const replyIds = new Set(items.filter((n) => n.key.startsWith("reply-")).map((n) => n.key.slice(6)))
+  const unique = items.filter((n) => !((n.key.startsWith("mine-") || n.key.startsWith("comment-")) && replyIds.has(n.key.slice(n.key.indexOf("-") + 1))))
+  return unique.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30)
 })
 
 async function openCallsForCauses(orgIds: string[], since: string): Promise<Notification[]> {
@@ -144,7 +149,7 @@ async function openCallsForCauses(orgIds: string[], since: string): Promise<Noti
 // Someone (or the org's team) replied to one of your comments.
 async function repliesToYou(userId: string, since: string): Promise<Notification[]> {
   const supabase = await createClient()
-  const { data: mine } = await supabase.from("comments").select("id").eq("user_id", userId).is("parent_id", null).limit(200)
+  const { data: mine } = await supabase.from("comments").select("id").eq("user_id", userId).is("parent_id", null).order("created_at", { ascending: false }).limit(200)
   if (!mine?.length) return []
   const { data } = await supabase
     .from("comments")
@@ -181,10 +186,11 @@ async function followedCalls(userId: string): Promise<Notification[]> {
   const rows = (data ?? []) as unknown as Row[]
   // F-090: who already volunteers with each org asking for volunteers (confirmed and opted in).
   const askers = [...new Set(rows.filter((p) => p.kind === "call_volunteers").map((p) => p.org_id))]
-  const crews = new Map(await Promise.all(askers.map(async (id) => {
-    const { data: v } = await supabase.rpc("org_volunteers", { target: id })
-    return [id, (v ?? []) as { id: string; handle: string; display_name: string | null; avatar_url: string | null; total: number }[]] as const
-  })))
+  // One round trip for every org (B-039; was one call per org).
+  type Crew = { org_id: string; id: string; handle: string; display_name: string | null; avatar_url: string | null; total: number }
+  const { data: crewRows } = askers.length ? await supabase.rpc("orgs_volunteers", { targets: askers }) : { data: [] }
+  const crews = new Map<string, Crew[]>()
+  for (const c of (crewRows ?? []) as Crew[]) crews.set(c.org_id, [...(crews.get(c.org_id) ?? []), c])
   return rows.map((p) => {
     const vol = p.kind === "call_volunteers"
     const crew = crews.get(p.org_id) ?? []

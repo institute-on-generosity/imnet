@@ -1,6 +1,6 @@
 import { CalendarDays, ExternalLink, HandCoins, HandHelping, Target } from "lucide-react"
 import { formatUsd } from "@/lib/grants"
-import { todayISO } from "@/lib/open-calls"
+import { deadlineTodayISO } from "@/lib/open-calls"
 import type { Post } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "./ui/button"
@@ -12,7 +12,7 @@ const longDay = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-
 export function CallBlock({ post }: { post: Pick<Post, "kind" | "action_url" | "action_date" | "goal_usd" | "org"> }) {
   if (!post.action_url || (post.kind !== "call_volunteers" && post.kind !== "call_donations")) return null
   const volunteers = post.kind === "call_volunteers"
-  const ended = !!post.action_date && post.action_date < todayISO()
+  const ended = !!post.action_date && post.action_date < deadlineTodayISO()
   const Icon = volunteers ? HandHelping : HandCoins
   return (
     <div className={cn("mx-4 mt-3 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-lg border p-3", volunteers ? "border-leaf/30 bg-leaf-soft/60" : "border-marigold/40 bg-marigold-soft/70")}>

@@ -738,8 +738,10 @@ export async function setCauseFollow(slug: string, on: boolean) {
   const userId = await requireUser()
   if (!/^[a-z-]{2,40}$/.test(slug)) return
   const supabase = await createClient()
-  if (on) await supabase.from("profile_causes").upsert({ user_id: userId, cause_slug: slug }, { onConflict: "user_id,cause_slug", ignoreDuplicates: true })
-  else await supabase.from("profile_causes").delete().match({ user_id: userId, cause_slug: slug })
+  const { error } = on
+    ? await supabase.from("profile_causes").upsert({ user_id: userId, cause_slug: slug }, { onConflict: "user_id,cause_slug", ignoreDuplicates: true })
+    : await supabase.from("profile_causes").delete().match({ user_id: userId, cause_slug: slug })
+  if (error) throw new Error("Couldn't save") // the cause card reverts (B-037)
   revalidatePath("/following")
   revalidatePath("/", "layout")
 }
