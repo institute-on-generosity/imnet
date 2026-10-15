@@ -720,3 +720,15 @@ export async function reviewHours(id: string, orgId: string, confirm: boolean) {
   revalidatePath(`/dashboard/${orgId}`)
   revalidatePath("/", "layout")
 }
+
+// Local development only: one-click sign-in for the developer's own account. Works only when
+// DEV_LOGIN_EMAIL/DEV_LOGIN_PASSWORD are set (in .env.local) and Supabase is local.
+export async function devSignIn(next: string) {
+  const email = process.env.DEV_LOGIN_EMAIL, password = process.env.DEV_LOGIN_PASSWORD
+  const local = /\/\/(127\.0\.0\.1|localhost)[:/]/.test(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "")
+  if (!email || !password || !local) redirect("/login")
+  const supabase = await createClient()
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`)
+  redirect(safeNext(next))
+}

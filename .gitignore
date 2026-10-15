@@ -48,3 +48,6 @@ pnpm-debug.log*
 *.local.csv
 
 /blob-report/
+
+# Local-only seed (personal dev account)
+supabase/seed_local*.sql
