@@ -10,7 +10,7 @@ import { UpcomingEvents } from "@/components/events-panel"
 import { CallsCard } from "@/components/calls-card"
 import { JoinCard, SuggestedOrgs, ViewerCard } from "@/components/side-cards"
 import { portfolioContext } from "@/lib/portfolio"
-import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getFollowedOrgs, getFollowedPersonIds, getGrantsForPosts, getCallPosts, getMovedPostIds, getMyRsvpIds, getUpcomingEvents, getSavedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
+import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getFollowedOrgs, getFollowedPersonIds, getGrantsForPosts, getCallPosts, getMovedPostIds, getMyRsvpIds, getUpcomingEvents, getSavedPostIds, getSuggestedOrgs, getViewer, getViewerExtras } from "@/lib/queries"
 import { createClient } from "@/lib/supabase/server"
 import { getUserId } from "@/lib/supabase/server"
 import type { FeedType } from "@/lib/feed-href"
@@ -45,7 +45,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
   // Side columns load in parallel with the feed and stream in on their own.
   return (
     <ThreeColumn
-      left={<div className="sticky top-20"><Suspense fallback={<RailSkeleton rows={2} />}><LeftRail userId={userId} /></Suspense></div>}
+      left={<div><Suspense fallback={<RailSkeleton rows={2} />}><LeftRail userId={userId} /></Suspense></div>}
       right={
         <div className="sticky top-20 space-y-3">
           <Suspense fallback={<RailSkeleton rows={4} />}><RightRail userId={userId} cause={cause} /></Suspense>
@@ -84,8 +84,8 @@ async function Composer({ userId }: { userId: string }) {
 }
 
 async function LeftRail({ userId }: { userId: string | null }) {
-  const viewer = await getViewer(userId)
-  return viewer ? <ViewerCard viewer={viewer} /> : <JoinCard />
+  const [viewer, extras] = await Promise.all([getViewer(userId), userId ? getViewerExtras(userId) : null])
+  return viewer && extras ? <ViewerCard viewer={viewer} extras={extras} /> : <JoinCard />
 }
 
 async function RightRail({ userId, cause }: { userId: string | null; cause?: string }) {

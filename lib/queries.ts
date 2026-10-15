@@ -152,6 +152,9 @@ export type Viewer = {
   handle: string
   display_name: string | null
   avatar_url: string | null
+  bio: string | null
+  location: string | null
+  cover_url: string | null
   following: number
   causes: Cause[]
 }
@@ -160,7 +163,7 @@ export const getViewer = cache(async (userId: string | null): Promise<Viewer | n
   if (!userId) return null
   const supabase = await createClient()
   const [{ data: profile }, { count }, { count: people }, { data: causes }] = await Promise.all([
-    supabase.from("profiles").select("id, handle, display_name, avatar_url").eq("id", userId).single(),
+    supabase.from("profiles").select("id, handle, display_name, avatar_url, bio, location, cover_url").eq("id", userId).single(),
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("person_follows").select("*", { count: "exact", head: true }).eq("follower_id", userId),
     supabase.from("profile_causes").select("cause:causes(slug, name)").eq("user_id", userId),
@@ -777,4 +780,34 @@ export const getFollowedPersonIds = cache(async (userId: string): Promise<string
   const supabase = await createClient()
   const { data } = await supabase.from("person_follows").select("followee_id").eq("follower_id", userId)
   return (data ?? []).map((r) => r.followee_id)
+})
+
+// Left column (F-087): the viewer's own private totals this year, and the org they work for.
+export type ViewerExtras = {
+  givenThisYear: number
+  hoursThisYear: number
+  org: (OrgSummary & { followers: number; views: number }) | null
+  topSupported: OrgSummary | null
+}
+export const getViewerExtras = cache(async (userId: string): Promise<ViewerExtras> => {
+  const supabase = await createClient()
+  const year = `${new Date().getFullYear()}-01-01`
+  const [{ data: gifts }, { data: hours }, { data: member }, { data: support }] = await Promise.all([
+    supabase.from("gifts").select("amount_usd, org_id").eq("user_id", userId).gte("given_on", year),
+    supabase.from("volunteer_hours").select("hours").eq("user_id", userId).gte("served_on", year),
+    supabase.from("org_members").select("org:orgs(id, slug, name, logo_url, org_type)").eq("user_id", userId).order("created_at").limit(1).maybeSingle(),
+    supabase.from("follows").select("org:orgs(id, slug, name, logo_url, org_type)").eq("user_id", userId).eq("supporter", true).limit(1).maybeSingle(),
+  ])
+  const org = (member as unknown as { org: OrgSummary } | null)?.org ?? null
+  let orgStats = null
+  if (org) {
+    const [{ data: followers }, counts] = await Promise.all([supabase.rpc("follower_count", { target: org.id }), getOrgEventCounts(org.id)])
+    orgStats = { ...org, followers: Number(followers ?? 0), views: counts.view }
+  }
+  return {
+    givenThisYear: (gifts ?? []).reduce((a, g) => a + g.amount_usd, 0),
+    hoursThisYear: (hours ?? []).reduce((a, h) => a + Number(h.hours), 0),
+    org: orgStats,
+    topSupported: (support as unknown as { org: OrgSummary } | null)?.org ?? null,
+  }
 })
