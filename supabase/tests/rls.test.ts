@@ -485,6 +485,30 @@ describe("needs, gifts and thank-you notes", () => {
     expect((await t.as(STAFF, `update org_needs set met_at = now() where id = '${id}' returning id`)).rows).toHaveLength(1)
   })
 
+  it("F-099: donations are private to the donor; staff see them via org_donations, anonymous without a name", async () => {
+    const ref = (n: number) => `pi_test_${String(n).padStart(24, "0")}`
+    const named = await t.as(DONOR, `insert into donations (donor_id, org_id, amount_cents, provider_ref, card_brand, card_last4) values ('${DONOR}', '${ORG_1}', 5000, '${ref(1)}', 'Visa', '4242') returning id`)
+    expect(named.error).toBeUndefined()
+    await t.as(DONOR, `insert into donations (donor_id, org_id, amount_cents, anonymous, provider_ref, card_brand, card_last4, created_at) values ('${DONOR}', '${ORG_1}', 2500, true, '${ref(2)}', 'Visa', '4242', '2020-01-01')`)
+
+    // The donor sees their own; nobody else can read the table, not even the org's staff.
+    expect(n((await t.as(DONOR, `select count(*)::int n from donations where org_id = '${ORG_1}'`)).rows)).toBeGreaterThanOrEqual(2)
+    expect(n((await t.as(STAFF, `select count(*)::int n from donations where donor_id = '${DONOR}'`)).rows)).toBe(0)
+
+    // Staff get the gifts, with the anonymous donor's name hidden; others get nothing.
+    const rows = (await t.as(STAFF, `select amount_cents, donor_name, created_at from org_donations('${ORG_1}') where amount_cents in (5000, 2500)`)).rows as { amount_cents: number; donor_name: string | null; created_at: Date }[]
+    expect(rows.find((r) => r.amount_cents === 5000)?.donor_name).toBeTruthy()
+    const anon = rows.find((r) => r.amount_cents === 2500)!
+    expect(anon.donor_name).toBeNull()
+    expect(new Date(anon.created_at).getFullYear()).toBeGreaterThan(2020) // can't be backdated
+    expect(n((await t.as(DONOR, `select count(*)::int n from org_donations('${ORG_1}')`)).rows)).toBe(0)
+
+    // Only the test processor, valid references and last four digits; no giving to hidden orgs.
+    expect((await t.as(DONOR, `insert into donations (donor_id, org_id, amount_cents, provider_ref, card_brand, card_last4) values ('${DONOR}', '${ORG_1}', 5000, 'ch_live_1', 'Visa', '4242')`)).error).toBeDefined()
+    expect((await t.as(DONOR, `insert into donations (donor_id, org_id, amount_cents, provider_ref, card_brand, card_last4) values ('${DONOR}', '${ORG_1}', 5000, '${ref(3)}', 'Visa', '4242424242424242')`)).error).toBeDefined()
+    expect((await t.as(DONOR, `insert into donations (donor_id, org_id, amount_cents, provider_ref, card_brand, card_last4) values ('${DONOR}', '${ORG_PENDING}', 5000, '${ref(4)}', 'Visa', '4242')`)).error).toBeDefined()
+  })
+
   it("F-052: a gift log is private to its donor and can't be backdated into the future", async () => {
     const mine = await t.as(DONOR, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 50, current_date) returning id`)
     expect(mine.error).toBeUndefined()
@@ -817,5 +841,79 @@ describe("following people", () => {
     expect((await t.as(STAFF, `select * from person_follows`)).rows).toHaveLength(0) // the followed person can't see it
     expect((await t.as(null, `select * from person_follows`)).rows ?? []).toHaveLength(0)
     expect((await t.as(DONOR, `select followee_id from person_follows`)).rows).toEqual([{ followee_id: STAFF }])
+  })
+})
+
+describe("groups and messages", () => {
+  const ALEX = "20000000-0000-4000-8000-000000000001" // creates a group
+  const BEA = "20000000-0000-4000-8000-000000000002" // joins it
+  const CAL = "20000000-0000-4000-8000-000000000003" // outsider
+  let group = ""
+
+  beforeAll(async () => {
+    for (const [id, who] of [[ALEX, "alex"], [BEA, "bea"], [CAL, "cal"]]) await t.owner(`insert into auth.users (id, email) values ('${id}', '${who}@groups.example.org') on conflict do nothing`)
+    const r = await t.as(ALEX, `insert into groups (slug, name, description) values ('test-circle', 'Test giving circle', 'For tests') returning id`)
+    group = (r.rows![0] as { id: string }).id
+  })
+
+  it("F-100: the creator becomes owner; anyone joins as a member, never as owner", async () => {
+    expect((await t.as(ALEX, `select role from group_members where group_id = '${group}' and user_id = '${ALEX}'`)).rows![0]).toEqual({ role: "owner" })
+    expect((await t.as(BEA, `insert into group_members (group_id, user_id, role) values ('${group}', '${BEA}', 'owner')`)).error).toBeDefined()
+    expect((await t.as(BEA, `insert into group_members (group_id, user_id) values ('${group}', '${BEA}')`)).error).toBeUndefined()
+    expect((await t.as(BEA, `update group_members set role = 'owner' where group_id = '${group}' and user_id = '${BEA}'`)).error).toBeDefined()
+    expect((await t.as(BEA, `insert into group_members (group_id, user_id) values ('${group}', '${CAL}')`)).error).toBeDefined() // can't add others
+  })
+
+  it("F-100: only members read and post in the group chat", async () => {
+    expect((await t.as(BEA, `insert into messages (group_id, author_id, body) values ('${group}', '${BEA}', 'Hello circle')`)).error).toBeUndefined()
+    expect(n((await t.as(ALEX, `select count(*)::int n from messages where group_id = '${group}'`)).rows)).toBe(1)
+    expect(n((await t.as(CAL, `select count(*)::int n from messages where group_id = '${group}'`)).rows)).toBe(0)
+    expect(n((await t.as(null, `select count(*)::int n from messages where group_id = '${group}'`)).rows)).toBe(0)
+    expect((await t.as(CAL, `insert into messages (group_id, author_id, body) values ('${group}', '${CAL}', 'let me in')`)).error).toBeDefined()
+    expect((await t.as(BEA, `insert into messages (group_id, author_id, body) values ('${group}', '${ALEX}', 'spoofed')`)).error).toBeDefined()
+    expect((await t.as(BEA, `insert into messages (group_id, author_id, body) values ('${group}', '${BEA}', '   ')`)).error).toBeDefined()
+  })
+
+  it("F-100: DMs only with people you share a group with or who follow you; one conversation per pair", async () => {
+    expect((await t.as(CAL, `select start_conversation('${ALEX}')`)).error).toBeDefined() // strangers can't
+    const first = await t.as(BEA, `select start_conversation('${ALEX}') id`)
+    expect(first.error).toBeUndefined()
+    const again = await t.as(ALEX, `select start_conversation('${BEA}') id`)
+    expect((again.rows![0] as { id: string }).id).toBe((first.rows![0] as { id: string }).id)
+    // A follow opens the door one way: CAL follows ALEX, so ALEX may message CAL.
+    await t.owner(`insert into person_follows (follower_id, followee_id) values ('${CAL}', '${ALEX}')`)
+    expect((await t.as(ALEX, `select start_conversation('${CAL}')`)).error).toBeUndefined()
+    expect((await t.as(CAL, `insert into conversations default values`)).error).toBeDefined() // only via the function
+  })
+
+  it("F-100: a DM is readable and writable only by its two people", async () => {
+    const convo = ((await t.as(BEA, `select start_conversation('${ALEX}') id`)).rows![0] as { id: string }).id
+    expect((await t.as(BEA, `insert into messages (conversation_id, author_id, body) values ('${convo}', '${BEA}', 'Hi Alex')`)).error).toBeUndefined()
+    expect(n((await t.as(ALEX, `select count(*)::int n from messages where conversation_id = '${convo}'`)).rows)).toBe(1)
+    expect(n((await t.as(CAL, `select count(*)::int n from messages where conversation_id = '${convo}'`)).rows)).toBe(0)
+    expect((await t.as(CAL, `insert into messages (conversation_id, author_id, body) values ('${convo}', '${CAL}', 'intrude')`)).error).toBeDefined()
+    expect(n((await t.as(CAL, `select count(*)::int n from conversation_members where conversation_id = '${convo}'`)).rows)).toBe(0)
+    // The unread dot: ALEX has an unread message until they mark it read; BEA only marks her own row.
+    expect((await t.as(ALEX, `select has_unread_messages() u`)).rows![0]).toEqual({ u: true })
+    await t.as(BEA, `update conversation_members set last_read_at = now() + interval '1 day' where conversation_id = '${convo}' and user_id = '${ALEX}'`)
+    expect((await t.as(ALEX, `select has_unread_messages() u`)).rows![0]).toEqual({ u: true })
+    await t.as(ALEX, `update conversation_members set last_read_at = now() + interval '1 minute' where conversation_id = '${convo}' and user_id = '${ALEX}'`)
+    expect((await t.as(ALEX, `select has_unread_messages() u`)).rows![0]).toEqual({ u: false })
+  })
+})
+
+describe("places", () => {
+  it("F-101: a known city in an org's location gives it map coordinates; new events start there; nobody edits cities", async () => {
+    await t.owner(`update orgs set location = 'Oakland, CA' where id = '${ORG_2}'`)
+    const [org] = await t.owner(`select lat, lng from orgs where id = '${ORG_2}'`)
+    expect(Number(org.lat)).toBeCloseTo(37.80, 1)
+    await t.owner(`update orgs set location = 'Somewhere, ZZ' where id = '${ORG_2}'`)
+    const [unknown] = await t.owner(`select lat from orgs where id = '${ORG_2}'`)
+    expect(unknown.lat).toBeNull()
+    await t.owner(`update orgs set location = 'Oakland, CA' where id = '${ORG_2}'`)
+    const [ev] = await t.owner(`insert into org_events (org_id, title, starts_at, location) values ('${ORG_2}', 'Cleanup', now() + interval '3 days', 'Lake Merritt') returning lat`)
+    expect(Number(ev.lat)).toBeCloseTo(37.80, 1)
+    expect((await t.as(DONOR, `insert into cities (name, lat, lng) values ('Fake, ZZ', 1, 1)`)).error).toBeDefined()
+    expect(n((await t.as(null, `select count(*)::int n from cities`)).rows)).toBeGreaterThan(50)
   })
 })

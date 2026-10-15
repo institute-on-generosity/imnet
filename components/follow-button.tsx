@@ -8,7 +8,7 @@ import { IconTip } from "./icon-tip"
 
 // full: labeled button (profiles). icon: round + / check button (sidebars, lists). person: follow a
 // person (F-086); orgId is then their profile id.
-export function FollowButton({ orgId, orgName, following, variant = "full", person }: { orgId: string; orgName?: string; following: boolean; variant?: "full" | "icon"; slug?: string; person?: boolean }) {
+export function FollowButton({ orgId, orgName, following, variant = "full", person, secondary }: { orgId: string; orgName?: string; following: boolean; variant?: "full" | "icon"; slug?: string; person?: boolean; secondary?: boolean }) {
   const [optimistic, toggle] = useSignalToggle(person ? "follow_person" : "follow", orgId, following)
   const Icon = optimistic ? Check : Plus
 
@@ -30,7 +30,7 @@ export function FollowButton({ orgId, orgName, following, variant = "full", pers
     )
   }
   return (
-    <Button variant={optimistic ? "outline" : "default"} aria-pressed={optimistic} onClick={toggle}>
+    <Button variant={optimistic || secondary ? "outline" : "default"} aria-pressed={optimistic} onClick={toggle}>
       <Icon aria-hidden />
       {optimistic ? "Following" : "Follow"}
     </Button>

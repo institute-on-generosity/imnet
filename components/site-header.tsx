@@ -3,6 +3,7 @@ import Link from "@/components/intent-link"
 import { signOut } from "@/app/actions"
 import { buttonVariants } from "@/components/ui/button"
 import { hasUnread } from "@/lib/notifications"
+import { hasUnreadMessages } from "@/lib/queries"
 import { createClient, getUserId } from "@/lib/supabase/server"
 import { IconTip } from "./icon-tip"
 import { HeaderSearch } from "./header-search"
@@ -14,6 +15,7 @@ export async function SiteHeader() {
   let handle: string | null = null
   let avatar: string | null = null
   let unread: Promise<boolean> | false = false
+  let unreadMessages: Promise<boolean> | false = false
   if (userId) {
     const supabase = await createClient()
     const { data } = await supabase.from("profiles").select("handle, avatar_url").eq("id", userId).single()
@@ -21,6 +23,7 @@ export async function SiteHeader() {
     avatar = data?.avatar_url ?? null
     // Not awaited: the dot streams in, so the header (and page) never wait on notifications.
     unread = hasUnread(userId)
+    unreadMessages = hasUnreadMessages() // F-100: a quiet dot, never a count
   }
 
   return (
@@ -37,7 +40,8 @@ export async function SiteHeader() {
                 items={[
                   { href: "/", label: "Home", icon: "home", exact: true },
                   { href: "/following", label: "Following", icon: "following" },
-                  { href: "/calls", label: "Open calls", icon: "calls" },
+                  { href: "/communities", label: "Communities", icon: "groups" },
+                  { href: "/messages", label: "Messages", icon: "messages", dot: unreadMessages },
                   { href: "/notifications", label: "Notifications", icon: "notifications", dot: unread },
                   { href: "/dashboard", label: "For nonprofits", icon: "nonprofits" },
                   ...(handle ? [{ href: `/u/${handle}`, label: "Me", icon: "me" as const, exact: true, avatar }] : []),

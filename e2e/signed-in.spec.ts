@@ -442,18 +442,6 @@ test("F-052: log a gift in the private giving journal; totals by year; nobody el
   await anon.close()
 })
 
-test("F-055: after Donate, a quiet link logs the gift with the org preselected", async () => {
-  const [kitchen] = await sql`update orgs set everyorg_slug = ${`imnet-e2e-${id}`} where slug = ${slug} returning id`
-  await page.context().route("https://www.every.org/**", (r) => r.abort())
-  await page.goto(`/o/${slug}`)
-  const popup = page.waitForEvent("popup")
-  await page.getByRole("link", { name: "Donate" }).click()
-  await (await popup).close()
-  await page.getByRole("link", { name: "Gave? Log it" }).click()
-  await expect(page).toHaveURL(/\/giving\?org=/)
-  await expect(page.locator("#gift-org")).toHaveValue(kitchen.id)
-})
-
 test("F-056: a foundation sees its confirmed grants with no report yet", async () => {
   const FOUNDATION = "00000000-0000-4000-a000-000000000005"
   await page.goto(`/dashboard/${FOUNDATION}`)
@@ -686,7 +674,8 @@ test("F-084: staff post a call for donations with a goal; it shows the goal and 
   await page.goto(`/o/${slug}?tab=posts`)
   const post = page.locator("article").filter({ hasText: `second stove ${id}` })
   await expect(post.getByText("Goal $2,500")).toBeVisible()
-  await expect(post.getByRole("link", { name: /Donate/ })).toHaveAttribute("href", "https://example.org/kitchen/give")
+  // F-099: a donation call gives right here (test mode) instead of linking out.
+  await expect(post.getByRole("button", { name: new RegExp(`^Donate to ${orgName}`) })).toBeVisible()
 })
 
 test("F-086: follow a person from their profile; their posts reach Following; unfollow", async () => {
@@ -739,7 +728,7 @@ test("F-090: a volunteer call says who has volunteered there (confirmed hours, o
 })
 
 test("B-031: no page scrolls sideways, from small phones to narrow desktop windows", async () => {
-  for (const path of ["/", "/following", "/notifications"]) {
+  for (const path of ["/", "/following", "/notifications", "/communities", "/messages"]) {
     await page.goto(path)
     for (const width of [320, 360, 660, 700, 1024]) {
       await page.setViewportSize({ width, height: 900 })
@@ -747,6 +736,63 @@ test("B-031: no page scrolls sideways, from small phones to narrow desktop windo
     }
   }
   await page.setViewportSize({ width: 1280, height: 720 })
+})
+
+test("F-099: donate to an organization in test mode; declined cards say so; the gift reaches the journal and the org's dashboard", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  await page.goto(`/o/${slug}`)
+  await page.getByRole("button", { name: new RegExp(`^Donate to ${orgName}`) }).first().click()
+  const dialog = page.getByRole("dialog")
+  await expect(dialog.getByText("Test mode")).toBeVisible()
+  await dialog.getByRole("radio", { name: "$100" }).click()
+  await dialog.getByRole("button", { name: "Continue" }).click()
+
+  await dialog.getByLabel("Card number").fill("4000 0000 0000 0002")
+  await dialog.getByLabel("Expiry").fill("1230")
+  await dialog.getByLabel("CVC").fill("123")
+  await dialog.getByRole("button", { name: "Give $100" }).click()
+  await expect(dialog.getByRole("alert")).toHaveText(/declined/)
+
+  await dialog.getByRole("button", { name: "Use a test card" }).click()
+  await dialog.getByRole("button", { name: "Give $100" }).click()
+  await expect(dialog.getByText("Thank you")).toBeVisible()
+  await expect(dialog.getByText("Visa ending 4242")).toBeVisible()
+  const [row] = await sql`select amount_cents, card_last4 from donations where donor_id = ${userId} and org_id = ${kitchen.id}`
+  expect(row).toEqual({ amount_cents: 10000, card_last4: "4242" })
+  await dialog.getByRole("button", { name: "Done" }).click()
+
+  await page.goto("/giving")
+  await expect(page.getByText("Donated on imnet (test mode)").first()).toBeVisible()
+  await page.goto(`/dashboard/${kitchen.id}`)
+  const card = page.locator("[data-slot=card]").filter({ hasText: "Donations on imnet" })
+  await expect(card.getByText("$100").first()).toBeVisible()
+})
+
+test("F-100: join a community, post in its chat, and message a member directly", async () => {
+  await page.goto("/communities")
+  await page.getByRole("link", { name: /Youth mentors/ }).first().click()
+  await expect(page).toHaveURL(/\/communities\/youth-mentors/)
+  await expect(page.getByRole("log")).toHaveCount(0) // the chat is for members
+  await page.getByRole("button", { name: "Join" }).click()
+
+  const box = page.getByLabel("Message Youth mentors")
+  await box.fill(`Hello mentors ${id}`)
+  await box.press("Enter")
+  await expect(page.getByRole("log").getByText(`Hello mentors ${id}`)).toBeVisible()
+
+  await page.getByRole("link", { name: /^Members/ }).click()
+  await page.getByRole("button", { name: /^Message / }).first().click()
+  await expect(page).toHaveURL(/\/messages\/[0-9a-f-]{36}/)
+  const dm = page.getByLabel(/^Message /)
+  await dm.fill(`Hi from the circle ${id}`)
+  await dm.press("Enter")
+  await expect(page.getByRole("log").getByText(`Hi from the circle ${id}`)).toBeVisible()
+  const [row] = await sql`select count(*)::int n from messages m join conversation_members cm on cm.conversation_id = m.conversation_id where m.body = ${`Hi from the circle ${id}`} and cm.user_id <> ${userId}`
+  expect(row.n).toBe(1) // delivered to exactly one other person
+
+  await page.goto("/messages")
+  await expect(page.getByRole("link", { name: new RegExp(`You: Hi from the circle ${id}`) })).toBeVisible()
+  await sql`delete from group_members where user_id = ${userId}`
 })
 
 test("F-015: staff can't open another org's dashboard", async () => {

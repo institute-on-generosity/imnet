@@ -1,11 +1,12 @@
 import Link from "@/components/intent-link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCauses, getGrantsAwaitingReport, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgDaily, getOrgTopPosts, getEventsForStaff, getHoursToConfirm, getInterestForStaff, getOrgNeeds, getReportableGrants, getThanks } from "@/lib/queries"
+import { getCauses, getGrantsAwaitingReport, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgDaily, getOrgTopPosts, getEventsForStaff, getHoursToConfirm, getInterestForStaff, getOrgNeeds, getReportableGrants, getThanks, getOrgDonations } from "@/lib/queries"
 import { total } from "@/lib/analytics"
 import type { ImpactStat, Org } from "@/lib/types"
 import { createClient, getUserId } from "@/lib/supabase/server"
 import { AnalyticsCard } from "./analytics-card"
+import { DonationsCard } from "./donations-card"
 import { Composer } from "./composer"
 import { ImpactStatsEditor } from "./impact-stats-editor"
 import { EventsEditor } from "./events-editor"
@@ -53,6 +54,11 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
         <Stat label="Shares (30d)" value={counts.share} />
         <Stat label="Donate clicks (30d)" value={counts.donate_click} />
       </section>
+
+      <Card>
+        <CardHeader><CardTitle>Donations on imnet</CardTitle></CardHeader>
+        <CardContent><DonationsCard donations={await getOrgDonations(org.id)} /></CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle>Analytics</CardTitle></CardHeader>

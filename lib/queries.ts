@@ -1,3 +1,4 @@
+import type { MapItem } from "@/lib/geo"
 import { cache } from "react"
 import { type Cursor, encodeCursor, olderThan } from "@/lib/cursor"
 import { type DayRow, fillDays, type Series, total } from "@/lib/analytics"
@@ -891,3 +892,187 @@ export const getOrgsByCause = cache(async (): Promise<Record<string, OrgSummaryW
   for (const k in out) out[k].sort((a, b) => a.name.localeCompare(b.name))
   return out
 })
+
+// F-099: gifts made on imnet to an org, for its staff (names hidden for anonymous donors).
+export type OrgDonation = { id: string; amount_cents: number; monthly: boolean; created_at: string; donor_name: string | null; donor_handle: string | null; donor_avatar: string | null }
+export type OrgDonations = { list: OrgDonation[]; total30: number; count30: number; monthlyDonors: number }
+export async function getOrgDonations(orgId: string): Promise<OrgDonations> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("org_donations", { target: orgId, lim: 200 })
+  const list = (data ?? []) as OrgDonation[]
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString()
+  const recent = list.filter((d) => d.created_at >= since)
+  return {
+    list,
+    total30: recent.reduce((a, d) => a + d.amount_cents, 0),
+    count30: recent.length,
+    monthlyDonors: new Set(list.filter((d) => d.monthly).map((d) => d.donor_handle ?? d.id)).size,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// F-100 Groups and messages
+// ---------------------------------------------------------------------------
+export type Group = { id: string; slug: string; name: string; description: string | null; cause_slug: string | null; created_at: string }
+export type GroupCard = Group & { members: number; lastAt: string | null; unread: boolean }
+export type ChatAuthor = { id: string; handle: string; display_name: string | null; avatar_url: string | null }
+export type ChatMessage = { id: string; body: string; created_at: string; author: ChatAuthor }
+export type ChatTarget = { group: string } | { conversation: string }
+
+async function memberCounts(ids: string[]) {
+  if (ids.length === 0) return new Map<string, number>()
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("group_member_counts", { targets: ids })
+  return new Map(((data ?? []) as { group_id: string; members: number }[]).map((r) => [r.group_id, Number(r.members)]))
+}
+
+// Your groups, most recently active first, with a quiet unread flag.
+export async function getMyGroups(userId: string): Promise<GroupCard[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("group_members").select("last_read_at, group:groups!inner(id, slug, name, description, cause_slug, created_at)").eq("user_id", userId)
+  const rows = (data ?? []) as unknown as { last_read_at: string; group: Group }[]
+  const ids = rows.map((r) => r.group.id)
+  const [counts, latest] = await Promise.all([
+    memberCounts(ids),
+    ids.length ? supabase.from("messages").select("group_id, created_at, author_id").in("group_id", ids).order("created_at", { ascending: false }).limit(500) : null,
+  ])
+  const last = new Map<string, { at: string; author: string }>()
+  for (const m of (latest?.data ?? []) as { group_id: string; created_at: string; author_id: string }[]) if (!last.has(m.group_id)) last.set(m.group_id, { at: m.created_at, author: m.author_id })
+  return rows
+    .map((r) => {
+      const l = last.get(r.group.id)
+      return { ...r.group, members: counts.get(r.group.id) ?? 0, lastAt: l?.at ?? null, unread: !!l && l.author !== userId && l.at > r.last_read_at }
+    })
+    .sort((a, b) => (b.lastAt ?? b.created_at).localeCompare(a.lastAt ?? a.created_at))
+}
+
+// Groups to discover (not yet joined), largest first within a cause.
+export async function getDiscoverGroups(userId: string | null, cause?: string): Promise<GroupCard[]> {
+  const supabase = await createClient()
+  let q = supabase.from("groups").select("id, slug, name, description, cause_slug, created_at").limit(100)
+  if (cause) q = q.eq("cause_slug", cause)
+  const { data } = await q
+  let groups = (data ?? []) as Group[]
+  if (userId) {
+    const { data: mine } = await supabase.from("group_members").select("group_id").eq("user_id", userId)
+    const joined = new Set((mine ?? []).map((m) => m.group_id))
+    groups = groups.filter((g) => !joined.has(g.id))
+  }
+  const counts = await memberCounts(groups.map((g) => g.id))
+  return groups.map((g) => ({ ...g, members: counts.get(g.id) ?? 0, lastAt: null, unread: false })).sort((a, b) => b.members - a.members || a.name.localeCompare(b.name))
+}
+
+export async function getGroupBySlug(slug: string, userId: string | null) {
+  const supabase = await createClient()
+  const { data } = await supabase.from("groups").select("id, slug, name, description, cause_slug, created_at").eq("slug", slug).maybeSingle()
+  if (!data) return null
+  const group = data as Group
+  const [counts, me] = await Promise.all([
+    memberCounts([group.id]),
+    userId ? supabase.from("group_members").select("role").match({ group_id: group.id, user_id: userId }).maybeSingle() : null,
+  ])
+  return { group, members: counts.get(group.id) ?? 0, role: (me?.data?.role ?? null) as "owner" | "member" | null }
+}
+
+export async function getGroupMembers(groupId: string): Promise<(ChatAuthor & { role: "owner" | "member"; bio: string | null })[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("group_members").select("role, joined_at, person:profiles!inner(id, handle, display_name, avatar_url, bio)").eq("group_id", groupId).order("joined_at").limit(200)
+  return ((data ?? []) as unknown as { role: "owner" | "member"; person: ChatAuthor & { bio: string | null } }[])
+    .map((r) => ({ ...r.person, role: r.role }))
+    .sort((a, b) => (a.role === b.role ? 0 : a.role === "owner" ? -1 : 1))
+}
+
+// A page of messages, oldest first (after: only newer ones, for polling).
+export async function getMessages(target: ChatTarget, opts: { after?: string; limit?: number } = {}): Promise<ChatMessage[]> {
+  const supabase = await createClient()
+  let q = supabase.from("messages").select("id, body, created_at, author:profiles!messages_author_id_fkey(id, handle, display_name, avatar_url)")
+  q = "group" in target ? q.eq("group_id", target.group) : q.eq("conversation_id", target.conversation)
+  if (opts.after) q = q.gt("created_at", opts.after)
+  const { data } = await q.order("created_at", { ascending: false }).limit(opts.limit ?? 80)
+  return ((data ?? []) as unknown as ChatMessage[]).reverse()
+}
+
+export type ConversationCard = { id: string; other: ChatAuthor; last: { body: string; at: string; mine: boolean } | null; unread: boolean }
+export async function getConversations(userId: string): Promise<ConversationCard[]> {
+  const supabase = await createClient()
+  const { data: mine } = await supabase.from("conversation_members").select("conversation_id, last_read_at").eq("user_id", userId)
+  const ids = (mine ?? []).map((m) => m.conversation_id)
+  if (ids.length === 0) return []
+  const [{ data: others }, { data: msgs }] = await Promise.all([
+    supabase.from("conversation_members").select("conversation_id, person:profiles!inner(id, handle, display_name, avatar_url)").in("conversation_id", ids).neq("user_id", userId),
+    supabase.from("messages").select("conversation_id, body, created_at, author_id").in("conversation_id", ids).order("created_at", { ascending: false }).limit(500),
+  ])
+  const readAt = new Map((mine ?? []).map((m) => [m.conversation_id, m.last_read_at as string]))
+  const last = new Map<string, { body: string; at: string; author: string }>()
+  for (const m of (msgs ?? []) as { conversation_id: string; body: string; created_at: string; author_id: string }[]) if (!last.has(m.conversation_id)) last.set(m.conversation_id, { body: m.body, at: m.created_at, author: m.author_id })
+  return ((others ?? []) as unknown as { conversation_id: string; person: ChatAuthor }[])
+    .map((o) => {
+      const l = last.get(o.conversation_id)
+      return { id: o.conversation_id, other: o.person, last: l ? { body: l.body, at: l.at, mine: l.author === userId } : null, unread: !!l && l.author !== userId && l.at > (readAt.get(o.conversation_id) ?? "") }
+    })
+    .sort((a, b) => (b.last?.at ?? "").localeCompare(a.last?.at ?? ""))
+}
+
+export async function hasUnreadMessages(): Promise<boolean> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("has_unread_messages")
+  return !!data
+}
+
+// F-101 Everything with a place, for the Near you map: volunteer calls and needs (at their org),
+// upcoming events, and communities. Filtering by distance happens in the browser.
+export async function getMapItems(): Promise<MapItem[]> {
+  const supabase = await createClient()
+  const now = new Date().toISOString()
+  const today = now.slice(0, 10)
+  const ORG = "id, slug, name, logo_url, org_type, location, lat, lng, org_causes(cause_slug)"
+  type O = { id: string; slug: string; name: string; logo_url: string | null; org_type: "nonprofit" | "foundation"; location: string | null; lat: number | null; lng: number | null; org_causes: { cause_slug: string }[] }
+  const [calls, needs, events, groups] = await Promise.all([
+    supabase.from("posts").select(`id, body, action_date, org:orgs!posts_org_id_fkey!inner(${ORG})`).eq("kind", "call_volunteers").not("org.lat", "is", null).or(`action_date.is.null,action_date.gte.${today}`).order("created_at", { ascending: false }).limit(200),
+    supabase.from("org_needs").select(`id, title, kind, org:orgs!inner(${ORG})`).is("met_at", null).eq("kind", "volunteer").not("org.lat", "is", null).limit(200),
+    supabase.from("org_events").select(`id, title, starts_at, location, lat, lng, org:orgs!inner(${ORG})`).gt("starts_at", now).not("lat", "is", null).order("starts_at").limit(300),
+    supabase.from("groups").select("id, slug, name, description, cause_slug, location, lat, lng").not("lat", "is", null).limit(300),
+  ])
+  const counts = await memberCounts(((groups.data ?? []) as { id: string }[]).map((g) => g.id))
+  const logo = (o: O) => ({ name: o.name, logo_url: o.logo_url, org_type: o.org_type })
+  const day = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  const items: MapItem[] = []
+  for (const c of (calls.data ?? []) as unknown as { id: string; body: string; action_date: string | null; org: O }[]) {
+    items.push({ id: `call-${c.id}`, kind: "volunteer", title: c.body.split(/(?<=[.!?])\s/)[0].slice(0, 90), subtitle: `${c.org.name}${c.action_date ? ` · ${day(c.action_date)}` : ""}`, href: `/p/${c.id}`, place: c.org.location, lat: c.org.lat!, lng: c.org.lng!, logo: logo(c.org), cause: c.org.org_causes[0]?.cause_slug ?? null })
+  }
+  for (const n of (needs.data ?? []) as unknown as { id: string; title: string; org: O }[]) {
+    items.push({ id: `need-${n.id}`, kind: "volunteer", title: n.title, subtitle: n.org.name, href: `/o/${n.org.slug}#needs`, place: n.org.location, lat: n.org.lat!, lng: n.org.lng!, logo: logo(n.org), cause: n.org.org_causes[0]?.cause_slug ?? null })
+  }
+  for (const e of (events.data ?? []) as unknown as { id: string; title: string; starts_at: string; location: string; lat: number; lng: number; org: O }[]) {
+    items.push({ id: `event-${e.id}`, kind: "event", title: e.title, subtitle: `${e.org.name} · ${new Date(e.starts_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, href: `/e/${e.id}`, place: e.location, lat: e.lat, lng: e.lng, logo: logo(e.org), cause: e.org.org_causes[0]?.cause_slug ?? null })
+  }
+  for (const g of (groups.data ?? []) as { id: string; slug: string; name: string; description: string | null; cause_slug: string | null; location: string | null; lat: number; lng: number }[]) {
+    const m = counts.get(g.id) ?? 0
+    items.push({ id: `community-${g.id}`, kind: "community", title: g.name, subtitle: `Community · ${m} ${m === 1 ? "member" : "members"}`, href: `/communities/${g.slug}`, place: g.location, lat: g.lat, lng: g.lng, cause: g.cause_slug })
+  }
+  return items
+}
+
+// F-102 Communities with a place, for "Communities near you" (distances are computed in the browser).
+export type PlacedCommunity = { id: string; slug: string; name: string; cause_slug: string | null; location: string; lat: number; lng: number; members: number; joined: boolean }
+export async function getPlacedCommunities(userId: string | null): Promise<PlacedCommunity[]> {
+  const supabase = await createClient()
+  const [{ data }, mine] = await Promise.all([
+    supabase.from("groups").select("id, slug, name, cause_slug, location, lat, lng").not("lat", "is", null).limit(500),
+    userId ? supabase.from("group_members").select("group_id").eq("user_id", userId) : null,
+  ])
+  const rows = (data ?? []) as Omit<PlacedCommunity, "members" | "joined">[]
+  const counts = await memberCounts(rows.map((r) => r.id))
+  const joined = new Set((mine?.data ?? []).map((m) => m.group_id))
+  return rows.map((r) => ({ ...r, members: counts.get(r.id) ?? 0, joined: joined.has(r.id) }))
+}
+
+// The viewer's profile city as coordinates, when it's one we know (to center "near you" before they share a location).
+export async function getProfileCity(userId: string | null): Promise<{ at: { lat: number; lng: number }; label: string } | null> {
+  if (!userId) return null
+  const supabase = await createClient()
+  const { data: p } = await supabase.from("profiles").select("location").eq("id", userId).maybeSingle()
+  if (!p?.location) return null
+  const { data: c } = await supabase.from("cities").select("name, lat, lng").ilike("name", p.location.trim()).maybeSingle()
+  return c ? { at: { lat: c.lat, lng: c.lng }, label: c.name } : null
+}

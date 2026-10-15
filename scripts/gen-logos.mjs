@@ -150,6 +150,18 @@ const MORE = {
   43: ["#1f2a44", "#cbd5e1", GOLD, "lintel", W("700 0 Fraunces", 54, "#fff"), W("600 0 Montserrat", 17, GOLD, "letter-spacing:7px"), "Lintel", "HOUSING FUND"],
   44: [NAVY, "#e2e8f0", GOLD, "wren", W("700 0 Lora", 52, "#fff"), W("600 0 Montserrat", 18, GOLD, "letter-spacing:7px"), "Wrenfield", "FOUNDATION"],
   45: ["#0b2545", "#fff", GOLD, "sail", W("700 0 'Cormorant Garamond'", 52, "#fff", "letter-spacing:6px"), W("600 0 Montserrat", 16, GOLD, "letter-spacing:5px"), "SALTWIND", "COMMUNITY FOUNDATION"],
+  // F-102 South Bay (fictional)
+  46: ["#fff7ed", "#c2410c", "#16a34a", "bowl", W("800 0 Montserrat", 40, "#9a3412", "letter-spacing:2px"), W("600 0 Montserrat", 17, "#16a34a", "letter-spacing:6px"), "CASTRO STREET", "COMMUNITY KITCHEN"],
+  47: ["#ecfeff", "#0e7490", "#65a30d", "heron", W("700 0 'Barlow Condensed'", 50, "#155e75", "letter-spacing:3px"), W("600 0 Montserrat", 19, "#4d7c0f", "letter-spacing:7px"), "BAYFRONT", "WETLANDS CREW"],
+  48: ["#fefce8", "#a16207", "#2563eb", "pencil", W("700 0 Fraunces", 50, "#854d0e"), W("600 0 Montserrat", 19, "#2563eb", "letter-spacing:7px"), "Rengstorff", "READING CLUB"],
+  49: ["#0f766e", "#fff", "#fcd34d", "kitten", W("400 0 Pacifico", 44, "#fff"), W("800 0 Montserrat", 22, "#fcd34d", "letter-spacing:8px"), "Bayshore", "PAWS RESCUE"],
+  50: ["#f0fdf4", "#166534", "#ca8a04", "oak", W("700 0 Lora", 50, "#14532d"), W("600 0 Montserrat", 19, "#a16207", "letter-spacing:7px"), "Oak Grove", "SENIOR RIDES"],
+  51: ["#111827", "#22d3ee", "#f472b6", "brackets", W("700 0 'Space Grotesk'", 46, "#fff", "letter-spacing:2px"), W("500 0 'Space Grotesk'", 22, "#22d3ee", "letter-spacing:5px"), "SAN TOMAS", "youth robotics"],
+  52: ["#7c2d12", "#fed7aa", "#fde68a", "keystone", W("700 0 'Libre Baskerville'", 42, "#fff"), W("600 0 Montserrat", 17, "#fed7aa", "letter-spacing:6px"), "Guadalupe", "HOUSING COLLABORATIVE"],
+  53: ["#eef2ff", "#4338ca", "#a5b4fc", "moon", W("600 0 'Cormorant Garamond'", 50, "#3730a3", "letter-spacing:2px"), W("600 0 Montserrat", 18, "#4f46e5", "letter-spacing:6px"), "Quiet Harbor", "PEER SUPPORT"],
+  54: [NAVY, "#7dd3fc", GOLD, "hearth", W("700 0 'Cormorant Garamond'", 46, "#fff", "letter-spacing:4px"), W("600 0 Montserrat", 17, GOLD, "letter-spacing:6px"), "MOUNTAIN VIEW", "NEIGHBORS FUND"],
+  55: ["#1e3a5f", "#fca5a5", GOLD, "leaves3", W("700 0 'Libre Baskerville'", 46, "#fff"), W("600 0 Montserrat", 16, GOLD, "letter-spacing:5px"), "Orchard Lane", "FAMILY FOUNDATION"],
+  56: ["#172554", "#c4b5fd", GOLD, "sprout", W("800 0 Raleway", 44, "#fff", "letter-spacing:6px"), W("600 0 Montserrat", 17, GOLD, "letter-spacing:7px"), "SOUTH BAY", "FUTURES FUND"],
 }
 for (const [n, [bg, f, a, sym, s1, s2, l1, l2]] of Object.entries(MORE)) {
   LOGOS[n] = [bg, S[sym](f, a), `<div style="${s1}">${l1}</div><div style="${s2};margin-top:2px">${l2}</div>`]
@@ -158,7 +170,9 @@ for (const [n, [bg, f, a, sym, s1, s2, l1, l2]] of Object.entries(MORE)) {
 const fontsLink = `https://fonts.googleapis.com/css2?${FONTS.map((f) => `family=${f}`).join("&")}&display=block`
 const b = await chromium.launch(process.env.CI ? {} : { channel: "chrome" })
 const p = await b.newPage({ viewport: { width: 512, height: 512 } })
-for (const [n, [bg, symbol, wordmark]] of Object.entries(LOGOS)) {
+// ONLY=46,47 renders just those (so regenerating new logos doesn't touch the others).
+const only = process.env.ONLY?.split(",")
+for (const [n, [bg, symbol, wordmark]] of Object.entries(LOGOS).filter(([n]) => !only || only.includes(n))) {
   await p.setContent(`<html><head><link rel="stylesheet" href="${fontsLink}"></head>
     <body style="margin:0;width:512px;height:512px;background:${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.05">
       <svg width="236" height="236" viewBox="0 0 200 200">${symbol}</svg>

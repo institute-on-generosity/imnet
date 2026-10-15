@@ -49,7 +49,7 @@ export default async function NeedsPage({ searchParams }: PageProps<"/needs">) {
       <Panel className="space-y-3 p-4">
         <div>
           <h1 className="h-page">Ways to help</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">What organizations are asking for right now. Newest first. <span className="text-faint">&quot;I&apos;m interested&quot; tells only their team.</span></p>
+          <p className="mt-1.5 text-sm text-muted-foreground">What organizations are asking for right now. Newest first. <span className="text-faint">&quot;I&apos;m interested&quot; tells only their team.</span> <Link href="/nearby" className="font-semibold text-leaf hover:underline">See them on a map</Link></p>
         </div>
         <nav aria-label="Ways to help" className="inline-flex rounded-full bg-muted p-1 text-sm">
           {(Object.keys(SHOW) as Show[]).map((s) => (

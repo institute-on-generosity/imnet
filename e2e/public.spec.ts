@@ -403,7 +403,7 @@ test("F-074: events open their own page: host, when, where, add to calendar, mor
   await expect(page.getByText("Event by")).toBeVisible()
   await expect(page.getByRole("link", { name: "Open in Maps" })).toHaveAttribute("href", /google\.com\/maps\/search/)
   await expect(page.getByRole("heading", { name: "Hosted by" })).toBeVisible()
-  await expect(page.getByRole("link", { name: /Going\? to Community dinner/ })).toBeVisible() // signed out: leads to sign-in
+  await expect(page.getByRole("link", { name: /Going\? to Community dinner and kitchen tour/ })).toBeVisible() // signed out: leads to sign-in
   const ics = await request.get(page.url() + "/calendar.ics")
   expect(ics.headers()["content-type"]).toContain("text/calendar")
   expect(await ics.text()).toContain("SUMMARY:Community dinner and kitchen tour")
@@ -513,4 +513,51 @@ test("B-033: cause chips stay in place when one is selected", async ({ page }) =
   await chip.click()
   await expect(chip).toHaveAttribute("aria-current", "page")
   expect(Math.round((await chip.boundingBox())!.x)).toBe(Math.round(before))
+})
+
+test("F-100: communities are public to browse; their chats are for members only", async ({ page }) => {
+  await page.goto("/communities")
+  await expect(page.getByRole("heading", { name: "Communities", level: 1 })).toBeVisible()
+  await page.getByRole("link", { name: /Monthly givers circle/ }).click()
+  await expect(page.getByRole("link", { name: "Join", exact: true })).toHaveAttribute("href", /\/login\?next=\/communities\/monthly-givers-circle/)
+  await expect(page.getByRole("log")).toHaveCount(0)
+  await expect(page.getByText("tip changed everything")).toHaveCount(0) // no chat content leaks
+  await page.goto("/messages")
+  await expect(page).toHaveURL(/\/login/)
+})
+
+test("F-101: Near you lists volunteering, events and communities by distance from your location", async ({ browser }) => {
+  const ctx = await browser.newContext({ geolocation: { latitude: 37.8044, longitude: -122.2712 }, permissions: ["geolocation"] }) // Oakland
+  const page = await ctx.newPage()
+  await page.route("https://tile.openstreetmap.org/**", (r) => r.abort()) // no network in tests
+  await page.goto("/nearby")
+  await page.getByRole("button", { name: /Use my location|Using your location/ }).click()
+  await expect(page.getByRole("button", { name: "Using your location" })).toBeVisible()
+  const list = page.getByRole("region", { name: "Near you" })
+  await expect(list.getByRole("link", { name: "Oakland creek cleanup crew" })).toBeVisible()
+  await expect(list.getByText(/^Here$|\d+(\.\d)? mi/).first()).toBeVisible()
+  // Far-away places stay off the 25-mile list.
+  await expect(list.getByRole("link", { name: "Portland weekend food volunteers" })).toHaveCount(0)
+  // Filters: hide communities.
+  await page.getByRole("button", { name: "Communities", pressed: true }).click()
+  await expect(list.getByRole("link", { name: "Oakland creek cleanup crew" })).toHaveCount(0)
+  await expect(page.locator(".leaflet-marker-icon").first()).toBeVisible()
+  await ctx.close()
+})
+
+test("F-102: Communities opens with communities near you (list and map), nearest first", async ({ browser }) => {
+  const ctx = await browser.newContext({ geolocation: { latitude: 37.3894, longitude: -122.0819 }, permissions: ["geolocation"] }) // Mountain View
+  const page = await ctx.newPage()
+  await page.route("https://tile.openstreetmap.org/**", (r) => r.abort())
+  await page.goto("/communities")
+  const near = page.getByRole("region", { name: "Communities near you" })
+  await expect(near.getByText("Around your current location.")).toBeVisible()
+  const first = near.getByRole("listitem").first()
+  await expect(first).toContainText(/Mountain View|South Bay/)
+  await expect(first).toContainText(/\d(\.\d)? mi/)
+  // It comes before Discover on the page, with the map beside it.
+  const nearTop = (await near.boundingBox())!.y
+  expect(nearTop).toBeLessThan((await page.getByRole("heading", { name: /Discover/ }).boundingBox())!.y)
+  await expect(page.getByRole("application", { name: "Map of places near you" })).toBeVisible()
+  await ctx.close()
 })
