@@ -59,7 +59,7 @@ export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Pr
                 </span>
               </button>
               <button type="button" aria-pressed={on} aria-label={`${on ? "Following" : "Follow"} ${c.name}`} onClick={() => toggle(c.slug)}
-                className={cn("absolute top-[18px] right-3 inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition-[color,background-color,transform] active:scale-95",
+                className={cn("absolute top-[18px] right-3 inline-flex h-7 items-center gap-1 rounded-full border pr-2.5 pl-[9px] text-xs font-semibold transition-[color,background-color,transform] active:scale-95",
                   on ? "border-leaf/40 bg-card text-leaf hover:bg-muted" : "border-leaf text-leaf hover:bg-leaf-soft")}>
                 {on ? <Check className="size-3.5" aria-hidden /> : <Plus className="size-3.5" aria-hidden />}{on ? "Following" : "Follow"}
               </button>
@@ -70,7 +70,7 @@ export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Pr
                   <div className="flex items-center gap-3 border-b p-3">
                     <p className="min-w-0 flex-1 text-sm"><span className="font-semibold">{c.name}</span> <span className="text-muted-foreground">· {orgs.length} organizations</span></p>
                     <button type="button" onClick={() => toggle(c.slug)}
-                      className={cn("inline-flex shrink-0 items-center gap-1 rounded-full py-1 pr-3 pl-2.5 text-xs font-semibold", on ? "border text-muted-foreground hover:bg-muted" : "bg-leaf text-white hover:bg-leaf/90")}>
+                      className={cn("inline-flex shrink-0 items-center gap-1 rounded-full py-1 pr-3 pl-[11px] text-xs font-semibold", on ? "border text-muted-foreground hover:bg-muted" : "bg-leaf text-white hover:bg-leaf/90")}>
                       {on ? <Check className="size-3.5" aria-hidden /> : <Plus className="size-3.5" aria-hidden />}{on ? "Following cause" : "Follow cause"}
                     </button>
                   </div>

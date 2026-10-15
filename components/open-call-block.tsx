@@ -47,7 +47,7 @@ export async function OpenCallBlock({ post }: { post: Pick<Post, "call_deadline"
           {causes.length ? causes.map((c) => <li key={c} className="rounded-full bg-card px-2.5 py-0.5 ring-1 ring-border">{c}</li>) : <li className="text-muted-foreground">Open to all causes</li>}
         </ul>
         {status !== "closed" && (
-          <a href={post.call_apply_url} target="_blank" rel="noopener noreferrer" className={cn(buttonVariants({ size: "sm" }), "shrink-0 rounded-full px-4")}>
+          <a href={post.call_apply_url} target="_blank" rel="noopener noreferrer" className={cn(buttonVariants({ size: "sm" }), "shrink-0 rounded-full")}>
             Apply <ExternalLink data-icon="inline-end" aria-hidden />
           </a>
         )}

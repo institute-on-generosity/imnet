@@ -44,7 +44,7 @@ export function CoverPicker({ org }: { org: Org }) {
       <input type="hidden" name="cover_path" value={path} />
       {removed && <input type="hidden" name="remove_cover" value="on" />}
       <div className="flex items-center gap-2">
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border py-1.5 pr-3 pl-2.5 text-sm hover:bg-muted">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border py-1.5 pr-3 pl-[11px] text-sm hover:bg-muted">
           <ImageUp className="size-4" aria-hidden />
           {busy ? "Uploading..." : shown ? "Change cover" : "Upload cover"}
           <input type="file" accept={IMAGE_TYPES.join(",")} className="sr-only" disabled={busy} onChange={(e) => void upload(e.target.files?.[0])} />

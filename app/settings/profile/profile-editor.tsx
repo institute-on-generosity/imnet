@@ -43,7 +43,7 @@ export function ProfileEditor({ profile, causes, selected }: { profile: Profile;
 
       <div className="flex items-center gap-3">
         <PersonAvatar name={profile.display_name ?? profile.handle} avatarUrl={profile.avatar_url} size="lg" />
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border py-1.5 pr-3 pl-2.5 text-sm hover:bg-muted has-checked:border-leaf has-checked:bg-leaf-soft has-checked:text-leaf has-focus-visible:ring-2 has-focus-visible:ring-ring/50">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border py-1.5 pr-3 pl-[11px] text-sm hover:bg-muted has-checked:border-leaf has-checked:bg-leaf-soft has-checked:text-leaf has-focus-visible:ring-2 has-focus-visible:ring-ring/50">
           <input type="checkbox" name="new_avatar" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} className="sr-only" />
           <Shuffle className="size-4" aria-hidden />{shuffle ? "New avatar on save" : "Draw me a new avatar"}
         </label>

@@ -162,8 +162,9 @@
   text-wrap: pretty;
 }
 /* Optical alignment for asymmetric icons (lucide adds a class per icon, so this covers every use).
-   Percentages scale with the icon size. The paper plane's point pulls the eye up and right;
-   the speech bubble's tail sits bottom-left. */
-.lucide-send { translate: -5% 5%; }
-.lucide-message-circle { translate: 2% -2%; }
-.lucide-arrow-up-right, .lucide-external-link { translate: -3% 3%; }
+   Percentages scale with the icon size. Centre the glyph's visual mass, not its box (as with a play
+   triangle, B-035): the paper plane and the external-link box carry their weight bottom-left, so
+   they move up-right; the speech bubble's tail sits bottom-left, so its body moves down-left. */
+.lucide-send { translate: 4% -4%; }
+.lucide-message-circle { translate: -2% 2%; }
+.lucide-arrow-up-right, .lucide-external-link { translate: 3% -3%; }

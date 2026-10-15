@@ -73,7 +73,7 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
               const Icon = CAUSE_ICON[c]
               return (
                 <Link key={c} href={href(tab, c)} aria-current={cause === c ? "page" : undefined}
-                  className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1 pr-3 pl-2.5 text-sm", cause === c ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                  className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-sm", cause === c ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}>
                   {Icon && <Icon className="size-3.5" aria-hidden />}{causeName(c)}
                 </Link>
               )
