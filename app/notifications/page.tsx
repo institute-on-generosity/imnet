@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarDays, Clock, FileText, HandCoins, HeartHandshake, Megaphone, MessageCircle, UserPlus } from "lucide-react"
+import { BadgeCheck, CalendarDays, Sparkles, Clock, FileText, HandCoins, HeartHandshake, Megaphone, MessageCircle, UserPlus } from "lucide-react"
 import Link from "@/components/intent-link"
 import { redirect } from "next/navigation"
 import { OrgMark } from "@/components/org-mark"
@@ -12,12 +12,13 @@ import { MarkSeen } from "./mark-seen"
 
 export const metadata = { title: "Notifications" }
 
-const ICONS = { grant: HandCoins, report: FileText, call: Megaphone, team: UserPlus, claim: BadgeCheck, thanks: HeartHandshake, comment: MessageCircle, hours: Clock, event: CalendarDays }
+const ICONS = { grant: HandCoins, report: FileText, call: Megaphone, team: UserPlus, claim: BadgeCheck, thanks: HeartHandshake, comment: MessageCircle, hours: Clock, event: CalendarDays, impact: Sparkles }
 const FILTERS = {
   all: { label: "All", kinds: null },
   comments: { label: "Comments", kinds: ["comment"] },
   calls: { label: "Calls to help", kinds: ["call"] },
   events: { label: "Events", kinds: ["event"] },
+  impact: { label: "Your impact", kinds: ["impact"] },
   hours: { label: "Volunteering", kinds: ["hours"] },
   grants: { label: "Grants", kinds: ["grant", "report"] },
 } as const satisfies Record<string, { label: string; kinds: readonly Notification["kind"][] | null }>

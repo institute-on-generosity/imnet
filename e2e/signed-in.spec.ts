@@ -796,6 +796,31 @@ test("F-100: join a community, post in its chat, and message a member directly",
   await sql`delete from group_members where user_id = ${userId}`
 })
 
+test("F-107 / F-108: Home shows what your giving became, and what you can do near you this week", async () => {
+  // This user logged a gift to Harbor Table (F-052). Harbor Table then shares an impact story.
+  const HARBOR_ID = HARBOR
+  await sql`insert into posts (org_id, kind, body, created_at) values (${HARBOR_ID}, 'impact_story', ${`Your gifts fixed the stove ${id}`}, now() + interval '1 minute')`
+  // A newer plain update tops the feed, so the card (which never repeats the top post) shows the story.
+  await sql`insert into posts (org_id, kind, body, created_at) values (${HARBOR_ID}, 'update', ${`Doors open at five ${id}`}, now() + interval '2 minutes')`
+  await sql`update profiles set location = 'Mountain View, CA' where id = ${userId}`
+  try {
+    await page.goto("/")
+    const card = page.getByRole("region", { name: "Your giving at work" })
+    await expect(card.getByText(`Your gifts fixed the stove ${id}`)).toBeVisible()
+    await expect(card).toContainText("which you gave to")
+
+    const week = page.getByRole("region", { name: "This week near you" })
+    await expect(week.getByText("Around Mountain View, CA")).toBeVisible()
+    await expect(week.getByRole("listitem").first()).toBeVisible()
+
+    await page.goto("/notifications?f=impact")
+    await expect(page.getByRole("link", { name: new RegExp(`shared what your gift helped make possible.*Your gifts fixed the stove ${id}`) })).toBeVisible()
+  } finally {
+    await sql`delete from posts where body in (${`Your gifts fixed the stove ${id}`}, ${`Doors open at five ${id}`})`
+    await sql`update profiles set location = null where id = ${userId}`
+  }
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)
