@@ -10,14 +10,16 @@ const pill = (on: boolean) =>
   )
 
 // Horizontal pill row; scrolls sideways on phones instead of wrapping into a wall.
-export function CauseFilter({ causes, active, type, basePath }: { causes: Cause[]; active?: string; type?: FeedType; basePath: string }) {
+// hrefFor: build links yourself (pages with extra filters); otherwise feed links on basePath.
+export function CauseFilter({ causes, active, type, basePath, hrefFor }: { causes: Cause[]; active?: string; type?: FeedType; basePath: string; hrefFor?: (cause?: string) => string }) {
+  const href = (cause?: string) => (hrefFor ? hrefFor(cause) : feedHref(basePath, { cause, type }))
   return (
     <nav aria-label="Filter by cause" className="overflow-x-auto [scrollbar-width:none]">
       <div className="flex w-max gap-1.5">
-        <Link href={feedHref(basePath, { type })} className={pill(!active)} aria-current={!active ? "page" : undefined}>All causes</Link>
+        <Link href={href()} className={pill(!active)} aria-current={!active ? "page" : undefined}>All causes</Link>
         {/* The selected cause comes first so it's never scrolled out of view. */}
         {[...causes].sort((a, b) => Number(b.slug === active) - Number(a.slug === active)).map((c) => (
-          <Link key={c.slug} href={feedHref(basePath, { cause: c.slug, type })} className={pill(active === c.slug)} aria-current={active === c.slug ? "page" : undefined}>
+          <Link key={c.slug} href={href(c.slug)} className={pill(active === c.slug)} aria-current={active === c.slug ? "page" : undefined}>
             {c.name}
           </Link>
         ))}

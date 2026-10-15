@@ -1,6 +1,6 @@
 // Hand-written row shapes for Phase I. Replace with `npm run db:types` output once linked.
 
-export type PostKind = "update" | "impact_story" | "ask" | "open_call"
+export type PostKind = "update" | "impact_story" | "ask" | "open_call" | "call_volunteers" | "call_donations"
 export type OrgType = "nonprofit" | "foundation"
 
 export type OrgSummary = {
@@ -57,6 +57,10 @@ export type Post = {
   call_apply_url: string | null
   call_max_award: number | null
   call_causes: string[]
+  // Calls for volunteers / donations (F-084): link, optional date, optional goal (donations).
+  action_url: string | null
+  action_date: string | null
+  goal_usd: number | null
 }
 
 export type ReportGrant = { id: string; amount_usd: number | null; purpose: string | null; foundation: OrgSummary }
@@ -79,6 +83,8 @@ export const POST_KIND_LABEL: Record<PostKind, string> = {
   impact_story: "Impact story",
   ask: "Ask",
   open_call: "Open call",
+  call_volunteers: "Volunteers needed",
+  call_donations: "Donations needed",
 }
 
 // A foundation's grant to a nonprofit. Public only once the nonprofit confirms it.

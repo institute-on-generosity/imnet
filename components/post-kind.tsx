@@ -6,6 +6,8 @@ const DOT: Record<PostKind, string> = {
   ask: "bg-marigold",
   update: "bg-muted-foreground/60",
   open_call: "bg-primary",
+  call_volunteers: "bg-leaf",
+  call_donations: "bg-marigold",
 }
 
 export function PostKindLabel({ kind }: { kind: PostKind }) {

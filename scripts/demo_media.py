@@ -337,7 +337,7 @@ VIDEO_POSTS = [
   3.9,
   "crooked-river-23467104578",
   "A clear river flowing past rocks and fallen branches below cliffs",
-  "BLM Oregon &amp; Washington, Public domain, via Wikimedia Commons"
+  "BLM Oregon & Washington, Public domain, via Wikimedia Commons"
  ],
  [
   32,
@@ -346,7 +346,7 @@ VIDEO_POSTS = [
   5.7,
   "crooked-river-36648924083",
   "A wide river flowing past a grassy bank and a rocky slope",
-  "BLM Oregon &amp; Washington, Public domain, via Wikimedia Commons"
+  "BLM Oregon & Washington, Public domain, via Wikimedia Commons"
  ],
  [
   22,

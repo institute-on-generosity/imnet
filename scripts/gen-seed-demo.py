@@ -17,6 +17,7 @@ import demo_profiles as prof  # noqa: E402
 import demo_media as media  # noqa: E402
 import demo_donor_posts as dposts  # noqa: E402
 import demo_donor_photos as dphotos  # noqa: E402
+import demo_calls as calls  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "supabase", "seed_demo.sql")
@@ -489,6 +490,28 @@ out.append(",\n".join(
     for a, about, body, days, paths in dphotos.POSTS) + ";")
 out.append("")
 
+# --- Calls for volunteers and donations (F-084), with the org's own photos and videos -------
+VIDEO_META = {}
+for n, kind, body, days, stem, alt, credit in VIDEO_POSTS:
+    VIDEO_META[(n, stem)] = (alt, credit)
+for n, kind, body, days, stem, alt, credit in media.VIDEO_POSTS:
+    VIDEO_META[(n, stem)] = (alt, credit)
+VIDEO_META[(1, "garden-harvest")] = ("Volunteers weeding and harvesting in a community garden", "USDA, public domain, via Wikimedia Commons")
+VIDEO_META[(4, "trail-crew")] = ("Volunteers with hand tools re-cutting a dirt trail across a dry hillside", "BLM Oregon & Washington, public domain, via Wikimedia Commons")
+def date_sql(d):
+    return f"current_date + {d}" if d is not None else "null"
+for n, kind, body, days, due, goal, photos, video in calls.CALLS:
+    paths = [f"{oid(n)}/{f}" for f in photos]
+    vid = VIDEO_META.get((n, video)) if video else None
+    out.append(
+        "insert into posts (org_id, kind, body, action_url, action_date, goal_usd, image_paths, image_alts, image_credits, beneficiary_consent, "
+        "video_path, video_poster_path, video_alt, video_credit, created_at) values "
+        f"('{oid(n)}', '{kind}', {q(body)}, 'https://example.org/{oid(n)[-2:]}/{'volunteer' if kind == 'call_volunteers' else 'give'}', {date_sql(due)}, {goal or 'null'}, "
+        f"{arr(paths)}, {arr([credits[p]['alt'] for p in paths])}, {arr([credits[p]['credit'] for p in paths])}, {'true' if paths else 'false'}, "
+        + (f"'{oid(n)}/{video}.webm', '{oid(n)}/{video}.jpg', {q(vid[0])}, {q(vid[1])}, " if vid else "null, null, null, null, ")
+        + f"now() - interval '{days * 24:.0f} hours');")
+out.append("")
+
 # --- Comments (F-062): many people comment on nonprofit and foundation posts; teams reply -------------
 GENERAL = [
     "This is why I give. Thank you, {org}.", "Love seeing the actual numbers. Keep posting these.", "Shared this with my book club.",
@@ -534,9 +557,9 @@ out.append(f"""-- Comments: 2 to 29 people per post, spread between the post tim
 insert into comments (post_id, user_id, body, created_at)
 select p.id, d.id,
        replace((case when o.org_type = 'foundation' then {sql_arr(FOUNDATION + GENERAL)}
-                     when p.kind = 'ask' then {sql_arr(ASK + GENERAL)}
+                     when p.kind in ('ask', 'call_volunteers', 'call_donations') then {sql_arr(ASK + GENERAL)}
                      else {sql_arr(GENERAL)} end)[1 + (abs(hashtext(p.id::text || 'body')) + d.rn) %
-               (case when o.org_type = 'foundation' then {len(FOUNDATION) + len(GENERAL)} when p.kind = 'ask' then {len(ASK) + len(GENERAL)} else {len(GENERAL)} end)], '{{org}}', o.name),
+               (case when o.org_type = 'foundation' then {len(FOUNDATION) + len(GENERAL)} when p.kind in ('ask', 'call_volunteers', 'call_donations') then {len(ASK) + len(GENERAL)} else {len(GENERAL)} end)], '{{org}}', o.name),
        p.created_at + (now() - p.created_at) * ((abs(hashtext(p.id::text || d.id::text)) % 950) / 1000.0)
   from posts p join orgs o on o.id = p.org_id
   cross join lateral (

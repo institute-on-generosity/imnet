@@ -13,6 +13,7 @@ import { PostMenu } from "./post-menu"
 import { PersonAvatar } from "./person-avatar"
 import { GrantChips } from "./grant-chips"
 import { GrantReportBanner } from "./grant-report-banner"
+import { CallBlock } from "./call-block"
 import { OpenCallBlock } from "./open-call-block"
 import { OrgMark } from "./org-mark"
 import { FoundationMark } from "./org-type-badge"
@@ -120,6 +121,7 @@ export function PostCard({ post, full = false, moved = false, saved = false, sig
 
       {post.about_org && <Spotlight org={post.about_org} />}
       {post.kind === "open_call" && <OpenCallBlock post={post} />}
+      <CallBlock post={post} />
       <PostMedia post={post} />
       <GrantChips grants={grants} />
 

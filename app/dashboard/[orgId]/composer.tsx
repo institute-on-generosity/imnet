@@ -26,10 +26,30 @@ export function Composer({ orgId, orgType = "nonprofit", reportableGrants = [], 
           <option value="impact_story">Impact story</option>
           <option value="update">Update</option>
           <option value="ask">Ask</option>
+          <option value="call_volunteers">Call for volunteers</option>
+          <option value="call_donations">Call for donations</option>
           {orgType === "foundation" && <option value="open_call">Open call (invite applications)</option>}
         </select>
       </div>
       {kind === "open_call" && <OpenCallFields causes={causes} v={v} />}
+      {(kind === "call_volunteers" || kind === "call_donations") && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1 sm:col-span-3">
+            <Label htmlFor="action_url">{kind === "call_volunteers" ? "Sign-up link" : "Donate link"}</Label>
+            <Input id="action_url" name="action_url" type="url" required placeholder="https://your-org.org/..." defaultValue={v?.action_url} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="action_date">{kind === "call_volunteers" ? "When (optional)" : "Give by (optional)"}</Label>
+            <Input id="action_date" name="action_date" type="date" defaultValue={v?.action_date} />
+          </div>
+          {kind === "call_donations" && (
+            <div className="space-y-1">
+              <Label htmlFor="goal_usd">Goal in $ (optional)</Label>
+              <Input id="goal_usd" name="goal_usd" inputMode="numeric" placeholder="5,000" defaultValue={v?.goal_usd} />
+            </div>
+          )}
+        </div>
+      )}
       <div className="space-y-1">
         <Label htmlFor="body">What happened?</Label>
         <Textarea id="body" name="body" rows={5} required defaultValue={v?.body} placeholder="Share progress, told with dignity. Use first names only with consent." />

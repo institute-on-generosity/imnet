@@ -5,13 +5,13 @@ import type { Comment } from "@/lib/comments"
 import type { EventWithOrg, OrgEvent } from "@/lib/events"
 import type { Gift } from "@/lib/gifts"
 import type { HoursEntry } from "@/lib/volunteer"
-import { MET_SHOWN_DAYS, type Need, type NeedWithOrg } from "@/lib/needs"
+import { MET_SHOWN_DAYS, type Need, type NeedKind, type NeedWithOrg } from "@/lib/needs"
 import { escapeLike, orFilterTerm, wordStartPattern } from "@/lib/search"
 import { createClient } from "@/lib/supabase/server"
 import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post, PostAuthor } from "@/lib/types"
 
 const PAGE_SIZE = 20
-const POST_FIELDS = `id, org_id, author_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at, edited_at, call_deadline, call_apply_url, call_max_award, call_causes,
+const POST_FIELDS = `id, org_id, author_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at, edited_at, call_deadline, call_apply_url, call_max_award, call_causes, action_url, action_date, goal_usd,
   report_grant:grants!posts_reports_grant_id_fkey(id, amount_usd, purpose, foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type)),
   author:profiles!posts_author_id_fkey(handle, display_name, bio, avatar_url),
   about_org:orgs!posts_about_org_id_fkey(id, slug, name, logo_url, org_type, mission)`
@@ -406,7 +406,7 @@ export async function getFollowedOrgs(userId: string): Promise<{ id: string; nam
 }
 
 // Open needs across the network, newest first (Ways to help). Optional cause filter on the org's causes.
-export async function getOpenNeeds(opts: { cause?: string; limit?: number } = {}): Promise<NeedWithOrg[]> {
+export async function getOpenNeeds(opts: { cause?: string; limit?: number; kinds?: NeedKind[] } = {}): Promise<NeedWithOrg[]> {
   const supabase = await createClient()
   const causeJoin = opts.cause ? ", org_causes!inner(cause_slug)" : ""
   let q = supabase
@@ -416,6 +416,7 @@ export async function getOpenNeeds(opts: { cause?: string; limit?: number } = {}
     .order("created_at", { ascending: false })
     .limit(opts.limit ?? 50)
   if (opts.cause) q = q.eq("org.org_causes.cause_slug", opts.cause)
+  if (opts.kinds) q = q.in("kind", opts.kinds)
   const { data } = await q
   return (data ?? []) as unknown as NeedWithOrg[]
 }
@@ -744,4 +745,23 @@ export async function searchNeeds(q: string): Promise<NeedWithOrg[]> {
     .order("created_at", { ascending: false })
     .limit(20)
   return (data ?? []) as unknown as NeedWithOrg[]
+}
+
+// Open calls for volunteers / donations (F-084), newest first; calls whose date has passed drop off.
+export async function getCallPosts(opts: { kinds: ("call_volunteers" | "call_donations")[]; cause?: string; limit?: number }): Promise<Post[]> {
+  const supabase = await createClient()
+  const orgJoin = opts.cause
+    ? "org:orgs!posts_org_id_fkey!inner(id, slug, name, logo_url, org_type, org_causes!inner(cause_slug))"
+    : ORG
+  let q = supabase
+    .from("posts")
+    .select(`${POST_FIELDS}, ${orgJoin}`)
+    .in("kind", opts.kinds)
+    .eq("published", true)
+    .or(`action_date.is.null,action_date.gte.${new Date().toISOString().slice(0, 10)}`)
+    .order("created_at", { ascending: false })
+    .limit(opts.limit ?? 20)
+  if (opts.cause) q = q.eq("org.org_causes.cause_slug", opts.cause)
+  const { data } = await q
+  return (data ?? []) as unknown as Post[]
 }

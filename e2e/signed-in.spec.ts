@@ -674,6 +674,21 @@ test("F-082: staff confirm a volunteer's hours; the profile shows them as confir
   await expect(page.getByRole("region", { name: "Volunteering" }).getByRole("listitem").filter({ hasText: orgName })).toContainText("Confirmed")
 })
 
+test("F-084: staff post a call for donations with a goal; it shows the goal and a Donate button", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await page.getByLabel("Type").selectOption("call_donations")
+  await page.getByLabel("Donate link").fill("https://example.org/kitchen/give")
+  await page.getByLabel("Goal in $ (optional)").fill("2,500")
+  await page.getByLabel("What happened?").fill(`Help us buy a second stove ${id}`)
+  await page.getByRole("button", { name: "Post", exact: true }).click()
+  await expect(page.getByText("Posted.")).toBeVisible()
+  await page.goto(`/o/${slug}?tab=posts`)
+  const post = page.locator("article").filter({ hasText: `second stove ${id}` })
+  await expect(post.getByText("Goal $2,500")).toBeVisible()
+  await expect(post.getByRole("link", { name: /Donate/ })).toHaveAttribute("href", "https://example.org/kitchen/give")
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

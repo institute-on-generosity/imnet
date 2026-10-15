@@ -18,6 +18,7 @@ import { parseNeedFields } from "@/lib/needs"
 import { parseFoundedYear, parsePrograms } from "@/lib/profile-fields"
 import { parseHoursFields } from "@/lib/volunteer"
 import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
+import { parseCallActionFields, type CallActionFields } from "@/lib/call-fields"
 import { todayISO } from "@/lib/open-calls"
 import { safeNext } from "@/lib/safe-next"
 import { escapeLike } from "@/lib/search"
@@ -174,7 +175,7 @@ export async function updateOrg(orgId: string, _: ActionState, form: FormData): 
 }
 
 const PostSchema = z.object({
-  kind: z.enum(["update", "impact_story", "ask", "open_call"]),
+  kind: z.enum(["update", "impact_story", "ask", "open_call", "call_volunteers", "call_donations"]),
   body: z.string().trim().min(1).max(5000),
   embed: z.string().optional(),
 })
@@ -218,6 +219,13 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
     call = parsedCall.fields
   }
 
+  let actionFields: CallActionFields | Record<string, never> = {}
+  if (parsed.data.kind === "call_volunteers" || parsed.data.kind === "call_donations") {
+    const a = parseCallActionFields(parsed.data.kind, { url: String(form.get("action_url") ?? ""), date: String(form.get("action_date") ?? ""), goal: String(form.get("goal_usd") ?? "") }, todayISO())
+    if ("error" in a) return fail(form, a.error)
+    actionFields = a.fields
+  }
+
   const reportsGrant = String(form.get("reports_grant_id") ?? "")
   if (reportsGrant && !/^[0-9a-f-]{36}$/.test(reportsGrant)) return fail(form, "Pick a grant from the list.")
 
@@ -235,6 +243,7 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
       beneficiary_consent: consent,
       reports_grant_id: reportsGrant || null,
       ...call,
+      ...actionFields,
     })
     .select("id")
     .single()

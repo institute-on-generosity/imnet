@@ -9,9 +9,10 @@ test("F-001 / F-027: Explore shows posts newest first, with photos, alt text and
   await keys.scrollIntoViewIfNeeded()
   await expect(keys).toBeVisible()
   await expect(page.getByText("Photo: Shixart1985, CC BY 2.0, via Wikimedia Commons")).toBeVisible()
-  // Newest first: the 1-day-old Okafor story comes before the 2-day-old pantry story.
-  const text = await page.locator("main").innerText()
-  expect(text.indexOf("Okafor family")).toBeLessThan(text.indexOf("10,000th family visit"))
+  // Newest first: post times on the page only go back in time.
+  const times = await page.locator("article header time").evaluateAll((els) => els.map((e) => e.getAttribute("datetime")!))
+  expect(times.length).toBeGreaterThan(5)
+  expect([...times].sort().reverse()).toEqual(times)
 })
 
 test("F-001: cause filter shows only orgs in that cause", async ({ page }) => {
@@ -25,7 +26,8 @@ test("F-001: cause filter shows only orgs in that cause", async ({ page }) => {
 
 test("F-032: org videos autoplay muted on screen and pause when scrolled away", async ({ page }) => {
   await page.goto("/o/greenway-stewards")
-  const video = page.getByLabel("Volunteers with hand tools re-cutting a dirt trail across a dry hillside")
+  // The same clip appears on a trail-crew call too; check the first one.
+  const video = page.getByLabel("Volunteers with hand tools re-cutting a dirt trail across a dry hillside").first()
   await video.evaluate((v) => v.scrollIntoView({ block: "center" }))
   // Under a full parallel-ish run the dev server is slow to serve the clip; allow time to buffer.
   await expect.poll(() => video.evaluate((v: HTMLVideoElement) => !v.paused && v.muted && v.currentTime > 0), { timeout: 25_000 }).toBe(true)
@@ -40,7 +42,7 @@ test.describe("with reduced motion", () => {
   test.use({ reducedMotion: "reduce" })
   test("F-032: videos don't autoplay when the device asks to reduce motion", async ({ page }) => {
     await page.goto("/o/greenway-stewards")
-    const video = page.getByLabel("Volunteers with hand tools re-cutting a dirt trail across a dry hillside")
+    const video = page.getByLabel("Volunteers with hand tools re-cutting a dirt trail across a dry hillside").first()
     await video.scrollIntoViewIfNeeded()
     await page.waitForTimeout(1500)
     expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true)
@@ -50,15 +52,17 @@ test.describe("with reduced motion", () => {
 test("F-033: foundations and nonprofits look different, and the feed filters by type", async ({ page }) => {
   await page.goto("/")
   // Post headers stay quiet: foundations get a small landmark marker; nonprofits none.
-  const grantPost = page.locator("article").filter({ hasText: "Fall Community Fund grants are out" }).first()
-  await expect(grantPost.locator('header [title="Foundation"]')).toHaveCount(1)
-  const harborPost = page.locator("article").filter({ hasText: "10,000th family visit" }).first()
+  const foundationPost = page.locator("article").filter({ has: page.locator('header a[href="/o/lakeshore-community-foundation"]') }).first()
+  await page.goto("/?type=foundation")
+  await expect(foundationPost.locator('header [title="Foundation"]')).toHaveCount(1)
+  await page.goto("/")
+  const harborPost = page.locator("article").filter({ has: page.locator('header a[href="/o/harbor-table"]') }).first()
   await expect(harborPost.locator('header [title="Foundation"]')).toHaveCount(0)
 
   await page.getByRole("navigation", { name: "Filter by who's posting" }).getByRole("link", { name: "Foundations" }).click()
   await expect(page).toHaveURL(/type=foundation/)
-  await expect(page.getByText("Fall Community Fund grants are out")).toBeVisible()
-  await expect(page.getByText("10,000th family visit")).toHaveCount(0)
+  await expect(page.locator("article header [title='Foundation']").first()).toBeVisible()
+  await expect(page.locator('article header a[href="/o/harbor-table"]')).toHaveCount(0)
 
   await page.goto("/o/lakeshore-community-foundation")
   await expect(page.locator("main h1 + span", { hasText: "Foundation" })).toBeVisible()
@@ -467,4 +471,21 @@ test("F-083: the header search suggests organizations, people and events as you 
   await expect(page).toHaveURL(/\/search\?q=dinner/)
   await expect(page.getByRole("region", { name: "Events" })).toBeVisible()
   await expect(page.getByRole("region", { name: "Ways to help" })).toBeVisible()
+})
+
+test("F-084: Ways to help shows calls for volunteers and donations, with photos, video and the right button", async ({ page }) => {
+  await page.goto("/needs")
+  await page.getByRole("navigation", { name: "Ways to help" }).getByRole("link", { name: "Volunteer" }).click()
+  await expect(page).toHaveURL(/show=volunteer/)
+  const vol = page.locator("article").filter({ hasText: "Saturday dinner crew this month" }).first()
+  await expect(vol.getByText("Volunteers needed").first()).toBeVisible()
+  await expect(vol.getByRole("link", { name: /Sign up/ })).toHaveAttribute("href", /^https:\/\/example\.org\//)
+  await expect(vol.locator("img[alt]").first()).toBeVisible()
+  await expect(page.locator("article").filter({ hasText: "Donations needed" })).toHaveCount(0)
+
+  await page.getByRole("navigation", { name: "Ways to help" }).getByRole("link", { name: "Donate" }).click()
+  const don = page.locator("article").filter({ hasText: "walk-in cooler is 19 years old" }).first()
+  await expect(don.getByText("Goal $8,500")).toBeVisible()
+  await expect(don.getByRole("link", { name: /Donate/ })).toBeVisible()
+  await expect(page.locator("article video").first()).toBeAttached() // some calls carry video
 })

@@ -769,3 +769,16 @@ describe("confirming volunteer hours", () => {
     expect((await t.owner(`select confirmed_at from volunteer_hours where id = '${a}'`))[0].confirmed_at).toBeNull()
   })
 })
+
+describe("calls for volunteers and donations", () => {
+  it("F-084: calls need a link; only donation calls take a goal; other posts can't carry call fields", async () => {
+    const ins = (sql: string) => t.as(STAFF, `insert into posts (org_id, author_id, body, kind, action_url, action_date, goal_usd) values ('${ORG_1}', '${STAFF}', 'x', ${sql})`)
+    expect((await ins(`'call_volunteers', 'https://harbor.example.org/signup', current_date + 3, null`)).error).toBeUndefined()
+    expect((await ins(`'call_donations', 'https://harbor.example.org/give', current_date + 30, 5000`)).error).toBeUndefined()
+    expect((await ins(`'call_volunteers', null, null, null`)).error).toMatch(/check constraint/)
+    expect((await ins(`'call_volunteers', 'https://x.example.org', null, 500`)).error).toMatch(/check constraint/)
+    expect((await ins(`'call_donations', 'javascript:alert(1)', null, null`)).error).toMatch(/check constraint/)
+    expect((await ins(`'update', 'https://x.example.org', null, null`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into posts (author_id, body, kind, action_url) values ('${DONOR}', 'x', 'call_donations', 'https://x.example.org')`)).error).toMatch(/check constraint/)
+  })
+})
