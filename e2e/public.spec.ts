@@ -269,7 +269,7 @@ test("F-085: Home's Calls to help card toggles between volunteer and donation ca
   await card.getByRole("tab", { name: "Donate" }).click()
   await expect(card.getByRole("tab", { name: "Donate" })).toHaveAttribute("aria-selected", "true")
   await expect(card.getByRole("link", { name: /^Donate/ }).first()).toBeVisible()
-  await expect(card.getByText(/Goal \$/).first()).toBeVisible()
+  await expect(card.getByText(/\$[\d,]+ goal/).first()).toBeVisible()
   await card.getByRole("link", { name: "See all donation calls" }).click()
   await expect(page).toHaveURL(/\/needs\?show=donate/)
 })
