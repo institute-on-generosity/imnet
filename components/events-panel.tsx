@@ -66,7 +66,7 @@ export function EventsPanel({ events, rsvpIds, signedIn }: { events: OrgEvent[];
   if (events.length === 0) return null
   return (
     <Panel aria-labelledby="events" className="p-4 sm:p-6">
-      <h2 id="events" className="font-sans text-lg font-semibold tracking-normal">Upcoming events</h2>
+      <h2 id="events" className="h-section">Upcoming events</h2>
       <ul className="mt-3 divide-y border-y">
         {events.map((e) => <EventRow key={e.id} event={e} going={rsvpIds.has(e.id)} signedIn={signedIn} />)}
       </ul>
@@ -79,7 +79,7 @@ export function UpcomingEvents({ events, rsvpIds, signedIn, cause }: { events: E
   if (events.length === 0) return null
   return (
     <Panel aria-labelledby="upcoming" className="p-4">
-      <h2 id="upcoming" className="font-sans text-base font-semibold tracking-normal">Upcoming events</h2>
+      <h2 id="upcoming" className="h-rail">Upcoming events</h2>
       <ul className="mt-1 divide-y">
         {events.map((e) => <EventRow key={e.id} event={e} going={rsvpIds.has(e.id)} signedIn={signedIn} compact />)}
       </ul>

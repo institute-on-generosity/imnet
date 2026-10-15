@@ -135,7 +135,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
 function Section({ title, more, padded, children }: { title: string; more?: string; padded?: boolean; children: React.ReactNode }) {
   return (
     <Panel aria-labelledby={`results-${title.toLowerCase().replace(/\W+/g, "-")}`}>
-      <h2 id={`results-${title.toLowerCase().replace(/\W+/g, "-")}`} className="border-b px-4 py-3 font-sans text-base font-semibold tracking-normal">{title}</h2>
+      <h2 id={`results-${title.toLowerCase().replace(/\W+/g, "-")}`} className="border-b px-4 py-3 h-rail">{title}</h2>
       <ul className={padded ? "divide-y px-4" : "divide-y"}>{children}</ul>
       {more && <Link href={more} className="block border-t px-4 py-2.5 text-center text-sm font-semibold text-muted-foreground hover:bg-muted">See all {title.toLowerCase()} results</Link>}
     </Panel>

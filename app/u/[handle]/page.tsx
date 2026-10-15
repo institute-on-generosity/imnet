@@ -92,7 +92,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
             {!isOwn && viewerId && <div className="mt-3"><FollowButton orgId={profile.id} orgName={name} following={followsThem} person /></div>}
             {!isOwn && !viewerId && <Link href="/login" className={buttonVariants({ size: "sm", className: "mt-3" })}><Plus aria-hidden />Follow</Link>}
           </div>
-          <h1 className="mt-3 text-3xl font-semibold">{name}</h1>
+          <h1 className="mt-3 font-heading text-3xl font-semibold tracking-tight">{name}</h1>
           {profile.bio && <p className="mt-1 max-w-prose text-lg leading-snug text-foreground/80">{profile.bio}</p>}
           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
             <span>@{profile.handle}</span>
@@ -119,7 +119,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
 
       {tab === "about" && profile.about && (
         <Panel aria-labelledby="about-me" className="p-4 sm:p-6">
-          <h2 id="about-me" className="font-sans text-lg font-semibold tracking-normal">About</h2>
+          <h2 id="about-me" className="h-section">About</h2>
           <p className="story mt-2 whitespace-pre-line">{profile.about}</p>
         </Panel>
       )}
@@ -130,7 +130,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
 
       {shownPosts.length > 0 && (
         <section aria-labelledby="posts" className="space-y-3">
-          <h2 id="posts" className="px-1 font-sans text-lg font-semibold tracking-normal">Posts</h2>
+          <h2 id="posts" className="px-1 h-section">Posts</h2>
           <Feed posts={shownPosts} empty="" movedIds={movedIds} savedIds={savedIds} signedIn={!!viewerId} />
           {tab === "about" && posts.length > 2 && (
             <Link href={`${base}?tab=activity`} className={buttonVariants({ variant: "outline", className: "w-full" })}>Show all posts</Link>
@@ -140,7 +140,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
       {(tab === "activity" || activity.length > 0) && (
       <Panel aria-labelledby="activity">
         <div className="flex items-baseline justify-between px-4 pt-4 sm:px-6">
-          <h2 id="activity" className="font-sans text-lg font-semibold tracking-normal">{tab === "activity" ? "Comments" : "Recent comments"}</h2>
+          <h2 id="activity" className="h-section">{tab === "activity" ? "Comments" : "Recent comments"}</h2>
         </div>
         {shownActivity.length === 0 ? (
           <p className="px-4 pt-1 pb-4 text-sm text-muted-foreground sm:px-6">No comments yet.</p>
@@ -181,7 +181,7 @@ function OrgListCard({ id, title, note, orgs, icon }: { id: string; title: strin
   if (orgs.length === 0) return null
   return (
     <Panel aria-labelledby={id} className="p-4">
-      <h2 id={id} className="flex items-center gap-1.5 font-sans text-base font-semibold tracking-normal">
+      <h2 id={id} className="flex items-center gap-1.5 h-rail">
         {icon && <HandHeart className="size-4 text-marigold" aria-hidden />}{title}
       </h2>
       <p className="text-xs text-muted-foreground">{note}</p>

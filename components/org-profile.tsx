@@ -80,7 +80,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
         <div className="px-4 pb-4 sm:px-6">
           <div className="relative -mt-12 sm:-mt-14"><OrgMark org={org} size="xl" /></div>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="text-3xl font-semibold">{org.name}</h1>
+            <h1 className="font-heading text-3xl font-semibold tracking-tight">{org.name}</h1>
             <OrgTypeBadge type={org.org_type} className="py-1 pr-2.5 pl-2 text-xs" />
           </div>
           {org.mission && <p className="mt-1.5 line-clamp-2 max-w-prose text-lg leading-snug text-foreground/80">{org.mission}</p>}
@@ -133,7 +133,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
           <EventsPanel events={events} rsvpIds={rsvpIds} signedIn={signedIn} />
           {org.org_type === "foundation" && <GrantsPanel org={org} grants={grants} />}
           <section aria-labelledby="recent" className="space-y-3 pt-2">
-            <h2 id="recent" className="px-1 font-sans text-lg font-semibold tracking-normal">Posts</h2>
+            <h2 id="recent" className="px-1 h-section">Posts</h2>
             <Feed posts={posts.slice(0, 3)} empty={`${org.name} hasn't posted yet.`} movedIds={movedIds} savedIds={savedIds} signedIn={signedIn} grantsByPost={grantsByPost} hideFollow />
             {posts.length > 3 && (
               <Link href={`${base}?tab=posts`} className={buttonVariants({ variant: "outline", className: "w-full" })}>Show all posts</Link>
@@ -145,7 +145,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
       {tab === "about" && (
         <>
           <Panel className="p-4 sm:p-6">
-            <h2 className="font-sans text-lg font-semibold tracking-normal">Overview</h2>
+            <h2 className="h-section">Overview</h2>
             {org.mission && <p className="story mt-2 font-medium">{org.mission}</p>}
             {org.about && <p className="story mt-3 whitespace-pre-line text-foreground/85">{org.about}</p>}
             <dl className="mt-5 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-[10rem_1fr]">
@@ -204,7 +204,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
       {tab === "portfolio" && (
         <>
           <Panel className="p-4 sm:p-6">
-            <h2 className="font-sans text-lg font-semibold tracking-normal">Portfolio</h2>
+            <h2 className="h-section">Portfolio</h2>
             <p className="mt-1 text-sm text-muted-foreground">Grant reports from nonprofits {org.name} funds.</p>
           </Panel>
           <Feed posts={portfolio} empty="No grant reports yet. They appear here when grantees post them." movedIds={movedIds} savedIds={savedIds} signedIn={signedIn} grantsByPost={grantsByPost} />
@@ -256,7 +256,7 @@ function ImpactLedger({ stats }: { stats: ImpactStat[] }) {
   const { sources, marks } = footnotes(stats)
   return (
     <Panel aria-labelledby="impact" className="p-4 sm:p-6">
-      <h2 id="impact" className="font-sans text-lg font-semibold tracking-normal">Impact so far</h2>
+      <h2 id="impact" className="h-section">Impact so far</h2>
       <dl className="mt-3 divide-y border-y">
         {stats.map((s, i) => (
           <div key={s.id} className="flex items-baseline justify-between gap-6 py-3.5">

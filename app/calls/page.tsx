@@ -25,8 +25,8 @@ export default async function CallsPage({ searchParams }: PageProps<"/calls">) {
     >
       <Panel className="space-y-3 p-4">
         <div>
-          <h1 className="font-sans text-lg font-semibold tracking-normal">Open calls</h1>
-          <p className="text-sm text-muted-foreground">Soonest deadline first.</p>
+          <h1 className="h-page">Open calls</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">Soonest deadline first.</p>
         </div>
         <CauseFilter causes={causes} active={active} basePath="/calls" />
       </Panel>

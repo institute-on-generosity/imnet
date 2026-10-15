@@ -49,11 +49,11 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
   return (
     <TwoColumn right={<SuggestedOrgs title={myCauses.length ? "Suggested in your causes" : "Add to your network"} orgs={suggested} signedIn />}>
       <Panel className="p-4 sm:p-6">
-        <h1 className="font-sans text-xl font-semibold tracking-normal">Following</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="h-page">Following</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
           {myCauses.length ? `${plural(myCauses.length, "cause")}, ${plural(orgs.length, "organization")} and ${plural(people.length, "person", "people")}.` : "Pick the causes you care about to shape this page."} Only you see this.
         </p>
-        <h2 className="mt-5 mb-2 text-sm font-semibold">Your causes</h2>
+        <h2 className="h-sub mt-5 mb-2">Your causes</h2>
         <CauseGrid causes={causes} followed={myCauses} orgsByCause={orgsByCause} followingOrgIds={orgs.map((o) => o.id)} />
       </Panel>
 

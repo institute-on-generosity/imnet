@@ -45,8 +45,8 @@ export default async function NeedsPage({ searchParams }: PageProps<"/needs">) {
     <TwoColumn right={<Panel className="p-4 text-sm text-muted-foreground">Each org says how to help: a sign-up, a donate page or an email. &quot;I&apos;m interested&quot; tells only their team.</Panel>}>
       <Panel className="space-y-3 p-4">
         <div>
-          <h1 className="font-sans text-lg font-semibold tracking-normal">Ways to help</h1>
-          <p className="text-sm text-muted-foreground">What organizations are asking for right now. Newest first.</p>
+          <h1 className="h-page">Ways to help</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">What organizations are asking for right now. Newest first.</p>
         </div>
         <nav aria-label="Ways to help" className="inline-flex rounded-full bg-muted p-1 text-sm">
           {(Object.keys(SHOW) as Show[]).map((s) => (
@@ -61,7 +61,7 @@ export default async function NeedsPage({ searchParams }: PageProps<"/needs">) {
 
       {calls.length > 0 && (
         <section aria-labelledby="calls" className="space-y-3">
-          <h2 id="calls" className="px-1 font-sans text-lg font-semibold tracking-normal">
+          <h2 id="calls" className="px-1 h-section">
             {show === "volunteer" ? "Calls for volunteers" : show === "donate" ? "Calls for donations" : "Calls for volunteers and donations"}
           </h2>
           <Feed posts={calls} empty="" movedIds={movedIds} savedIds={savedIds} signedIn={!!userId} grantsByPost={grantsByPost} />
@@ -69,7 +69,7 @@ export default async function NeedsPage({ searchParams }: PageProps<"/needs">) {
       )}
 
       <section aria-labelledby="needs-list" className="space-y-3">
-        <h2 id="needs-list" className="px-1 font-sans text-lg font-semibold tracking-normal">Current needs</h2>
+        <h2 id="needs-list" className="px-1 h-section">Current needs</h2>
         <Panel className="px-4">
           {needs.length === 0 ? (
             <p className="py-6 text-sm text-muted-foreground">{active ? "No open needs for this cause. Try all causes." : "No open needs right now."}</p>

@@ -32,8 +32,8 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
   return (
     <TwoColumn>
       <Panel className="p-4">
-        <h1 className="font-sans text-lg font-semibold tracking-normal">Giving journal</h1>
-        <p className="text-sm text-muted-foreground">Your gifts and volunteer hours. Only you see this unless you choose to share totals.</p>
+        <h1 className="h-page">Giving journal</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">Your gifts and volunteer hours. Only you see this unless you choose to share totals.</p>
         <div className="mt-3 space-y-3 border-t pt-3">
           <DonorBadgeToggle on={!!profile?.donor_badge} />
           <GivingTotalsToggle on={!!profile?.show_giving_totals} />
@@ -42,7 +42,7 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
       </Panel>
 
       <Panel className="p-4">
-        <h2 className="mb-3 font-semibold">Log a gift</h2>
+        <h2 className="h-section mb-3">Log a gift</h2>
         {orgs.length === 0 ? (
           <p className="text-sm text-muted-foreground">Follow an organization to log gifts to it. <Link href="/" className="text-leaf underline">Explore</Link></p>
         ) : (
@@ -53,7 +53,7 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
       <Panel aria-labelledby="hours" className="p-4">
         <div className="mb-3 flex items-baseline justify-between">
           <div>
-            <h2 id="hours" className="font-semibold">Volunteer hours</h2>
+            <h2 id="hours" className="h-section">Volunteer hours</h2>
             <p className="text-xs text-muted-foreground">The organization&apos;s team sees shifts you log with them, so they can confirm them.</p>
           </div>
           {hours.length > 0 && <p className="text-sm text-muted-foreground">{hoursLabel(hours.reduce((a, h) => a + h.hours, 0))} logged</p>}
@@ -83,14 +83,14 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
       {years.map((y) => (
         <Panel key={y.year} aria-labelledby={`y-${y.year}`} className="p-4">
           <div className="flex items-baseline justify-between">
-            <h2 id={`y-${y.year}`} className="font-semibold">{y.year}</h2>
-            <p className="font-heading text-2xl font-semibold tabular-nums">{formatUsd(y.total)}</p>
+            <h2 id={`y-${y.year}`} className="h-section">{y.year}</h2>
+            <p className="font-heading text-2xl font-semibold">{formatUsd(y.total)}</p>
           </div>
           <ul className="mt-2 space-y-1 text-sm">
             {y.orgs.map((o) => (
               <li key={o.slug} className="flex justify-between gap-4">
                 <Link href={`/o/${o.slug}`} className="truncate hover:underline">{o.name}</Link>
-                <span className="tabular-nums text-muted-foreground">{formatUsd(o.total)}</span>
+                <span className=" text-muted-foreground">{formatUsd(o.total)}</span>
               </li>
             ))}
           </ul>
@@ -102,7 +102,7 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
                   {g.org.name}
                   {g.note && <span className="text-muted-foreground">: {g.note}</span>}
                 </span>
-                <span className="tabular-nums">{formatUsd(g.amount_usd)}</span>
+                <span className="">{formatUsd(g.amount_usd)}</span>
                 <DeleteGift id={g.id} label={`${formatUsd(g.amount_usd)} to ${g.org.name}`} />
               </li>
             ))}

@@ -17,8 +17,8 @@ export default async function SavedPage() {
   return (
     <TwoColumn>
       <Panel className="p-4">
-        <h1 className="font-sans text-lg font-semibold tracking-normal">Saved</h1>
-        <p className="text-sm text-muted-foreground">Only you can see this list.</p>
+        <h1 className="h-page">Saved</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">Only you can see this list.</p>
       </Panel>
       <Feed
         posts={posts}

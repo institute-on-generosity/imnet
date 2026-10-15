@@ -43,7 +43,7 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 sm:px-6">
       <div className="flex items-center gap-3">
-        <h1 className="flex-1 text-2xl font-semibold">{org.name}</h1>
+        <h1 className="h-page flex-1">{org.name}</h1>
         <Link href={`/o/${org.slug}`} className="text-sm underline">View public profile</Link>
       </div>
 

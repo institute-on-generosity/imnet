@@ -20,7 +20,7 @@ export default async function InvitePage({ params, searchParams }: PageProps<"/i
   return (
     <div className="mx-auto max-w-md px-4">
       <Panel className="space-y-4 p-6">
-        <h1 className="text-2xl font-semibold">Join {invite.org_name}</h1>
+        <h1 className="h-page">Join {invite.org_name}</h1>
         {invite.accepted ? (
           <p className="text-muted-foreground">This invite has already been used.</p>
         ) : userId ? (

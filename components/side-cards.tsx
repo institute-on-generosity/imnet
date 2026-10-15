@@ -33,7 +33,7 @@ export function ViewerCard({ viewer, extras }: { viewer: Viewer; extras: ViewerE
           {viewer.bio && <p className="mt-1 text-sm leading-snug">{viewer.bio}</p>}
           {viewer.location && <p className="mt-0.5 text-xs text-muted-foreground">{viewer.location}</p>}
           {anchor && (
-            <Link href={`/o/${anchor.slug}`} className="mt-3 flex items-center gap-2 text-sm font-semibold hover:underline">
+            <Link href={`/o/${anchor.slug}`} className="mt-3 flex items-center gap-2 text-sm font-medium hover:underline">
               <OrgMark org={anchor} size="sm" /><span className="min-w-0 truncate">{anchor.name}</span>
             </Link>
           )}
@@ -43,15 +43,15 @@ export function ViewerCard({ viewer, extras }: { viewer: Viewer; extras: ViewerE
       <Panel>
         <dl className="space-y-2 px-4 py-3 text-sm">
           <div className="flex items-baseline justify-between gap-2">
-            <dt className="font-semibold">Given this year</dt>
-            <dd><Link href="/giving" className="font-semibold text-leaf tabular-nums hover:underline">{formatUsd(extras.givenThisYear)}</Link></dd>
+            <dt className="text-muted-foreground">Given this year</dt>
+            <dd><Link href="/giving" className="font-semibold text-leaf hover:underline">{formatUsd(extras.givenThisYear)}</Link></dd>
           </div>
           <div className="flex items-baseline justify-between gap-2">
-            <dt className="font-semibold">Volunteer hours</dt>
+            <dt className="text-muted-foreground">Volunteer hours</dt>
             <dd><Link href="/giving#hours" className="font-semibold text-leaf hover:underline">{hoursLabel(extras.hoursThisYear).replace(/ hours?$/, "")}</Link></dd>
           </div>
           <div className="flex items-baseline justify-between gap-2">
-            <dt className="font-semibold">Following</dt>
+            <dt className="text-muted-foreground">Following</dt>
             <dd><Link href="/following" className="font-semibold text-leaf hover:underline">{viewer.following}</Link></dd>
           </div>
         </dl>
@@ -82,7 +82,7 @@ export function ViewerCard({ viewer, extras }: { viewer: Viewer; extras: ViewerE
           { href: "/needs", label: "Ways to help", Icon: HandHelping },
           { href: "/giving", label: "Giving journal", Icon: NotebookPen },
         ].map(({ href, label, Icon }) => (
-          <Link key={href} href={href} className="flex items-center gap-3 px-4 py-2 text-sm font-semibold hover:bg-muted">
+          <Link key={href} href={href} className="flex items-center gap-3 px-4 py-2 text-sm font-medium hover:bg-muted">
             <Icon className="size-4 text-muted-foreground" aria-hidden />{label}
           </Link>
         ))}
@@ -107,7 +107,7 @@ export function SuggestedOrgs({ title, orgs, signedIn }: { title: string; orgs: 
   if (orgs.length === 0) return null
   return (
     <Panel className="p-4">
-      <h2 className="font-sans text-base font-semibold tracking-normal">{title}</h2>
+      <h2 className="h-rail">{title}</h2>
       <ul className="mt-3 space-y-3">
         {orgs.map((org) => (
           <li key={org.id} className="flex items-center gap-3">

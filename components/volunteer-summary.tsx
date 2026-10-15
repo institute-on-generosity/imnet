@@ -12,7 +12,7 @@ const sinceLabel = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("
 export function VolunteerSummaryPanel({ summary, isOwn }: { summary: VolunteerSummary; isOwn: boolean }) {
   return (
     <Panel aria-labelledby="volunteering" className="p-4 sm:p-6">
-      <h2 id="volunteering" className="flex items-center gap-2 font-sans text-lg font-semibold tracking-normal">
+      <h2 id="volunteering" className="flex items-center gap-2 h-section">
         <Clock className="size-5 text-leaf" aria-hidden />Volunteering
       </h2>
       <p className="mt-3 font-heading text-4xl font-semibold">{hoursLabel(summary.total)}</p>

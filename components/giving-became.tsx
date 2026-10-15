@@ -10,7 +10,7 @@ export function GivingBecame({ funds, isOwn }: { funds: { foundation: OrgSummary
   if (funds.length === 0) return null
   return (
     <Panel className="p-4 sm:p-6">
-      <h2 className="font-sans text-lg font-semibold tracking-normal">What {isOwn ? "my" : "their"} giving became</h2>
+      <h2 className="h-section">What {isOwn ? "my" : "their"} giving became</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Confirmed grants from funds {isOwn ? "I give" : "they give"} through. Pooled: the fund&apos;s record, not one gift.
       </p>

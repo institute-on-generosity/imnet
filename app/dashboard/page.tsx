@@ -19,11 +19,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 sm:px-6">
-      <h1 className="text-2xl font-semibold">For nonprofits</h1>
+      <h1 className="h-page">For nonprofits</h1>
 
       {orgs.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-medium">Your organizations</h2>
+          <h2 className="h-section">Your organizations</h2>
           {orgs.map((o) => (
             <Link key={o.id} href={`/dashboard/${o.id}`} className="block">
               <Card className="hover:bg-muted/50"><CardHeader><CardTitle>{o.name}</CardTitle></CardHeader></Card>
@@ -34,7 +34,7 @@ export default async function DashboardPage() {
 
       {(claims ?? []).length > 0 && (
         <section className="space-y-2">
-          <h2 className="font-medium">Your claims</h2>
+          <h2 className="h-section">Your claims</h2>
           <ul className="text-sm">
             {claims!.map((c) => <li key={c.id}>{c.org_name}: <span className="text-muted-foreground">{c.status}</span></li>)}
           </ul>
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
       )}
 
       <section className="space-y-3">
-        <h2 className="font-medium">Claim your nonprofit</h2>
+        <h2 className="h-section">Claim your nonprofit</h2>
         <Card>
           <CardContent className="pt-6">
             <ClaimForm />

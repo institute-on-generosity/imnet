@@ -13,7 +13,7 @@ export function NeedsPanel({ needs, interestIds, signedIn }: { needs: Need[]; in
   if (needs.length === 0) return null
   return (
     <Panel aria-labelledby="needs" className="p-4 sm:p-6">
-      <h2 id="needs" className="font-sans text-lg font-semibold tracking-normal">Current needs</h2>
+      <h2 id="needs" className="h-section">Current needs</h2>
       <ul className="mt-3 divide-y border-y">
         {needs.map((n) => <NeedRow key={n.id} need={n} interested={interestIds.has(n.id)} signedIn={signedIn} />)}
       </ul>
