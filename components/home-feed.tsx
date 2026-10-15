@@ -5,7 +5,7 @@ import { OlderPosts } from "@/components/older-posts"
 import { decodeCursor } from "@/lib/cursor"
 import { feedHref } from "@/lib/feed-href"
 import { Feed } from "@/components/post-card"
-import { Panel, ThreeColumn } from "@/components/shell"
+import { ThreeColumn } from "@/components/shell"
 import { UpcomingEvents } from "@/components/events-panel"
 import { CallsCard } from "@/components/calls-card"
 import { JoinCard, ViewerCard } from "@/components/side-cards"
@@ -57,16 +57,11 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
     >
       {userId && !followingOnly && <Suspense fallback={null}><Composer userId={userId} /></Suspense>}
       <h1 className="sr-only">{followingOnly ? "From organizations you follow" : "What giving made possible"}</h1>
-      <Panel>
-        <div className="p-2.5">
-          <OrgTypeFilter active={orgType} cause={cause} basePath={basePath} donors={!followingOnly} />
-        </div>
-        {orgType !== "donor" && (
-          <div className="border-t p-2.5">
-            <CauseFilter causes={causes} active={cause} type={orgType} basePath={basePath} />
-          </div>
-        )}
-      </Panel>
+      {/* F-097: filters are a toolbar on the page, not another card between you and the posts. */}
+      <div className="space-y-2 py-1">
+        <OrgTypeFilter active={orgType} cause={cause} basePath={basePath} donors={!followingOnly} />
+        {orgType !== "donor" && <CauseFilter causes={causes} active={cause} type={orgType} basePath={basePath} />}
+      </div>
       <Feed posts={posts} empty={empty} movedIds={movedIds} savedIds={savedIds} signedIn={!!userId} grantsByPost={grantsByPost} context={context} />
       <OlderPosts
         olderHref={next ? feedHref(basePath, { cause, type: orgType, before: next }) : null}

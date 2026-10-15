@@ -41,20 +41,24 @@ export function EventRow({ event: e, going, signedIn, compact }: RowProps) {
     )
   }
   return (
+    // F-097: the date leads (it's what you plan around), then the title, then who and where.
     <li className="group relative flex gap-3 py-3.5">
-      {org ? (
-        <span className="mt-1.5 shrink-0"><OrgMark org={org} /></span>
-      ) : (
-        <DateTile iso={e.starts_at} className="mt-1.5" />
-      )}
+      <DateTile iso={e.starts_at} className="mt-[3px]" />
       <div className="min-w-0 flex-1">
         <Link href={`/e/${e.id}`} className="font-semibold group-hover:underline after:absolute after:inset-0">{e.title}</Link>
-        <p className="text-sm text-muted-foreground">
-          <LocalTime iso={e.starts_at} />
-          {org && <>, <Link href={`/o/${org.slug}`} className="relative hover:underline">{org.name}</Link></>}
+        <p className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+          <LocalTime iso={e.starts_at} format="time" />
+          {org && (
+            <>
+              <span aria-hidden>·</span>
+              <Link href={`/o/${org.slug}`} className="relative flex min-w-0 items-center gap-1.5 hover:underline">
+                <OrgMark org={org} size="xs" /><span className="truncate">{org.name}</span>
+              </Link>
+            </>
+          )}
         </p>
-        <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5 shrink-0" aria-hidden />{e.location}</p>
-        {e.detail && <p className="mt-1 text-sm">{e.detail}</p>}
+        <p className="mt-0.5 flex items-center gap-1 text-sm text-faint"><MapPin className="size-3.5 shrink-0" aria-hidden />{e.location}</p>
+        {e.detail && <p className="mt-1.5 text-sm">{e.detail}</p>}
       </div>
       <div className="relative h-fit"><ToggleSignal kind="rsvp" id={e.id} on={going} signedIn={signedIn} label={`to ${e.title}`} /></div>
     </li>
