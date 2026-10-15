@@ -50,7 +50,7 @@ export default async function NotificationsPage({ searchParams }: PageProps<"/no
       <MarkSeen />
       <Panel>
         <div className="border-b px-4 pt-3 pb-3">
-          <h1 className="font-sans text-lg font-semibold tracking-normal">Notifications</h1>
+          <h1 className="h-page">Notifications</h1>
           {present.length > 1 && (
             <nav aria-label="Filter notifications" className="mt-3 flex gap-2 overflow-x-auto">
               {present.map((k) => (

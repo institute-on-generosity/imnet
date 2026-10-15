@@ -9,7 +9,7 @@ const host = (url: string) => new URL(url).hostname.replace(/^www\./, "")
 // Right-column cards: the proof next to the story. Compact, scannable, sourced.
 
 export function RailHeading({ children, id }: { children: React.ReactNode; id?: string }) {
-  return <h2 id={id} className="font-sans text-base font-semibold tracking-normal">{children}</h2>
+  return <h2 id={id} className="h-rail">{children}</h2>
 }
 
 // Impact figures, big, each footnoted to its source (no source, no stat).

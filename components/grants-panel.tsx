@@ -16,7 +16,7 @@ export function GrantsPanel({ org, grants }: { org: Pick<Org, "org_type" | "name
 
   return (
     <Panel className="p-4 sm:p-6">
-      <h2 className="font-sans text-lg font-semibold tracking-normal">{isFoundation ? "Grantees" : "Funded by"}</h2>
+      <h2 className="h-section">{isFoundation ? "Grantees" : "Funded by"}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {grants.length === 0
           ? "No confirmed grants yet."

@@ -142,15 +142,47 @@
   html {
     @apply font-sans;
   }
+  /* Headings default to the UI sans (F-095). Serif is for identity: page titles, names, big
+     numbers and story text, opted into with h-page / font-heading. */
   h1,
   h2,
   h3 {
-    @apply font-heading tracking-tight text-balance;
+    @apply font-sans font-semibold text-balance;
   }
   a,
   button {
     @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring;
   }
+}
+
+/* F-095 type hierarchy. One scale for the whole site:
+   page title (serif) > section title > side-column title > sub-label. */
+@utility h-page {
+  font-family: var(--font-story), ui-serif, Georgia, serif;
+  font-size: 1.75rem;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+@utility h-section {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.125rem;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+@utility h-rail {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+@utility h-sub {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--muted-foreground);
 }
 
 /* Story text: the voice of the network */

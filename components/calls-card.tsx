@@ -19,7 +19,7 @@ export function CallsCard({ volunteer, donate, cause }: { volunteer: Call[]; don
   const all = `/needs?show=${tab}${cause ? `&cause=${cause}` : ""}`
   return (
     <Panel aria-labelledby="calls-card" className="p-4">
-      <h2 id="calls-card" className="font-sans text-base font-semibold tracking-normal">Calls to help</h2>
+      <h2 id="calls-card" className="h-rail">Calls to help</h2>
       <div role="tablist" aria-label="Kind of help" className="mt-2.5 grid grid-cols-2 rounded-lg bg-muted p-0.5 text-xs font-medium">
         {(["volunteer", "donate"] as const).map((t) => (
           <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}

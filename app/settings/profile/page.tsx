@@ -20,7 +20,7 @@ export default async function EditProfilePage() {
   return (
     <TwoColumn right={<Panel className="p-4 text-sm text-muted-foreground">Everything here is public on your profile. Your giving journal and what you save stay private.</Panel>}>
       <Panel className="p-4 sm:p-6">
-        <h1 className="font-sans text-lg font-semibold tracking-normal">Edit profile</h1>
+        <h1 className="h-page">Edit profile</h1>
         <ProfileEditor profile={profile} causes={causes} selected={(mine ?? []).map((c) => c.cause_slug)} />
       </Panel>
     </TwoColumn>

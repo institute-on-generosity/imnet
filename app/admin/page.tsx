@@ -23,10 +23,10 @@ export default async function AdminPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 sm:px-6">
-      <h1 className="text-2xl font-semibold">Admin</h1>
+      <h1 className="h-page">Admin</h1>
 
       <section className="space-y-3">
-        <h2 className="font-medium">Pending claims ({claims?.length ?? 0})</h2>
+        <h2 className="h-section">Pending claims ({claims?.length ?? 0})</h2>
         {(claims ?? []).map((c) => (
           <Card key={c.id}>
             <CardHeader><CardTitle className="flex items-center gap-2">{c.org_name} <OrgTypeBadge type={c.org_type} /></CardTitle></CardHeader>
@@ -53,7 +53,7 @@ export default async function AdminPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-medium">Open reports ({reports?.length ?? 0})</h2>
+        <h2 className="h-section">Open reports ({reports?.length ?? 0})</h2>
         <ul className="space-y-1 text-sm">
           {(reports ?? []).map((r) => (
             <li key={r.id}><a href={`/p/${r.post_id}`} className="underline">Post</a>: {r.reason}</li>

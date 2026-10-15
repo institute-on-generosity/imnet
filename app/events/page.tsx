@@ -18,8 +18,8 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
     <TwoColumn right={<Panel className="p-4 text-sm text-muted-foreground">Your RSVP is private: only you and the host&apos;s team see it.</Panel>}>
       <Panel className="space-y-3 p-4">
         <div>
-          <h1 className="font-sans text-lg font-semibold tracking-normal">Events</h1>
-          <p className="text-sm text-muted-foreground">Volunteer days and gatherings, soonest first.</p>
+          <h1 className="h-page">Events</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">Volunteer days and gatherings, soonest first.</p>
         </div>
         <CauseFilter causes={causes} active={active} basePath="/events" />
       </Panel>

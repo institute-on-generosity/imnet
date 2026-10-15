@@ -54,13 +54,13 @@ export default async function EventPage({ params }: PageProps<"/e/[id]">) {
         <>
           {more.length > 0 && (
             <Panel className="p-4">
-              <h2 className="font-sans text-base font-semibold tracking-normal">More from {event.org.name}</h2>
+              <h2 className="h-rail">More from {event.org.name}</h2>
               <ul className="mt-1 divide-y">{more.map((e) => <EventRow key={e.id} event={e} going={rsvpIds.has(e.id)} signedIn={!!userId} compact />)}</ul>
             </Panel>
           )}
           {related.length > 0 && (
             <Panel className="p-4">
-              <h2 className="font-sans text-base font-semibold tracking-normal">More in {causeName ?? "this cause"}</h2>
+              <h2 className="h-rail">More in {causeName ?? "this cause"}</h2>
               <ul className="mt-1 divide-y">{related.map((e) => <EventRow key={e.id} event={e} going={rsvpIds.has(e.id)} signedIn={!!userId} compact />)}</ul>
               <Link href={`/events?cause=${cause}`} className="mt-2 block text-sm font-semibold text-leaf hover:underline">See all events</Link>
             </Panel>
@@ -80,7 +80,7 @@ export default async function EventPage({ params }: PageProps<"/e/[id]">) {
         <div className="px-4 pb-5 sm:px-6">
           <DateTile iso={event.starts_at} className="relative -mt-8 size-16 bg-card shadow-sm [&>span:first-child]:text-xs [&>span:last-child]:text-2xl [&>span:last-child]:leading-[20px]" />
           {past && <p className="mt-3 w-fit rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">This event has ended</p>}
-          <h1 className="mt-3 text-3xl font-semibold">{event.title}</h1>
+          <h1 className="mt-3 font-heading text-3xl font-semibold tracking-tight">{event.title}</h1>
           <p className="mt-1 flex items-center gap-2 text-muted-foreground">
             Event by
             <Link href={`/o/${event.org.slug}`} className="inline-flex items-center gap-1.5 font-medium text-foreground hover:underline">
@@ -119,13 +119,13 @@ export default async function EventPage({ params }: PageProps<"/e/[id]">) {
 
       {event.detail && (
         <Panel aria-labelledby="about-event" className="p-4 sm:p-6">
-          <h2 id="about-event" className="font-sans text-lg font-semibold tracking-normal">About this event</h2>
+          <h2 id="about-event" className="h-section">About this event</h2>
           <p className="story mt-2 whitespace-pre-line">{event.detail}</p>
         </Panel>
       )}
 
       <Panel aria-labelledby="host" className="p-4 sm:p-6">
-        <h2 id="host" className="font-sans text-lg font-semibold tracking-normal">Hosted by</h2>
+        <h2 id="host" className="h-section">Hosted by</h2>
         <div className="mt-3 flex items-start gap-3">
           <span className="mt-1 shrink-0"><OrgMark org={event.org} /></span>
           <div className="min-w-0 flex-1">
