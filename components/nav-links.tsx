@@ -28,7 +28,7 @@ export function NavLinks({ items }: { items: Item[] }) {
               prefetch
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex h-14 min-w-11 flex-col items-center justify-center gap-0.5 border-b-2 px-1.5 text-xs whitespace-nowrap transition-colors sm:min-w-20 sm:px-2",
+                "flex h-14 min-w-9 flex-col items-center justify-center gap-0.5 border-b-2 px-0.5 text-xs sm:min-w-11 sm:px-1.5 whitespace-nowrap transition-colors md:min-w-20 md:px-2",
                 active ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
@@ -39,7 +39,7 @@ export function NavLinks({ items }: { items: Item[] }) {
                 {item.dot && <Suspense fallback={null}><Dot on={item.dot} /></Suspense>}
               </span>
               {/* Phones: icons only (labels stay for screen readers). */}
-              <span className="sr-only sm:not-sr-only">{item.label}</span>
+              <span className="sr-only md:not-sr-only">{item.label}</span>
 
             </Link>
           </li>

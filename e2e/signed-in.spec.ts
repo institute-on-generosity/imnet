@@ -736,6 +736,17 @@ test("F-090: a volunteer call says who has volunteered there (confirmed hours, o
   expect(await shown()).toBe(hidden + 1) // F-082 confirmed VOL's hours; counted only when opted in
 })
 
+test("B-031: no page scrolls sideways, from small phones to narrow desktop windows", async () => {
+  for (const path of ["/", "/following", "/notifications"]) {
+    await page.goto(path)
+    for (const width of [320, 360, 660, 700, 1024]) {
+      await page.setViewportSize({ width, height: 900 })
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth), { message: `${path} at ${width}px` }).toBeLessThanOrEqual(width)
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 720 })
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

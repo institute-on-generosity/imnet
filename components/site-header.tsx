@@ -25,8 +25,8 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-20 border-b bg-card">
-      <div className={`${CONTAINER} flex items-center gap-3`}>
-        <Link href="/" className="font-heading text-2xl font-semibold tracking-tight" aria-label="imnet home">imnet</Link>
+      <div className={`${CONTAINER} flex items-center gap-2 sm:gap-3`}>
+        <Link href="/" className="font-heading text-xl font-semibold tracking-tight sm:text-2xl" aria-label="imnet home">imnet</Link>
 
         <HeaderSearch />
 

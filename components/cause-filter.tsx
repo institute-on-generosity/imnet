@@ -37,7 +37,7 @@ export function OrgTypeFilter({ active, cause, basePath, donors = true }: { acti
     ...(donors ? [{ type: "donor" as const, label: "Donors" }] : []),
   ]
   return (
-    <nav aria-label="Filter by who's posting" className="inline-flex shrink-0 rounded-full bg-muted p-1 text-sm">
+    <nav aria-label="Filter by who's posting" className="inline-flex max-w-full shrink-0 overflow-x-auto rounded-full bg-muted p-1 text-sm [scrollbar-width:none]">
       {options.map((o) => {
         const on = active === o.type
         return (
@@ -45,7 +45,7 @@ export function OrgTypeFilter({ active, cause, basePath, donors = true }: { acti
             key={o.label}
             href={feedHref(basePath, { cause, type: o.type })}
             aria-current={on ? "page" : undefined}
-            className={cn("rounded-full px-3 py-1 transition-colors", on ? "bg-card font-medium shadow-sm" : "text-muted-foreground hover:text-foreground")}
+            className={cn("shrink-0 rounded-full px-2.5 py-1 transition-colors sm:px-3", on ? "bg-card font-medium shadow-sm" : "text-muted-foreground hover:text-foreground")}
           >
             {o.label}
           </Link>
