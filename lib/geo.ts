@@ -1,7 +1,7 @@
 // F-101 Distances for the Near you map, computed in the browser (your location never leaves it).
 
 export type LatLng = { lat: number; lng: number }
-export type MapKind = "volunteer" | "event" | "community"
+export type MapKind = "volunteer" | "event" | "community" | "nonprofit" | "foundation"
 export type MapItem = LatLng & {
   id: string
   kind: MapKind

@@ -2,17 +2,20 @@
 
 import type { LayerGroup, Map as LeafletMap, Marker } from "leaflet"
 import "leaflet/dist/leaflet.css"
-import { CalendarDays, HandHelping, LocateFixed, MapPin, UsersRound } from "lucide-react"
+import { Building2, CalendarDays, HandHelping, Landmark, LocateFixed, MapPin, UsersRound } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "@/components/intent-link"
 import { formatMiles, milesBetween, RADII, US_CENTER, type LatLng, type MapItem, type MapKind } from "@/lib/geo"
 import { cn } from "@/lib/utils"
 import { OrgMark } from "./org-mark"
 
-const KINDS: Record<MapKind, { label: string; color: string; Icon: typeof MapPin }> = {
-  volunteer: { label: "Volunteer", color: "#1f7a5a", Icon: HandHelping },
-  event: { label: "Events", color: "#14213d", Icon: CalendarDays },
-  community: { label: "Communities", color: "#d99a00", Icon: UsersRound },
+// label: the filter chip; one: a single item in the list.
+const KINDS: Record<MapKind, { label: string; one: string; color: string; Icon: typeof MapPin }> = {
+  volunteer: { label: "Volunteer", one: "Volunteer", color: "#1f7a5a", Icon: HandHelping },
+  event: { label: "Events", one: "Event", color: "#14213d", Icon: CalendarDays },
+  community: { label: "Communities", one: "Community", color: "#d99a00", Icon: UsersRound },
+  nonprofit: { label: "Nonprofits", one: "Nonprofit", color: "#0e7490", Icon: Building2 },
+  foundation: { label: "Foundations", one: "Foundation", color: "#7c3aed", Icon: Landmark },
 }
 type Origin = { at: LatLng; label: string; source: "device" | "profile" | "none" }
 
@@ -20,7 +23,7 @@ type Origin = { at: LatLng; label: string; source: "device" | "profile" | "none"
 // location", stays in this browser, and distances are computed here.
 export function NearMap({ items, profile }: { items: MapItem[]; profile: { at: LatLng; label: string } | null }) {
   const [origin, setOrigin] = useState<Origin>(profile ? { ...profile, source: "profile" } : { at: US_CENTER, label: "the United States", source: "none" })
-  const [kinds, setKinds] = useState<Set<MapKind>>(new Set(["volunteer", "event", "community"]))
+  const [kinds, setKinds] = useState<Set<MapKind>>(new Set(["volunteer", "event", "community", "nonprofit", "foundation"]))
   const [radius, setRadius] = useState<number | null>(profile ? 25 : null)
   const [selected, setSelected] = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
@@ -124,7 +127,7 @@ export function NearMap({ items, profile }: { items: MapItem[]; profile: { at: L
                       <Link href={i.href} className="line-clamp-2 text-sm leading-snug font-semibold after:absolute after:inset-0 hover:underline">{i.title}</Link>
                       <p className="truncate text-xs text-muted-foreground">{i.subtitle}</p>
                       <p className="mt-0.5 flex items-center gap-1.5 text-xs text-faint">
-                        <span className="size-1.5 rounded-full" style={{ backgroundColor: K.color }} aria-hidden />{K.label === "Communities" ? "Community" : K.label === "Events" ? "Event" : "Volunteer"}
+                        <span className="size-1.5 rounded-full" style={{ backgroundColor: K.color }} aria-hidden />{K.one}
                         <span aria-hidden>·</span>{formatMiles(i.miles)}{i.place && <><span aria-hidden>·</span><span className="truncate">{i.place}</span></>}
                       </p>
                     </div>
@@ -182,8 +185,25 @@ export function LeafletView({ origin, items, radius, selected, onSelect }: { ori
       mod.marker([origin.at.lat, origin.at.lng], { icon: mod.divIcon({ className: "", html: '<span class="near-you" aria-hidden="true"></span>', iconSize: [18, 18], iconAnchor: [9, 9] }), keyboard: false, interactive: false }).addTo(g)
       if (radius !== null) mod.circle([origin.at.lat, origin.at.lng], { radius: radius * 1609.34, color: "#1f7a5a", weight: 1, opacity: 0.5, fillOpacity: 0.04 }).addTo(g)
     }
+    // Places in the same city share a point; fan them out in a small ring (in pixels, so it holds
+    // at every zoom) so each pin stays visible and clickable.
+    const spots = new Map<string, string[]>()
+    for (const i of items) { const k = `${i.lat.toFixed(4)},${i.lng.toFixed(4)}`; spots.set(k, [...(spots.get(k) ?? []), i.id]) }
+    const fan = (i: MapItem): [number, number] => {
+      const group = spots.get(`${i.lat.toFixed(4)},${i.lng.toFixed(4)}`)!
+      if (group.length < 2) return [0, 0]
+      // Fill concentric rings, each holding as many 40px slots as fit around it.
+      let idx = group.indexOf(i.id), ring = 0
+      for (;;) {
+        const r = 24 + ring * 38, cap = Math.max(4, Math.floor((2 * Math.PI * r) / 40))
+        const inRing = Math.min(cap, group.length - (group.indexOf(i.id) - idx))
+        if (idx < cap) { const t = (idx / inRing) * Math.PI * 2 - Math.PI / 2; return [Math.round(Math.cos(t) * r), Math.round(Math.sin(t) * r)] }
+        idx -= cap; ring++
+      }
+    }
     for (const i of items) {
       const color = KINDS[i.kind].color
+      const [dx, dy] = fan(i)
       // F-103: a picture pin (community icon or org logo) ringed in its kind's color; a dot otherwise.
       // Image URLs come from communityIconSrc/logoSrc, which only build our own storage URLs.
       const html = i.image
@@ -192,7 +212,7 @@ export function LeafletView({ origin, items, radius, selected, onSelect }: { ori
       const size = i.image ? 36 : 22
       const mk = mod.marker([i.lat, i.lng], {
         title: i.title,
-        icon: mod.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] }),
+        icon: mod.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2 - dx, size / 2 - dy] }),
       })
       const popup = document.createElement("div")
       popup.className = "near-popup"

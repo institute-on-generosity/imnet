@@ -537,6 +537,9 @@ test("F-101: Near you lists volunteering, events and communities by distance fro
   const list = page.getByRole("region", { name: "Near you" })
   await expect(list.getByRole("link", { name: "Oakland creek cleanup crew" })).toBeVisible()
   await expect(list.getByText(/^Here$|\d+(\.\d)? mi/).first()).toBeVisible()
+  // F-105: the organizations themselves, foundations and nonprofits, are on the map too.
+  await expect(list.getByRole("link", { name: "Bayside Neighbors Fund", exact: true })).toBeVisible()
+  await expect(list.getByRole("link", { name: "Pine Street Tutoring", exact: true })).toBeVisible()
   // Far-away places stay off the 25-mile list.
   await expect(list.getByRole("link", { name: "Portland weekend food volunteers" })).toHaveCount(0)
   // Filters: hide communities.

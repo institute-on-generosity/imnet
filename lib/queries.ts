@@ -1029,11 +1029,13 @@ export async function getMapItems(): Promise<MapItem[]> {
   const today = now.slice(0, 10)
   const ORG = "id, slug, name, logo_url, org_type, location, lat, lng, org_causes(cause_slug)"
   type O = { id: string; slug: string; name: string; logo_url: string | null; org_type: "nonprofit" | "foundation"; location: string | null; lat: number | null; lng: number | null; org_causes: { cause_slug: string }[] }
-  const [calls, needs, events, groups] = await Promise.all([
+  const [calls, needs, events, groups, orgs] = await Promise.all([
     supabase.from("posts").select(`id, body, action_date, org:orgs!posts_org_id_fkey!inner(${ORG})`).eq("kind", "call_volunteers").not("org.lat", "is", null).or(`action_date.is.null,action_date.gte.${today}`).order("created_at", { ascending: false }).limit(200),
     supabase.from("org_needs").select(`id, title, kind, org:orgs!inner(${ORG})`).is("met_at", null).eq("kind", "volunteer").not("org.lat", "is", null).limit(200),
     supabase.from("org_events").select(`id, title, starts_at, location, lat, lng, org:orgs!inner(${ORG})`).gt("starts_at", now).not("lat", "is", null).order("starts_at").limit(300),
     supabase.from("groups").select("id, slug, name, description, cause_slug, icon_path, location, lat, lng").not("lat", "is", null).limit(300),
+    // F-105: the organizations themselves, nonprofits and foundations.
+    supabase.from("orgs").select("id, slug, name, mission, logo_url, org_type, location, lat, lng, org_causes(cause_slug)").eq("status", "verified").not("lat", "is", null).limit(500),
   ])
   const counts = await memberCounts(((groups.data ?? []) as { id: string }[]).map((g) => g.id))
   const logo = (o: O) => ({ name: o.name, logo_url: o.logo_url, org_type: o.org_type })
@@ -1051,6 +1053,9 @@ export async function getMapItems(): Promise<MapItem[]> {
   for (const g of (groups.data ?? []) as { id: string; slug: string; name: string; description: string | null; cause_slug: string | null; icon_path: string | null; location: string | null; lat: number; lng: number }[]) {
     const m = counts.get(g.id) ?? 0
     items.push({ id: `community-${g.id}`, kind: "community", title: g.name, subtitle: `Community · ${m} ${m === 1 ? "member" : "members"}`, href: `/communities/${g.slug}`, place: g.location, lat: g.lat, lng: g.lng, cause: g.cause_slug, image: communityIconSrc(g.icon_path) })
+  }
+  for (const o of (orgs.data ?? []) as unknown as (O & { mission: string | null })[]) {
+    items.push({ id: `org-${o.id}`, kind: o.org_type, title: o.name, subtitle: o.mission ?? (o.org_type === "foundation" ? "Foundation" : "Nonprofit"), href: `/o/${o.slug}`, place: o.location, lat: o.lat!, lng: o.lng!, logo: logo(o), image: logoSrc(o.logo_url), cause: o.org_causes[0]?.cause_slug ?? null })
   }
   return items
 }
