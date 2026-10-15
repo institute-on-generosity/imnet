@@ -1,8 +1,9 @@
 import { z } from "zod"
 
 const SignalSchema = z.object({
-  kind: z.enum(["follow", "supporter", "moved", "saved", "rsvp", "interest"]),
-  id: z.uuid(),
+  kind: z.enum(["follow", "follow_person", "supporter", "moved", "saved", "rsvp", "interest"]),
+  // Any well-formed id (demo ids use a non-RFC variant, which z.uuid() rejects); RLS decides access.
+  id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
   on: z.boolean(),
 })
 

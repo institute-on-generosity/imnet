@@ -18,7 +18,7 @@ const POST_FIELDS = `id, org_id, author_id, kind, body, embed_url, embed_credit,
 // The posting org (null for donor posts). posts has two foreign keys to orgs, so name the one.
 const ORG = "org:orgs!posts_org_id_fkey(id, slug, name, logo_url, org_type)"
 
-type FeedOpts = { cause?: string; orgIds?: string[]; orgType?: OrgType | "donor"; reportGrantIds?: string[]; before?: Cursor }
+type FeedOpts = { cause?: string; orgIds?: string[]; personIds?: string[]; orgType?: OrgType | "donor"; reportGrantIds?: string[]; before?: Cursor }
 
 // Chronological, no engagement ranking (design principle #4). One page plus a cursor for the next.
 // reportGrantIds: also include grant reports on these grants (portfolio of followed foundations).
@@ -40,10 +40,15 @@ export async function getFeedPage(opts: FeedOpts = {}): Promise<{ posts: Post[];
     .limit(PAGE_SIZE + 1)
 
   if (cause) query = query.eq("org.org_causes.cause_slug", cause)
-  if (opts.orgIds && opts.reportGrantIds?.length) {
-    const orgs = opts.orgIds.length ? `org_id.in.(${opts.orgIds.join(",")}),` : ""
-    query = query.or(`${orgs}reports_grant_id.in.(${opts.reportGrantIds.join(",")})`)
-  } else if (opts.orgIds) query = query.in("org_id", opts.orgIds)
+  // Following feed: followed orgs, grant reports from followed foundations' grantees, and posts by followed people.
+  if (opts.orgIds) {
+    const any = [
+      opts.orgIds.length ? `org_id.in.(${opts.orgIds.join(",")})` : null,
+      opts.reportGrantIds?.length ? `reports_grant_id.in.(${opts.reportGrantIds.join(",")})` : null,
+      opts.personIds?.length ? `and(org_id.is.null,author_id.in.(${opts.personIds.join(",")}))` : null,
+    ].filter(Boolean)
+    query = any.length ? query.or(any.join(",")) : query.eq("id", "00000000-0000-0000-0000-000000000000")
+  }
   if (opts.orgType === "donor") query = query.is("org_id", null)
   else if (opts.orgType) query = query.eq("org.org_type", opts.orgType)
   if (opts.before) query = query.or(olderThan(opts.before))
@@ -154,15 +159,16 @@ export type Viewer = {
 export const getViewer = cache(async (userId: string | null): Promise<Viewer | null> => {
   if (!userId) return null
   const supabase = await createClient()
-  const [{ data: profile }, { count }, { data: causes }] = await Promise.all([
+  const [{ data: profile }, { count }, { count: people }, { data: causes }] = await Promise.all([
     supabase.from("profiles").select("id, handle, display_name, avatar_url").eq("id", userId).single(),
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("user_id", userId),
+    supabase.from("person_follows").select("*", { count: "exact", head: true }).eq("follower_id", userId),
     supabase.from("profile_causes").select("cause:causes(slug, name)").eq("user_id", userId),
   ])
   if (!profile) return null
   return {
     ...profile,
-    following: count ?? 0,
+    following: (count ?? 0) + (people ?? 0),
     causes: ((causes ?? []) as unknown as { cause: Cause }[]).map((c) => c.cause),
   }
 })
@@ -765,3 +771,10 @@ export async function getCallPosts(opts: { kinds: ("call_volunteers" | "call_don
   const { data } = await q
   return (data ?? []) as unknown as Post[]
 }
+
+// People the viewer follows (F-086). Cached per request.
+export const getFollowedPersonIds = cache(async (userId: string): Promise<string[]> => {
+  const supabase = await createClient()
+  const { data } = await supabase.from("person_follows").select("followee_id").eq("follower_id", userId)
+  return (data ?? []).map((r) => r.followee_id)
+})

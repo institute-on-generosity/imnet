@@ -782,3 +782,14 @@ describe("calls for volunteers and donations", () => {
     expect((await t.as(DONOR, `insert into posts (author_id, body, kind, action_url) values ('${DONOR}', 'x', 'call_donations', 'https://x.example.org')`)).error).toMatch(/check constraint/)
   })
 })
+
+describe("following people", () => {
+  it("F-086: you follow people as yourself, not yourself; follows are private", async () => {
+    expect((await t.as(DONOR, `insert into person_follows (followee_id) values ('${STAFF}')`)).error).toBeUndefined()
+    expect((await t.as(DONOR, `insert into person_follows (followee_id) values ('${DONOR}')`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into person_follows (follower_id, followee_id) values ('${ADMIN}', '${STAFF}')`)).error).toMatch(/row-level security/)
+    expect((await t.as(STAFF, `select * from person_follows`)).rows).toHaveLength(0) // the followed person can't see it
+    expect((await t.as(null, `select * from person_follows`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(DONOR, `select followee_id from person_follows`)).rows).toEqual([{ followee_id: STAFF }])
+  })
+})

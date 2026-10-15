@@ -689,6 +689,19 @@ test("F-084: staff post a call for donations with a goal; it shows the goal and 
   await expect(post.getByRole("link", { name: /Donate/ })).toHaveAttribute("href", "https://example.org/kitchen/give")
 })
 
+test("F-086: follow a person from their profile; their posts reach Following; unfollow", async () => {
+  const [author] = await sql`select p.handle, p.id, x.body from posts x join profiles p on p.id = x.author_id where x.org_id is null order by x.created_at desc limit 1`
+  await page.goto(`/u/${author.handle}`)
+  await page.locator("main").getByRole("button", { name: "Follow", exact: true }).first().click()
+  await expect(page.locator("main").getByRole("button", { name: "Following" }).first()).toBeVisible()
+  await expect.poll(async () => (await sql`select count(*)::int n from person_follows where follower_id = ${userId} and followee_id = ${author.id}`)[0].n).toBe(1)
+  await page.goto("/following")
+  await expect(page.locator("article").filter({ hasText: author.body.slice(0, 40) }).first()).toBeVisible()
+  await page.goto(`/u/${author.handle}`)
+  await page.locator("main").getByRole("button", { name: "Following" }).first().click()
+  await expect.poll(async () => (await sql`select count(*)::int n from person_follows where follower_id = ${userId} and followee_id = ${author.id}`)[0].n).toBe(0)
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

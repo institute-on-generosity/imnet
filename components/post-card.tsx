@@ -1,7 +1,7 @@
 import { Earth } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "@/components/intent-link"
-import { getFollowedOrgIds, getFollowerCounts, getLatestComments } from "@/lib/queries"
+import { getFollowedOrgIds, getFollowedPersonIds, getFollowerCounts, getLatestComments } from "@/lib/queries"
 import type { Comment } from "@/lib/comments"
 import { getUserId } from "@/lib/supabase/server"
 import type { Grant, OrgSummary, Post } from "@/lib/types"
@@ -104,6 +104,7 @@ export function PostCard({ post, full = false, moved = false, saved = false, sig
                 <Earth className="size-3" aria-label="Public" />
               </p>
             </div>
+            {following !== undefined && post.author_id && <FollowLink orgId={post.author_id} orgName={post.author.display_name ?? post.author.handle} following={following} person />}
           </>
         ) : null}
         <PostMenu postId={post.id} signedIn={signedIn} canDelete={canDelete} />
@@ -138,12 +139,13 @@ type FeedProps = { posts: Post[]; empty: React.ReactNode; movedIds?: Set<string>
 export async function Feed({ posts, empty, movedIds, savedIds, signedIn = false, grantsByPost, context, hideFollow }: FeedProps & { hideFollow?: boolean }) {
   if (posts.length === 0) return <Panel className="p-6 text-muted-foreground">{empty}</Panel>
   const userId = signedIn ? await getUserId() : null
-  const [counts, followed, previews] = await Promise.all([
+  const [counts, followed, followedPeople, previews] = await Promise.all([
     getFollowerCounts(posts.flatMap((p) => (p.org_id ? [p.org_id] : []))),
     userId ? getFollowedOrgIds(userId) : Promise.resolve([]),
+    userId ? getFollowedPersonIds(userId) : Promise.resolve([]),
     getLatestComments(posts.map((p) => p.id)),
   ])
-  const followedSet = new Set(followed)
+  const followedSet = new Set([...followed, ...followedPeople])
   return (
     <div className="space-y-3">
       {posts.map((post) => (
@@ -156,7 +158,7 @@ export async function Feed({ posts, empty, movedIds, savedIds, signedIn = false,
           grants={grantsByPost?.get(post.id)}
           context={context?.get(post.id)}
           followers={post.org_id ? (counts.get(post.org_id) ?? 0) : undefined}
-          following={userId && !hideFollow && post.org_id ? followedSet.has(post.org_id) : undefined}
+          following={!userId || hideFollow ? undefined : post.org_id ? followedSet.has(post.org_id) : post.author_id && post.author_id !== userId ? followedSet.has(post.author_id) : undefined}
           canDelete={!!userId && !post.org_id && post.author_id === userId}
           preview={previews.get(post.id)}
         />

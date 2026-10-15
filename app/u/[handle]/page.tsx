@@ -5,11 +5,12 @@ import { OrgMark } from "@/components/org-mark"
 import { PersonAvatar } from "@/components/person-avatar"
 import { FoundationMark } from "@/components/org-type-badge"
 import { GivingBecame } from "@/components/giving-became"
-import { getActivity, getDonorOrgs, getGivingSummary, getMovedPostIds, getVolunteerSummary, getOrgGrants, getPersonPosts, getSavedPostIds } from "@/lib/queries"
+import { getActivity, getDonorOrgs, getFollowedPersonIds, getGivingSummary, getMovedPostIds, getVolunteerSummary, getOrgGrants, getPersonPosts, getSavedPostIds } from "@/lib/queries"
 import { Feed } from "@/components/post-card"
 import { GivingSummaryPanel } from "@/components/giving-summary"
 import { VolunteerSummaryPanel } from "@/components/volunteer-summary"
-import { CalendarDays, HandHeart, MapPin, Pencil } from "lucide-react"
+import { CalendarDays, HandHeart, MapPin, Pencil, Plus } from "lucide-react"
+import { FollowButton } from "@/components/follow-button"
 import { buttonVariants } from "@/components/ui/button"
 import { personCoverSrc } from "@/lib/cover"
 import { ago } from "@/lib/comments"
@@ -49,6 +50,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   const name = profile.display_name ?? `@${profile.handle}`
   const viewerId = await getUserId()
   const isOwn = viewerId === profile.id
+  const followsThem = viewerId && !isOwn ? (await getFollowedPersonIds(viewerId)).includes(profile.id) : false
   const [funds, gaveTo, activity, totals, posts, volunteering] = await Promise.all([
     Promise.all(supports.filter((o) => o.org_type === "foundation").map(async (foundation) => ({ foundation, grants: await getOrgGrants(foundation) }))),
     getDonorOrgs(profile.id),
@@ -87,6 +89,8 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
           <div className="flex items-end justify-between gap-3">
             <PersonAvatar name={name} avatarUrl={profile.avatar_url} size="xl" className="-mt-12 block border-4 border-card bg-card sm:-mt-14" />
             {isOwn && <Link href="/settings/profile" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3" })}><Pencil aria-hidden />Edit profile</Link>}
+            {!isOwn && viewerId && <div className="mt-3"><FollowButton orgId={profile.id} orgName={name} following={followsThem} person /></div>}
+            {!isOwn && !viewerId && <Link href="/login" className={buttonVariants({ size: "sm", className: "mt-3" })}><Plus aria-hidden />Follow</Link>}
           </div>
           <h1 className="mt-3 text-3xl font-semibold">{name}</h1>
           {profile.bio && <p className="mt-1 max-w-prose text-lg leading-snug text-foreground/80">{profile.bio}</p>}

@@ -706,6 +706,25 @@ update volunteer_hours set declined_at = served_on + interval '4 days'
  where confirmed_at is null and served_on < current_date - 10 and abs(hashtext(id::text || 'decline')) % 100 < 4;
 """)
 
+# --- Person follows (F-086) ---------------------------------------------------------------
+out.append("""-- F-086 demo: people follow 0 to 6 others, favoring people who post.
+insert into person_follows (follower_id, followee_id, created_at)
+select p.id, f.id, now() - make_interval(days => abs(hashtext(p.id::text || f.id::text)) % 200)
+  from profiles p
+  cross join lateral (
+    select q.id from profiles q
+     where q.id::text like '00000000-0000-4000-c000-%' and q.id <> p.id
+     order by (exists (select 1 from posts x where x.author_id = q.id and x.org_id is null)) desc, md5(p.id::text || q.id::text)
+     limit abs(hashtext(p.id::text || 'pf')) % 7
+  ) f
+ where p.id::text like '00000000-0000-4000-c000-%'
+on conflict do nothing;
+insert into person_follows (follower_id, followee_id)
+select d.id, x.author_id from profiles d, (select distinct author_id from posts where org_id is null and author_id is not null order by author_id limit 4) x
+ where d.handle = 'dana_demo' and x.author_id <> d.id
+on conflict do nothing;
+""")
+
 # Private reactions and saves, and 30 days of analytics
 out.append(f"""-- "Moved" and saves: random donors on random posts (private; only totals show to staff).
 insert into moved (user_id, post_id)

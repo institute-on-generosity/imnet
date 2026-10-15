@@ -10,7 +10,7 @@ import { UpcomingEvents } from "@/components/events-panel"
 import { CallsCard } from "@/components/calls-card"
 import { JoinCard, SuggestedOrgs, ViewerCard } from "@/components/side-cards"
 import { portfolioContext } from "@/lib/portfolio"
-import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getFollowedOrgs, getGrantsForPosts, getCallPosts, getMovedPostIds, getMyRsvpIds, getUpcomingEvents, getSavedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
+import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getFollowedOrgs, getFollowedPersonIds, getGrantsForPosts, getCallPosts, getMovedPostIds, getMyRsvpIds, getUpcomingEvents, getSavedPostIds, getSuggestedOrgs, getViewer } from "@/lib/queries"
 import { createClient } from "@/lib/supabase/server"
 import { getUserId } from "@/lib/supabase/server"
 import type { FeedType } from "@/lib/feed-href"
@@ -22,12 +22,12 @@ type Props = { cause?: string; orgType?: FeedType; followingOnly?: boolean; base
 export async function HomeFeed({ cause, orgType, followingOnly, basePath, before }: Props) {
   const cursor = decodeCursor(before)
   const userId = await getUserId()
-  const orgIds = followingOnly && userId ? await getFollowedOrgIds(userId) : undefined
+  const [orgIds, personIds] = followingOnly && userId ? await Promise.all([getFollowedOrgIds(userId), getFollowedPersonIds(userId)]) : [undefined, undefined]
   // Following a foundation also brings in its grantees' grant reports (its portfolio).
   const reportGrantIds = orgIds?.length ? await getConfirmedGrantIds(await foundationsAmong(orgIds)) : []
   const [causes, page] = await Promise.all([
     getCauses(),
-    orgIds && orgIds.length === 0 ? Promise.resolve({ posts: [], next: null }) : getFeedPage({ cause, orgIds, orgType, reportGrantIds, before: cursor ?? undefined }),
+    orgIds && orgIds.length === 0 && !personIds?.length ? Promise.resolve({ posts: [], next: null }) : getFeedPage({ cause, orgIds, personIds, orgType, reportGrantIds, before: cursor ?? undefined }),
   ])
   const { posts, next } = page
   const ids = posts.map((p) => p.id)
@@ -35,9 +35,9 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
   const context = followingOnly ? portfolioContext(posts, new Set(orgIds)) : undefined
 
   const empty = followingOnly
-    ? orgIds?.length
-      ? "The nonprofits you follow haven't posted for this cause yet."
-      : "You don't follow anyone yet. Pick nonprofits and foundations from Add to your feed."
+    ? orgIds?.length || personIds?.length
+      ? "The people and organizations you follow haven't posted for this filter yet."
+      : "You don't follow anyone yet. Follow nonprofits, foundations and people from their profiles or posts."
     : orgType === "donor"
       ? "No posts from donors yet. Start one above."
       : "No stories for this cause yet. Try another cause."

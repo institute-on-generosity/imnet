@@ -8,8 +8,9 @@ import { sendSignal } from "@/lib/send-signal"
 import { cn } from "@/lib/utils"
 import { IconTip } from "./icon-tip"
 
-// full: labeled button (profiles). icon: round + / check button (sidebars, lists).
-export function FollowButton({ orgId, orgName, following, variant = "full" }: { orgId: string; orgName?: string; following: boolean; variant?: "full" | "icon"; slug?: string }) {
+// full: labeled button (profiles). icon: round + / check button (sidebars, lists). person: follow a
+// person (F-086); orgId is then their profile id.
+export function FollowButton({ orgId, orgName, following, variant = "full", person }: { orgId: string; orgName?: string; following: boolean; variant?: "full" | "icon"; slug?: string; person?: boolean }) {
   const [optimistic, setOptimistic] = useOptimistic(following)
   const [, startTransition] = useTransition()
   const router = useRouter()
@@ -17,7 +18,7 @@ export function FollowButton({ orgId, orgName, following, variant = "full" }: { 
   const toggle = () =>
     startTransition(async () => {
       setOptimistic(!optimistic)
-      await sendSignal({ kind: "follow", id: orgId, on: !optimistic }).catch(() => {})
+      await sendSignal({ kind: person ? "follow_person" : "follow", id: orgId, on: !optimistic }).catch(() => {})
       router.refresh()
     })
 
