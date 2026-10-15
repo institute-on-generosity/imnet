@@ -49,7 +49,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
       right={
         <div className="sticky top-20 space-y-3">
           <Suspense fallback={<RailSkeleton rows={4} />}><RightRail userId={userId} cause={cause} /></Suspense>
-          <p className="px-4 text-xs leading-relaxed text-muted-foreground">
+          <p className="px-4 text-xs leading-relaxed text-faint">
             Your feed: newest first, never ranked by popularity.
           </p>
         </div>

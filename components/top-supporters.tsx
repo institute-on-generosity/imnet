@@ -24,7 +24,7 @@ export function TopSupporters({ supporters, where = "rail" }: { supporters: Supp
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-[11px] leading-snug text-muted-foreground">
+      <p className="mt-3 text-[11px] leading-snug text-faint">
         Foundations: confirmed grants.{hasPeople && " People: self-reported by donors who chose to share."}
       </p>
     </Panel>

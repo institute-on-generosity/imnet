@@ -30,7 +30,7 @@ export function ImpactCard({ stats, where = "rail" }: { stats: ImpactStat[]; whe
           </div>
         ))}
       </dl>
-      <ol className="mt-3 space-y-0.5 border-t pt-2 text-[11px] text-muted-foreground">
+      <ol className="mt-3 space-y-0.5 border-t pt-2 text-[11px] text-faint">
         {sources.map((src, i) => (
           <li key={src.url} className="truncate">
             <span className="text-leaf">{i + 1}</span>{" "}
