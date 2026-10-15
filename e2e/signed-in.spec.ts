@@ -773,14 +773,15 @@ test("F-100: join a community, post in its chat, and message a member directly",
   await page.getByRole("link", { name: /Youth mentors/ }).first().click()
   await expect(page).toHaveURL(/\/communities\/youth-mentors/)
   await expect(page.getByRole("log")).toHaveCount(0) // the chat is for members
-  await page.getByRole("button", { name: "Join" }).click()
+  await page.getByRole("button", { name: "Join community" }).first().click()
 
   const box = page.getByLabel("Message Youth mentors")
   await box.fill(`Hello mentors ${id}`)
   await box.press("Enter")
   await expect(page.getByRole("log").getByText(`Hello mentors ${id}`)).toBeVisible()
 
-  await page.getByRole("link", { name: /^Members/ }).click()
+  // F-104: members are listed beside the chat (no tab).
+  await expect(page.getByRole("region", { name: "Members" })).toBeVisible()
   await page.getByRole("button", { name: /^Message / }).first().click()
   await expect(page).toHaveURL(/\/messages\/[0-9a-f-]{36}/)
   const dm = page.getByLabel(/^Message /)

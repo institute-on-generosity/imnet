@@ -519,7 +519,8 @@ test("F-100: communities are public to browse; their chats are for members only"
   await page.goto("/communities")
   await expect(page.getByRole("heading", { name: "Communities", level: 1 })).toBeVisible()
   await page.getByRole("link", { name: /Monthly givers circle/ }).click()
-  await expect(page.getByRole("link", { name: "Join", exact: true })).toHaveAttribute("href", /\/login\?next=\/communities\/monthly-givers-circle/)
+  await expect(page.getByRole("link", { name: "Join community" }).first()).toHaveAttribute("href", /\/login\?next=\/communities\/monthly-givers-circle/)
+  await expect(page.getByRole("region", { name: "Members" }).getByText("to see who's in it")).toBeVisible() // member lists need sign-in
   await expect(page.getByRole("log")).toHaveCount(0)
   await expect(page.getByText("tip changed everything")).toHaveCount(0) // no chat content leaks
   await page.goto("/messages")

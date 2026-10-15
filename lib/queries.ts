@@ -915,7 +915,7 @@ export async function getOrgDonations(orgId: string): Promise<OrgDonations> {
 // ---------------------------------------------------------------------------
 // F-100 Groups and messages
 // ---------------------------------------------------------------------------
-export type Group = { id: string; slug: string; name: string; description: string | null; cause_slug: string | null; icon_path: string | null; created_at: string }
+export type Group = { id: string; slug: string; name: string; description: string | null; cause_slug: string | null; icon_path: string | null; location?: string | null; created_at: string }
 export type GroupCard = Group & { members: number; lastAt: string | null; unread: boolean }
 export type ChatAuthor = { id: string; handle: string; display_name: string | null; avatar_url: string | null }
 export type ChatMessage = { id: string; body: string; created_at: string; author: ChatAuthor }
@@ -966,7 +966,7 @@ export async function getDiscoverGroups(userId: string | null, cause?: string): 
 
 export async function getGroupBySlug(slug: string, userId: string | null) {
   const supabase = await createClient()
-  const { data } = await supabase.from("groups").select("id, slug, name, description, cause_slug, icon_path, created_at").eq("slug", slug).maybeSingle()
+  const { data } = await supabase.from("groups").select("id, slug, name, description, cause_slug, icon_path, location, created_at").eq("slug", slug).maybeSingle()
   if (!data) return null
   const group = data as Group
   const [counts, me] = await Promise.all([
