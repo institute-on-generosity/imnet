@@ -20,6 +20,13 @@ export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Pr
   // Plain state so the pill flips on click and stays (B-032); the server is told in the background.
   const [mine, setMine] = useState(() => new Set(followed))
   const [open, setOpen] = useState<string | null>(null)
+  // F-098: causes you follow come first and the rest wait behind "Explore more causes", so the
+  // page leads with your network, not a wall of cards. Order is fixed at load (no jumping).
+  const [firstFollowed] = useState(() => new Set(followed))
+  const [showAll, setShowAll] = useState(followed.length === 0)
+  const ordered = [...causes.filter((c) => firstFollowed.has(c.slug)), ...causes.filter((c) => !firstFollowed.has(c.slug))]
+  const visible = showAll ? ordered : ordered.filter((c) => firstFollowed.has(c.slug) || c.slug === open)
+  const hidden = ordered.length - visible.length
   const following = new Set(followingOrgIds)
   const toggle = (slug: string) => {
     const on = mine.has(slug)
@@ -32,7 +39,7 @@ export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Pr
   // the card's row fill in before it, so the panel opens right under that row at any column count.
   return (
     <ul className="grid grid-flow-row-dense grid-cols-2 gap-2 sm:grid-cols-3">
-      {causes.map((c) => {
+      {visible.map((c) => {
         const on = mine.has(c.slug)
         const expanded = open === c.slug
         const orgs = orgsByCause[c.slug] ?? []
@@ -92,6 +99,15 @@ export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Pr
           </Fragment>
         )
       })}
+      {(hidden > 0 || (showAll && firstFollowed.size > 0)) && (
+        <li className="col-span-2 sm:col-span-3">
+          <button type="button" onClick={() => setShowAll(!showAll)} aria-expanded={showAll}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-2.5 text-sm font-medium text-muted-foreground hover:border-foreground/30 hover:text-foreground">
+            {showAll ? "Show only causes you follow" : `Explore ${hidden} more ${hidden === 1 ? "cause" : "causes"}`}
+            <ChevronDown className={cn("size-4 transition-transform", showAll && "rotate-180")} aria-hidden />
+          </button>
+        </li>
+      )}
     </ul>
   )
 }

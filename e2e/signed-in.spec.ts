@@ -706,6 +706,8 @@ test("F-088: Following: follow a cause, open it to see its organizations, switch
   await sql`delete from profile_causes where user_id = ${userId} and cause_slug = 'animals'`
   await page.goto("/following")
   await expect(page.getByRole("heading", { name: "Your causes", exact: true })).toBeVisible()
+  const more = page.getByRole("button", { name: /^Explore \d+ more causes?/ })
+  if (await more.isVisible()) await more.click() // F-098: causes you don't follow wait behind this
   await page.getByRole("button", { name: "Follow Animals" }).click()
   await expect(page.getByRole("button", { name: "Following Animals" })).toHaveAttribute("aria-pressed", "true")
   await expect.poll(async () => (await sql`select count(*)::int n from profile_causes where user_id = ${userId} and cause_slug = 'animals'`)[0].n).toBe(1)

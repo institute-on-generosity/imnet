@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import { followersLabel } from "@/lib/followers"
 import Link from "@/components/intent-link"
 import { getFollowedOrgIds, getFollowedPersonIds, getFollowerCounts, getLatestComments, getPostCounts, type PostCounts } from "@/lib/queries"
 import type { Comment } from "@/lib/comments"
@@ -29,7 +30,6 @@ const relative = (iso: string) => {
   if (days < 30) return `${Math.floor(days / 7)}w`
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
-const followersLabel = (n: number) => `${n.toLocaleString("en-US")} ${n === 1 ? "follower" : "followers"}`
 
 // context: the followed foundation this post appears for (portfolio), shown above the header.
 // following: undefined hides the header's Follow button (signed out, or on the org's own page).
@@ -157,17 +157,19 @@ function Spotlight({ org }: { org: OrgSummary & { mission: string | null } }) {
 // tone so it sits below the name and the headline. Every post is public, so no globe.
 function Meta({ post, lead, kind }: { post: Post; lead?: string; kind?: React.ReactNode }) {
   const parts: React.ReactNode[] = []
-  if (lead) parts.push(<span key="lead" className="truncate">{lead}</span>)
-  if (kind) parts.push(<span key="kind" className="shrink-0">{kind}</span>)
+  if (lead) parts.push(<span key="lead" className="max-sm:hidden">{lead}</span>)
+  if (kind) parts.push(<span key="kind" className="[&>span]:inline-flex">{kind}</span>)
   parts.push(
-    <Link key="time" href={`/p/${post.id}`} aria-label={`${relative(post.created_at)} ago, open post`} className="shrink-0 hover:text-leaf hover:underline">
+    <Link key="time" href={`/p/${post.id}`} aria-label={`${relative(post.created_at)} ago, open post`} className="hover:text-leaf hover:underline">
       <time dateTime={post.created_at}>{relative(post.created_at)}</time>
     </Link>,
   )
-  if (post.edited_at) parts.push(<span key="edited" className="shrink-0" title={`Edited ${new Date(post.edited_at).toLocaleString("en-US")}`}>Edited</span>)
+  if (post.edited_at) parts.push(<span key="edited" title={`Edited ${new Date(post.edited_at).toLocaleString("en-US")}`}>Edited</span>)
+  // B-040: one inline line that truncates at the end on phones (a flex row squeezed the count to nothing).
   return (
-    <p className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-faint">
-      {parts.flatMap((part, i) => (i ? [<span key={`dot${i}`} aria-hidden>·</span>, part] : [part]))}
+    <p className="mt-0.5 truncate text-xs text-faint">
+      {/* Phones: type and time matter more than the follower count, so the count steps aside. */}
+      {parts.flatMap((part, i) => (i ? [<span key={`dot${i}`} aria-hidden className={lead && i === 1 ? "max-sm:hidden" : undefined}> · </span>, part] : [part]))}
     </p>
   )
 }

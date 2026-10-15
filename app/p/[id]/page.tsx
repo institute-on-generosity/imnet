@@ -9,7 +9,9 @@ import { TrackView } from "@/components/track-view"
 import { buttonVariants } from "@/components/ui/button"
 import { loadComments } from "@/app/actions"
 import { getFollowedOrgIds, getFollowerCounts, getGrantsForPosts, getMovedPostIds, getPost, getPostCounts, getSavedPostIds } from "@/lib/queries"
-import { getUserId } from "@/lib/supabase/server"
+import { createClient, getUserId } from "@/lib/supabase/server"
+import { FollowButton } from "@/components/follow-button"
+import { followersLabel } from "@/lib/followers"
 
 export async function generateMetadata({ params }: PageProps<"/p/[id]">): Promise<Metadata> {
   const { id } = await params
@@ -31,19 +33,22 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
     getFollowerCounts(post.org_id ? [post.org_id] : []), userId ? getFollowedOrgIds(userId) : Promise.resolve([]), getPostCounts([post.id]),
   ])
   const moved = movedIds.has(post.id)
+  const mission = post.org ? (await (await createClient()).from("orgs").select("mission").eq("id", post.org.id).maybeSingle()).data?.mission : null
 
   return (
     <TwoColumn
       right={
         post.org ? (
+          // F-098: who's behind the post, enough to decide to follow without leaving.
           <Panel className="p-4">
-            <div className="flex items-center gap-3">
-              <OrgMark org={post.org} />
-              <Link href={`/o/${post.org.slug}`} className="font-semibold hover:underline">{post.org.name}</Link>
+            <OrgMark org={post.org} size="lg" />
+            <Link href={`/o/${post.org.slug}`} className="mt-3 block h-rail hover:underline">{post.org.name}</Link>
+            {mission && <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{mission}</p>}
+            <p className="mt-1.5 text-xs text-faint">{followersLabel(counts.get(post.org.id) ?? 0)}</p>
+            <div className="mt-4 flex gap-2">
+              {userId && <div className="flex-1 [&>button]:w-full"><FollowButton orgId={post.org.id} following={followed.includes(post.org.id)} /></div>}
+              <Link href={`/o/${post.org.slug}`} className={buttonVariants({ variant: "outline", className: "flex-1" })}>View profile</Link>
             </div>
-            <Link href={`/o/${post.org.slug}`} className={buttonVariants({ variant: "outline", className: "mt-4 w-full" })}>
-              See their profile
-            </Link>
           </Panel>
         ) : post.author ? (
           <Panel className="p-4">
