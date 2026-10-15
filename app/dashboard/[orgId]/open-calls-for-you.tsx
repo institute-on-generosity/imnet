@@ -12,11 +12,11 @@ export function OpenCallsForYou({ calls }: { calls: Post[] }) {
     <Card>
       <CardHeader><CardTitle>Open calls for your causes</CardTitle></CardHeader>
       <CardContent className="space-y-3">
-        {calls.map((c) => (
+        {calls.flatMap((c) => !c.org ? [] : [(
           <div key={c.id} className="flex items-start gap-3 rounded-lg border p-3 text-sm">
-            <OrgMark org={c.org} />
+            <OrgMark org={c.org!} />
             <div className="min-w-0 flex-1">
-              <p className="font-medium">{c.org.name}</p>
+              <p className="font-medium">{c.org!.name}</p>
               <p className="line-clamp-2 text-muted-foreground">{c.body}</p>
               <p className="mt-1">
                 Apply by {formatDeadline(c.call_deadline!)}
@@ -25,7 +25,7 @@ export function OpenCallsForYou({ calls }: { calls: Post[] }) {
             </div>
             <Link href={`/p/${c.id}`} className="shrink-0 text-sm font-medium text-leaf hover:underline">Details</Link>
           </div>
-        ))}
+        )])}
         <Link href="/calls" className="inline-block text-sm font-medium text-muted-foreground hover:text-leaf hover:underline">See all open calls</Link>
       </CardContent>
     </Card>

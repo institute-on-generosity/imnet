@@ -1,5 +1,5 @@
 // Client side of /api/signals. keepalive lets the request finish after the page unloads.
-export async function sendSignal(signal: { kind: "follow" | "supporter" | "moved" | "saved" | "rsvp" | "interest"; id: string; on: boolean }) {
+export async function sendSignal(signal: { kind: "follow" | "follow_person" | "supporter" | "moved" | "saved" | "rsvp" | "interest"; id: string; on: boolean }) {
   const res = await fetch("/api/signals", {
     method: "POST",
     keepalive: true,

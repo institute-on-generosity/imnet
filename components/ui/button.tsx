@@ -2,9 +2,9 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
-// Optical alignment: the icon's side gets 2px less padding, because an icon's box is emptier than
-// text and equal padding makes the label look off-centre. Icons lead by default; mark a trailing
-// icon with data-icon="inline-end" (CSS can't see the text node to tell them apart).
+// Optical alignment (B-035, measured on rendered ink): lucide icons and this font carry about the
+// same side whitespace, so the icon's side gets just 1px less padding. Icons lead by default; mark
+// a trailing icon with data-icon="inline-end" (CSS can't see the text node to tell them apart).
 const baseButtonVariants = cva(
   "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
@@ -23,10 +23,10 @@ const baseButtonVariants = cva(
       },
       size: {
         default:
-          "h-8 gap-1.5 px-2.5 has-[>svg:not([data-icon=inline-end])]:pl-2 has-data-[icon=inline-end]:pr-2",
-        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-[>svg:not([data-icon=inline-end])]:pl-1.5 has-data-[icon=inline-end]:pr-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-[>svg:not([data-icon=inline-end])]:pl-1.5 has-data-[icon=inline-end]:pr-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-9 gap-1.5 px-2.5 has-[>svg:not([data-icon=inline-end])]:pl-2 has-data-[icon=inline-end]:pr-2",
+          "h-8 gap-1.5 px-2.5 has-[>svg:not([data-icon=inline-end])]:pl-[9px] has-data-[icon=inline-end]:pr-[9px] has-[>svg.lucide-plus:first-child]:pl-2",
+        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-[>svg:not([data-icon=inline-end])]:pl-[7px] has-data-[icon=inline-end]:pr-[7px] [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-[>svg:not([data-icon=inline-end])]:pl-[9px] has-data-[icon=inline-end]:pr-[9px] has-[>svg.lucide-plus:first-child]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
+        lg: "h-9 gap-1.5 px-2.5 has-[>svg:not([data-icon=inline-end])]:pl-[9px] has-data-[icon=inline-end]:pr-[9px] has-[>svg.lucide-plus:first-child]:pl-2",
         icon: "size-8",
         "icon-xs":
           "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",

@@ -179,7 +179,7 @@ PHOTO_POSTS = [
   "Holiday season starts early in the warehouse: 38 pallets out the door this week to 22 county pantries.",
   2.6,
   [
-   "20220919-da-tew-00501-dec439.webp"
+   "20170922-osec-lsc-0197-366252589-3642b5.webp"
   ]
  ],
  [
@@ -337,7 +337,7 @@ VIDEO_POSTS = [
   3.9,
   "crooked-river-23467104578",
   "A clear river flowing past rocks and fallen branches below cliffs",
-  "BLM Oregon &amp; Washington, Public domain, via Wikimedia Commons"
+  "BLM Oregon & Washington, Public domain, via Wikimedia Commons"
  ],
  [
   32,
@@ -346,7 +346,7 @@ VIDEO_POSTS = [
   5.7,
   "crooked-river-36648924083",
   "A wide river flowing past a grassy bank and a rocky slope",
-  "BLM Oregon &amp; Washington, Public domain, via Wikimedia Commons"
+  "BLM Oregon & Washington, Public domain, via Wikimedia Commons"
  ],
  [
   22,

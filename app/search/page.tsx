@@ -3,12 +3,15 @@ import { OrgMark } from "@/components/org-mark"
 import { PersonAvatar } from "@/components/person-avatar"
 import { OrgTypeBadge } from "@/components/org-type-badge"
 import { Panel, TwoColumn } from "@/components/shell"
-import { searchOrgs, searchPeople, searchPosts } from "@/lib/queries"
+import { getMyInterestIds, getMyRsvpIds, searchEvents, searchNeeds, searchOrgs, searchPeople, searchPosts } from "@/lib/queries"
+import { EventRow } from "@/components/events-panel"
+import { NeedRow } from "@/components/needs-panel"
+import { getUserId } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
 
 export const metadata = { title: "Search" }
 
-const TABS = { all: "All", orgs: "Organizations", people: "People", posts: "Posts" } as const
+const TABS = { all: "All", orgs: "Organizations", people: "People", posts: "Posts", events: "Events", needs: "Ways to help" } as const
 type Tab = keyof typeof TABS
 
 // One search box for organizations, people and post text (as on LinkedIn). Alphabetical or
@@ -18,13 +21,17 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
   const query = typeof q === "string" ? q : ""
   const tab: Tab = typeof type === "string" && type in TABS ? (type as Tab) : "all"
   const want = (t: Tab) => tab === "all" || tab === t
-  const [orgs, people, posts] = await Promise.all([
+  const [orgs, people, posts, events, needs, userId] = await Promise.all([
     want("orgs") ? searchOrgs(query) : [],
     want("people") ? searchPeople(query) : [],
     want("posts") ? searchPosts(query) : [],
+    want("events") ? searchEvents(query) : [],
+    want("needs") ? searchNeeds(query) : [],
+    getUserId(),
   ])
+  const [rsvpIds, interestIds] = await Promise.all([getMyRsvpIds(userId, events.map((e) => e.id)), getMyInterestIds(userId, needs.map((n) => n.id))])
   const limit = (n: number) => (tab === "all" ? n : 20)
-  const nothing = orgs.length + people.length + posts.length === 0
+  const nothing = orgs.length + people.length + posts.length + events.length + needs.length === 0
   const href = (t: Tab) => `/search?q=${encodeURIComponent(query)}${t === "all" ? "" : `&type=${t}`}`
 
   return (
@@ -35,7 +42,8 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
             type="search"
             name="q"
             defaultValue={query}
-            placeholder="Search organizations, people and posts"
+            placeholder="Search organizations, people, posts, events and needs"
+            autoFocus={!query}
             aria-label="Search"
             className="h-10 w-full rounded-md bg-muted px-3 outline-none focus:ring-2 focus:ring-ring"
           />
@@ -95,9 +103,13 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
           {posts.slice(0, limit(3)).map((p) => (
             <li key={p.id}>
               <Link href={`/p/${p.id}`} className="flex gap-3 px-4 py-3 hover:bg-muted/50">
-                <span className="mt-1 shrink-0"><OrgMark org={p.org} /></span>
+                {p.org ? (
+                  <span className="mt-1 shrink-0"><OrgMark org={p.org} /></span>
+                ) : (
+                  <PersonAvatar name={p.author?.display_name ?? p.author?.handle ?? "?"} avatarUrl={p.author?.avatar_url} size="lg" className="mt-1" />
+                )}
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold">{p.org.name}</p>
+                  <p className="text-sm font-semibold">{p.org?.name ?? p.author?.display_name ?? `@${p.author?.handle}`}</p>
                   <p className="line-clamp-2 text-sm text-muted-foreground">{p.body}</p>
                 </div>
               </Link>
@@ -105,15 +117,26 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
           ))}
         </Section>
       )}
+      {events.length > 0 && (
+        <Section padded title="Events" more={tab === "all" && events.length > 3 ? href("events") : undefined}>
+          {events.slice(0, limit(3)).map((e) => <EventRow key={e.id} event={e} going={rsvpIds.has(e.id)} signedIn={!!userId} />)}
+        </Section>
+      )}
+
+      {needs.length > 0 && (
+        <Section padded title="Ways to help" more={tab === "all" && needs.length > 3 ? href("needs") : undefined}>
+          {needs.slice(0, limit(3)).map((n) => <NeedRow key={n.id} need={n} interested={interestIds.has(n.id)} signedIn={!!userId} />)}
+        </Section>
+      )}
     </TwoColumn>
   )
 }
 
-function Section({ title, more, children }: { title: string; more?: string; children: React.ReactNode }) {
+function Section({ title, more, padded, children }: { title: string; more?: string; padded?: boolean; children: React.ReactNode }) {
   return (
-    <Panel aria-labelledby={`results-${title}`}>
-      <h2 id={`results-${title}`} className="border-b px-4 py-3 font-sans text-base font-semibold tracking-normal">{title}</h2>
-      <ul className="divide-y">{children}</ul>
+    <Panel aria-labelledby={`results-${title.toLowerCase().replace(/\W+/g, "-")}`}>
+      <h2 id={`results-${title.toLowerCase().replace(/\W+/g, "-")}`} className="border-b px-4 py-3 font-sans text-base font-semibold tracking-normal">{title}</h2>
+      <ul className={padded ? "divide-y px-4" : "divide-y"}>{children}</ul>
       {more && <Link href={more} className="block border-t px-4 py-2.5 text-center text-sm font-semibold text-muted-foreground hover:bg-muted">See all {title.toLowerCase()} results</Link>}
     </Panel>
   )

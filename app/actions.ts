@@ -16,7 +16,9 @@ import { logoPathIsValid } from "@/lib/logo"
 import { orgCoverPathIsValid, personCoverPath } from "@/lib/cover"
 import { parseNeedFields } from "@/lib/needs"
 import { parseFoundedYear, parsePrograms } from "@/lib/profile-fields"
+import { parseHoursFields } from "@/lib/volunteer"
 import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
+import { parseCallActionFields, type CallActionFields } from "@/lib/call-fields"
 import { todayISO } from "@/lib/open-calls"
 import { safeNext } from "@/lib/safe-next"
 import { escapeLike } from "@/lib/search"
@@ -173,7 +175,7 @@ export async function updateOrg(orgId: string, _: ActionState, form: FormData): 
 }
 
 const PostSchema = z.object({
-  kind: z.enum(["update", "impact_story", "ask", "open_call"]),
+  kind: z.enum(["update", "impact_story", "ask", "open_call", "call_volunteers", "call_donations"]),
   body: z.string().trim().min(1).max(5000),
   embed: z.string().optional(),
 })
@@ -217,6 +219,13 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
     call = parsedCall.fields
   }
 
+  let actionFields: CallActionFields | Record<string, never> = {}
+  if (parsed.data.kind === "call_volunteers" || parsed.data.kind === "call_donations") {
+    const a = parseCallActionFields(parsed.data.kind, { url: String(form.get("action_url") ?? ""), date: String(form.get("action_date") ?? ""), goal: String(form.get("goal_usd") ?? "") }, todayISO())
+    if ("error" in a) return fail(form, a.error)
+    actionFields = a.fields
+  }
+
   const reportsGrant = String(form.get("reports_grant_id") ?? "")
   if (reportsGrant && !/^[0-9a-f-]{36}$/.test(reportsGrant)) return fail(form, "Pick a grant from the list.")
 
@@ -234,6 +243,7 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
       beneficiary_consent: consent,
       reports_grant_id: reportsGrant || null,
       ...call,
+      ...actionFields,
     })
     .select("id")
     .single()
@@ -491,6 +501,13 @@ export async function setDonorBadge(on: boolean) {
   revalidatePath("/", "layout")
 }
 
+export async function setGivingTotals(on: boolean) {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("profiles").update({ show_giving_totals: on }).eq("id", userId)
+  revalidatePath("/", "layout")
+}
+
 export async function deleteGift(giftId: string) {
   await requireUser()
   const supabase = await createClient()
@@ -557,7 +574,12 @@ export async function loadComments(postId: string) {
   const userId = await getUserId()
   const post = await getPost(postId)
   if (!post) return null
-  const [comments, isStaff, viewer, donorHint] = await Promise.all([getComments(postId), isOrgStaff(userId, post.org_id), getViewer(userId), donorBadgeHint(userId, post.org_id)])
+  const [comments, isStaff, viewer, donorHint] = await Promise.all([
+    getComments(postId),
+    post.org_id ? isOrgStaff(userId, post.org_id) : false,
+    getViewer(userId),
+    post.org_id ? donorBadgeHint(userId, post.org_id) : false,
+  ])
   return {
     threads: thread(comments),
     isStaff,
@@ -626,4 +648,98 @@ export async function updateMyProfile(_: ActionState, form: FormData): Promise<A
   if (causes.length) await supabase.from("profile_causes").insert(causes.map((cause_slug) => ({ user_id: userId, cause_slug })))
   revalidatePath("/", "layout")
   redirect(`/u/${data.handle}`)
+}
+
+// ---------------------------------------------------------------------------
+// Donor posts (F-079): people post as themselves, optionally spotlighting an org
+// ---------------------------------------------------------------------------
+export async function createDonorPost(_: ActionState, form: FormData): Promise<ActionState> {
+  const userId = await requireUser()
+  const body = z.string().trim().min(1, "Write something first.").max(3000, "Keep it under 3,000 characters.").safeParse(form.get("body"))
+  if (!body.success) return fail(form, body.error.issues[0].message)
+  const about = String(form.get("about_org_id") ?? "")
+  if (about && !/^[0-9a-f-]{36}$/.test(about)) return fail(form, "Pick an organization from the list.")
+  const images = validateImages(`people/${userId}`, form.getAll("image_paths").map(String), form.getAll("image_alts").map(String))
+  if ("error" in images) return fail(form, images.error)
+  const consent = form.get("beneficiary_consent") === "on"
+  if (images.paths.length > 0 && !consent) return fail(form, "Confirm consent before posting photos.")
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("posts")
+    .insert({ author_id: userId, body: body.data, about_org_id: about || null, image_paths: images.paths, image_alts: images.alts, beneficiary_consent: consent })
+    .select("id")
+    .single()
+  if (error) return fail(form, error.message.includes("row-level security") ? "You can't spotlight that organization." : error.message)
+  revalidatePath("/", "layout")
+  return { ok: true, id: data.id, message: "Posted." }
+}
+
+export async function deleteMyPost(postId: string) {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("posts").delete().match({ id: postId, author_id: userId }).is("org_id", null)
+  revalidatePath("/", "layout")
+}
+
+// ---------------------------------------------------------------------------
+// Volunteer hours (F-081): private log; optional totals on the profile
+// ---------------------------------------------------------------------------
+export async function addHours(_: ActionState, form: FormData): Promise<ActionState> {
+  await requireUser()
+  const parsed = parseHoursFields(
+    { orgId: String(form.get("org_id") ?? ""), hours: String(form.get("hours") ?? ""), servedOn: String(form.get("served_on") ?? ""), note: String(form.get("note") ?? "") },
+    todayISO(),
+  )
+  if ("error" in parsed) return fail(form, parsed.error)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("volunteer_hours").insert(parsed.fields).select("id").single()
+  if (error) return fail(form, error.message)
+  revalidatePath("/giving")
+  return { ok: true, id: data.id, message: "Logged." }
+}
+
+export async function deleteHours(id: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("volunteer_hours").delete().eq("id", id)
+  revalidatePath("/giving")
+}
+
+export async function setVolunteerHours(on: boolean) {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("profiles").update({ show_volunteer_hours: on }).eq("id", userId)
+  revalidatePath("/", "layout")
+}
+
+export async function reviewHours(id: string, orgId: string, confirm: boolean) {
+  await requireUser()
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("review_volunteer_hours", { target: id, confirm })
+  if (error) throw error
+  revalidatePath(`/dashboard/${orgId}`)
+  revalidatePath("/", "layout")
+}
+
+// Local development only: one-click sign-in for the developer's own account. Works only when
+// DEV_LOGIN_EMAIL/DEV_LOGIN_PASSWORD are set (in .env.local) and Supabase is local.
+export async function devSignIn(next: string) {
+  const email = process.env.DEV_LOGIN_EMAIL, password = process.env.DEV_LOGIN_PASSWORD
+  const local = /\/\/(127\.0\.0\.1|localhost)[:/]/.test(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "")
+  if (!email || !password || !local) redirect("/login")
+  const supabase = await createClient()
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`)
+  redirect(safeNext(next))
+}
+
+// Follow or unfollow a cause (F-088): your causes shape the Following page and suggestions.
+export async function setCauseFollow(slug: string, on: boolean) {
+  const userId = await requireUser()
+  if (!/^[a-z-]{2,40}$/.test(slug)) return
+  const supabase = await createClient()
+  if (on) await supabase.from("profile_causes").upsert({ user_id: userId, cause_slug: slug }, { onConflict: "user_id,cause_slug", ignoreDuplicates: true })
+  else await supabase.from("profile_causes").delete().match({ user_id: userId, cause_slug: slug })
+  revalidatePath("/following")
+  revalidatePath("/", "layout")
 }

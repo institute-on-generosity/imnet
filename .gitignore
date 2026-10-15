@@ -48,3 +48,10 @@ pnpm-debug.log*
 *.local.csv
 
 /blob-report/
+
+# Local-only seed (personal dev account)
+supabase/seed_local*.sql
+
+# e2e Supabase stack (scripts/e2e-stack.sh) and its app build
+.e2e/
+.next-e2e/

@@ -15,6 +15,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import demo_more_orgs as more  # noqa: E402
 import demo_profiles as prof  # noqa: E402
 import demo_media as media  # noqa: E402
+import demo_donor_posts as dposts  # noqa: E402
+import demo_donor_photos as dphotos  # noqa: E402
+import demo_calls as calls  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "supabase", "seed_demo.sql")
@@ -468,6 +471,47 @@ for uid in r3.sample(new_people, 220):
                    f"{r3.choice([5, 10, 20, 25, 50, 50, 75, 100, 150, 250, 500])}, current_date - {r3.randint(1, 500)});")
 out.append("")
 
+# --- Donor posts (F-079): people spreading the word, many spotlighting an org --------------
+r5 = random.Random(20261025)
+def about_sql(about):
+    return f"'{oid(about)}'" if about else "null"
+authors = r5.sample(people, len(dposts.POSTS))
+out.append("insert into posts (author_id, kind, body, about_org_id, created_at) values")
+out.append(",\n".join(
+    f"  ('{a}', 'update', {q(body)}, {about_sql(about)}, now() - interval '{days * 24:.0f} hours')"
+    for a, (about, body, days) in zip(authors, dposts.POSTS)) + ";")
+out.append("")
+
+# Donor posts with photos (F-080), files in post-images/people/<author>/
+out.append("insert into posts (author_id, kind, body, about_org_id, image_paths, image_alts, image_credits, beneficiary_consent, created_at) values")
+out.append(",\n".join(
+    f"  ('{a}', 'update', {q(body)}, {about_sql(about)}, {arr(paths)}, {arr([credits[x]['alt'] for x in paths])}, "
+    f"{arr([credits[x]['credit'] for x in paths])}, true, now() - interval '{days * 24:.0f} hours')"
+    for a, about, body, days, paths in dphotos.POSTS) + ";")
+out.append("")
+
+# --- Calls for volunteers and donations (F-084), with the org's own photos and videos -------
+VIDEO_META = {}
+for n, kind, body, days, stem, alt, credit in VIDEO_POSTS:
+    VIDEO_META[(n, stem)] = (alt, credit)
+for n, kind, body, days, stem, alt, credit in media.VIDEO_POSTS:
+    VIDEO_META[(n, stem)] = (alt, credit)
+VIDEO_META[(1, "garden-harvest")] = ("Volunteers weeding and harvesting in a community garden", "USDA, public domain, via Wikimedia Commons")
+VIDEO_META[(4, "trail-crew")] = ("Volunteers with hand tools re-cutting a dirt trail across a dry hillside", "BLM Oregon & Washington, public domain, via Wikimedia Commons")
+def date_sql(d):
+    return f"current_date + {d}" if d is not None else "null"
+for n, kind, body, days, due, goal, photos, video in calls.CALLS:
+    paths = [f"{oid(n)}/{f}" for f in photos]
+    vid = VIDEO_META.get((n, video)) if video else None
+    out.append(
+        "insert into posts (org_id, kind, body, action_url, action_date, goal_usd, image_paths, image_alts, image_credits, beneficiary_consent, "
+        "video_path, video_poster_path, video_alt, video_credit, created_at) values "
+        f"('{oid(n)}', '{kind}', {q(body)}, 'https://example.org/{oid(n)[-2:]}/{'volunteer' if kind == 'call_volunteers' else 'give'}', {date_sql(due)}, {goal or 'null'}, "
+        f"{arr(paths)}, {arr([credits[p]['alt'] for p in paths])}, {arr([credits[p]['credit'] for p in paths])}, {'true' if paths else 'false'}, "
+        + (f"'{oid(n)}/{video}.webm', '{oid(n)}/{video}.jpg', {q(vid[0])}, {q(vid[1])}, " if vid else "null, null, null, null, ")
+        + f"now() - interval '{days * 24:.0f} hours');")
+out.append("")
+
 # --- Comments (F-062): many people comment on nonprofit and foundation posts; teams reply -------------
 GENERAL = [
     "This is why I give. Thank you, {org}.", "Love seeing the actual numbers. Keep posting these.", "Shared this with my book club.",
@@ -500,6 +544,10 @@ REPLIES = [
     "Our volunteers will be so happy to read this.", "Thank you. Every gift really does add up.",
     "Yes! Send us a note through the Help link and we'll get you started.", "Grateful for you. See you soon.",
 ]
+DONOR_POST_COMMENTS = ["Thanks for sharing this!", "Just signed up. See you Saturday.", "Sharing with my neighborhood group.", "This is so good to know.",
+    "I didn't know about this. Thank you.", "Love this. Following them now.", "Same experience here, highly recommend.", "Going to bring my kids next time.",
+    "Thank you for spreading the word.", "Sent them a little something.", "Great tip, I just checked my employer's match.", "This made my day.",
+    "Where do I sign up?", "Saving this for the weekend.", "So glad they exist."]
 PEER = ["Couldn't agree more.", "Same here!", "See you there!", "This is exactly why I started volunteering too.",
         "Well said.", "Thanks for sharing that.", "I'm going Saturday too. Say hi!", "Love this.", "So true.",
         "My family feels the same way.", "Their volunteer orientation is great, highly recommend.", "Yes! Signed up after reading this."]
@@ -509,9 +557,9 @@ out.append(f"""-- Comments: 2 to 29 people per post, spread between the post tim
 insert into comments (post_id, user_id, body, created_at)
 select p.id, d.id,
        replace((case when o.org_type = 'foundation' then {sql_arr(FOUNDATION + GENERAL)}
-                     when p.kind = 'ask' then {sql_arr(ASK + GENERAL)}
+                     when p.kind in ('ask', 'call_volunteers', 'call_donations') then {sql_arr(ASK + GENERAL)}
                      else {sql_arr(GENERAL)} end)[1 + (abs(hashtext(p.id::text || 'body')) + d.rn) %
-               (case when o.org_type = 'foundation' then {len(FOUNDATION) + len(GENERAL)} when p.kind = 'ask' then {len(ASK) + len(GENERAL)} else {len(GENERAL)} end)], '{{org}}', o.name),
+               (case when o.org_type = 'foundation' then {len(FOUNDATION) + len(GENERAL)} when p.kind in ('ask', 'call_volunteers', 'call_donations') then {len(ASK) + len(GENERAL)} else {len(GENERAL)} end)], '{{org}}', o.name),
        p.created_at + (now() - p.created_at) * ((abs(hashtext(p.id::text || d.id::text)) % 950) / 1000.0)
   from posts p join orgs o on o.id = p.org_id
   cross join lateral (
@@ -520,6 +568,18 @@ select p.id, d.id,
      order by md5(p.id::text || id::text || 'comment') limit 2 + abs(hashtext(p.id::text || 'comments')) % 28
   ) d
  where p.published;
+
+-- Comments on donor posts (F-079).
+insert into comments (post_id, user_id, body, created_at)
+select p.id, d.id, ({sql_arr(DONOR_POST_COMMENTS)})[1 + (abs(hashtext(p.id::text || 'dbody')) + d.rn) % {len(DONOR_POST_COMMENTS)}],
+       p.created_at + (now() - p.created_at) * ((abs(hashtext(p.id::text || d.id::text)) % 950) / 1000.0)
+  from posts p
+  cross join lateral (
+    select id, row_number() over (order by md5(p.id::text || id::text || 'dc')) rn from profiles
+     where id::text like '00000000-0000-4000-c000-%' and id <> p.author_id
+     order by md5(p.id::text || id::text || 'dc') limit 2 + abs(hashtext(p.id::text || 'dcomments')) % 9
+  ) d
+ where p.org_id is null and p.published;
 
 -- Team replies (LinkedIn "Author" replies) under one or two comments on about half the posts.
 insert into comments (post_id, parent_id, user_id, body, as_org, created_at)
@@ -600,7 +660,8 @@ for uid in people:
 out.append("""update profiles set location = 'Milwaukee, WI', cover_url = 'covers/mountain-lake.webp',
   about = 'I give monthly to the Lakeshore Community Fund and directly to Harbor Table. I''m here to see what the money became: the grants, the reports, the people doing the work.'
   where handle = 'dana_demo';
-update profiles set donor_badge = true where handle = 'dana_demo';
+update profiles set donor_badge = true, show_giving_totals = true where handle = 'dana_demo';
+update profiles p set show_giving_totals = true where p.id::text like '00000000-0000-4000-c000-%' and abs(hashtext(p.id::text || 'totals')) % 10 < 4 and exists (select 1 from gifts g where g.user_id = p.id);
 insert into gifts (user_id, org_id, amount_usd, given_on, note) select id, '00000000-0000-4000-a000-000000000011', 40, current_date - 45, 'Welcome kits drive' from profiles where handle = 'dana_demo';""")
 out.append("")
 
@@ -618,6 +679,52 @@ out.append(",\n".join(
     for n, kind, body, days, stem, alt, credit in media.VIDEO_POSTS) + ";")
 out.append("")
 
+# --- Volunteer hours (F-081): shifts at orgs people follow; about half share totals --------
+out.append("""-- 1 to 14 shifts of 1.5 to 4 hours over the past year, at orgs each person follows (about 35% of people).
+insert into volunteer_hours (user_id, org_id, hours, served_on, note)
+select f.user_id, f.org_id,
+       (array[1.5, 2, 2, 2.5, 3, 3, 3.5, 4])[1 + abs(hashtext(f.user_id::text || f.org_id::text || g::text)) % 8],
+       current_date - (abs(hashtext(g::text || f.user_id::text || f.org_id::text)) % 360),
+       (array['Saturday shift', null, 'Sorting', null, 'Event setup', null, 'Weekly shift', null])[1 + abs(hashtext(g::text || f.org_id::text)) % 8]
+  from follows f join orgs o on o.id = f.org_id and o.org_type = 'nonprofit'
+  cross join generate_series(1, 1 + abs(hashtext(f.user_id::text || f.org_id::text || 'n')) % 14) g
+ where f.user_id::text like '00000000-0000-4000-c000-%' and abs(hashtext(f.user_id::text || 'volunteers')) % 100 < 35
+   and abs(hashtext(f.user_id::text || f.org_id::text || 'vol')) % 3 = 0;
+update profiles p set show_volunteer_hours = true
+ where abs(hashtext(p.id::text || 'showhours')) % 2 = 0 and exists (select 1 from volunteer_hours v where v.user_id = p.id);
+insert into volunteer_hours (user_id, org_id, hours, served_on, note)
+select id, '00000000-0000-4000-a000-000000000001', h, current_date - d, n from profiles,
+  (values (4.0, 6, 'Saturday dinner crew'), (3.5, 20, 'Saturday dinner crew'), (4.0, 34, 'Holiday meal packing'), (2.0, 55, 'Pantry restock'), (4.0, 90, 'Saturday dinner crew')) v(h, d, n)
+ where handle = 'dana_demo';
+insert into volunteer_hours (user_id, org_id, hours, served_on, note)
+select id, '00000000-0000-4000-a000-000000000011', 3.0, current_date - 12, 'Welcome potluck setup' from profiles where handle = 'dana_demo';
+update profiles set show_volunteer_hours = true where handle = 'dana_demo';
+-- F-082: orgs have confirmed most shifts older than ten days and declined a few.
+update volunteer_hours set confirmed_at = served_on + interval '3 days'
+ where served_on < current_date - 10 and abs(hashtext(id::text || 'confirm')) % 100 < 75;
+update volunteer_hours set declined_at = served_on + interval '4 days'
+ where confirmed_at is null and served_on < current_date - 10 and abs(hashtext(id::text || 'decline')) % 100 < 4;
+""")
+
+# --- Person follows (F-086) ---------------------------------------------------------------
+out.append("""-- F-086 demo: people follow 0 to 6 others, favoring people who post.
+insert into person_follows (follower_id, followee_id, created_at)
+select p.id, f.id, now() - make_interval(days => abs(hashtext(p.id::text || f.id::text)) % 200)
+  from profiles p
+  cross join lateral (
+    select q.id from profiles q
+     where q.id::text like '00000000-0000-4000-c000-%' and q.id <> p.id
+     order by (exists (select 1 from posts x where x.author_id = q.id and x.org_id is null)) desc, md5(p.id::text || q.id::text)
+     limit abs(hashtext(p.id::text || 'pf')) % 7
+  ) f
+ where p.id::text like '00000000-0000-4000-c000-%'
+on conflict do nothing;
+insert into person_follows (follower_id, followee_id)
+select d.id, x.author_id from profiles d, (select distinct author_id from posts where org_id is null and author_id is not null order by author_id limit 4) x
+ where d.handle = 'dana_demo' and x.author_id <> d.id
+on conflict do nothing;
+""")
+
 # Private reactions and saves, and 30 days of analytics
 out.append(f"""-- "Moved" and saves: random donors on random posts (private; only totals show to staff).
 insert into moved (user_id, post_id)
@@ -633,7 +740,8 @@ select d.id, p.id from posts p cross join lateral (
 insert into events (type, org_id, post_id, created_at)
 select (array['view','view','view','view','view','view','share','donate_click'])[1 + (abs(hashtext(p.id::text || g::text)) % 8)],
        p.org_id, p.id, now() - make_interval(hours => abs(hashtext(g::text || p.id::text)) % 720)
-  from posts p cross join generate_series(1, 20 + abs(hashtext(p.id::text)) % 120) g;
+  from posts p cross join generate_series(1, 20 + abs(hashtext(p.id::text)) % 120) g
+ where p.org_id is not null;
 """)
 
 open(OUT, "w").write("\n".join(out) + "\n")

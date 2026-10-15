@@ -18,7 +18,8 @@ const PAGE = 5
 
 // LinkedIn-style comments: composer on top, newest comments first, replies nested one level.
 // No likes and no counts (design principle #4).
-export function PostComments({ postId, org, initial }: { postId: string; org: OrgSummary; initial?: CommentsData }) {
+// org is null on donor posts (F-079): nobody comments as an org there and Donor badges don't apply.
+export function PostComments({ postId, org, initial }: { postId: string; org: OrgSummary | null; initial?: CommentsData }) {
   const [data, setData] = useState<CommentsData | null>(initial ?? null)
   const [shown, setShown] = useState(PAGE)
   const [replyTo, setReplyTo] = useState<string | null>(null)
@@ -41,7 +42,7 @@ export function PostComments({ postId, org, initial }: { postId: string; org: Or
       )}
       {donorHint && (
         <p className="py-1 pl-12 text-xs text-muted-foreground">
-          You&apos;ve logged a gift to {org.name}. <Link href="/giving#donor-badge" className="font-semibold text-leaf hover:underline">Show a Donor badge on your comments</Link>
+          You&apos;ve logged a gift to {org?.name}. <Link href="/giving#donor-badge" className="font-semibold text-leaf hover:underline">Show a Donor badge on your comments</Link>
         </p>
       )}
       {threads.length === 0 && <p className="py-2 text-sm text-muted-foreground">No comments yet. Say what this meant to you.</p>}
@@ -77,17 +78,18 @@ export function PostComments({ postId, org, initial }: { postId: string; org: Or
 
 // preview: the feed's one-comment preview (body clamped, no actions; clicking opens the thread).
 export function CommentItem({ comment: c, org, viewer, isStaff, postId, onChange, onReply, small, preview }: {
-  comment: Comment | Thread; org: OrgSummary; viewer: Viewer; isStaff: boolean; postId: string; onChange: () => void; onReply: () => void; small?: boolean; preview?: boolean
+  comment: Comment | Thread; org: OrgSummary | null; viewer: Viewer; isStaff: boolean; postId: string; onChange: () => void; onReply: () => void; small?: boolean; preview?: boolean
 }) {
   const [, start] = useTransition()
-  const name = c.as_org ? org.name : (c.author.display_name ?? `@${c.author.handle}`)
-  const href = c.as_org ? `/o/${org.slug}` : `/u/${c.author.handle}`
-  const headline = c.as_org ? (org.org_type === "foundation" ? "Foundation" : "Nonprofit") : c.author.bio
+  const asOrg = c.as_org && org ? org : null
+  const name = asOrg ? asOrg.name : (c.author.display_name ?? `@${c.author.handle}`)
+  const href = asOrg ? `/o/${asOrg.slug}` : `/u/${c.author.handle}`
+  const headline = asOrg ? (asOrg.org_type === "foundation" ? "Foundation" : "Nonprofit") : c.author.bio
   const canDelete = !!viewer && (c.user_id === viewer.id || isStaff)
   return (
     <div className="flex gap-2">
       <Link href={href} tabIndex={-1} aria-hidden className="shrink-0">
-        {c.as_org ? <OrgMark org={org} size="sm" /> : <PersonAvatar name={name} avatarUrl={c.author.avatar_url} size={small ? "sm" : "md"} />}
+        {asOrg ? <OrgMark org={asOrg} size="sm" /> : <PersonAvatar name={name} avatarUrl={c.author.avatar_url} size={small ? "sm" : "md"} />}
       </Link>
       <div className="min-w-0 flex-1">
         <div className="rounded-lg rounded-tl-none bg-muted/70 px-3 py-2">
@@ -95,8 +97,8 @@ export function CommentItem({ comment: c, org, viewer, isStaff, postId, onChange
             <div className="min-w-0 flex-1 leading-tight">
               <p className="flex items-center gap-1.5 text-sm">
                 <Link href={href} className="truncate font-semibold hover:text-leaf hover:underline">{name}</Link>
-                {c.as_org && <span className="shrink-0 rounded bg-muted-foreground/80 px-1 py-px text-[10px] font-semibold text-background">Author</span>}
-                {c.donor && (
+                {asOrg && <span className="shrink-0 rounded bg-muted-foreground/80 px-1 py-px text-[10px] font-semibold text-background">Author</span>}
+                {c.donor && org && (
                   <span title={`Has given to ${org.name} (self-reported)`} className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-marigold-soft py-px pr-1.5 pl-1 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
                     <HandHeart className="size-3" aria-hidden />Donor<span className="sr-only">: has given to {org.name} (self-reported)</span>
                   </span>
@@ -124,7 +126,7 @@ export function CommentItem({ comment: c, org, viewer, isStaff, postId, onChange
 // Rounded "Add a comment…" box. The Post button appears once there's text. Staff tap their
 // avatar to switch between commenting as themselves and as the org.
 function Composer({ postId, org, viewer, isStaff, parent, onPosted, small }: {
-  postId: string; org: OrgSummary; viewer: NonNullable<Viewer>; isStaff: boolean; parent?: Thread; onPosted: () => void; small?: boolean
+  postId: string; org: OrgSummary | null; viewer: NonNullable<Viewer>; isStaff: boolean; parent?: Thread; onPosted: () => void; small?: boolean
 }) {
   const [text, setText] = useState("")
   const [asOrg, setAsOrg] = useState(false)
@@ -142,12 +144,12 @@ function Composer({ postId, org, viewer, isStaff, parent, onPosted, small }: {
       onPosted()
     })
 
-  const as = asOrg ? org.name : viewer.name
+  const as = asOrg && org ? org.name : viewer.name
   return (
     <div className="flex items-start gap-2 py-1">
-      {isStaff ? (
-        <button type="button" onClick={() => setAsOrg(!asOrg)} aria-label={`Commenting as ${as}. Switch to ${asOrg ? viewer.name : org.name}`} title={`Commenting as ${as}`} className="shrink-0 rounded-full">
-          {asOrg ? <OrgMark org={org} size="sm" /> : <PersonAvatar name={viewer.name} avatarUrl={viewer.avatarUrl} size={small ? "sm" : "md"} />}
+      {isStaff && org ? (
+        <button type="button" onClick={() => setAsOrg(!asOrg)} aria-label={`Commenting as ${as}. Switch to ${asOrg ? viewer.name : org?.name}`} title={`Commenting as ${as}`} className="shrink-0 rounded-full">
+          {asOrg && org ? <OrgMark org={org} size="sm" /> : <PersonAvatar name={viewer.name} avatarUrl={viewer.avatarUrl} size={small ? "sm" : "md"} />}
         </button>
       ) : (
         <PersonAvatar name={viewer.name} avatarUrl={viewer.avatarUrl} size={small ? "sm" : "md"} />

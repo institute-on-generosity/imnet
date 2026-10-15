@@ -88,7 +88,7 @@ test("F-028 / F-010: staff post with a photo (description and consent required) 
   const [org] = await sql`select id from orgs where slug = ${slug}`
   await page.goto(`/dashboard/${org.id}`)
   await page.getByLabel("What happened?").fill("Our first community dinner served 60 neighbors tonight.")
-  await page.getByLabel(/Video link/).fill("https://youtu.be/dQw4w9WgXcQ")
+  await page.getByLabel(/Video link/).fill("https://youtu.be/M7lc1UVf-VE")
   await page.locator('label:has-text("Add photos") input[type="file"]').setInputFiles(SEED_PHOTO)
   const alt = page.getByLabel("Description for photo 1")
   await expect(alt).toBeVisible()
@@ -106,7 +106,7 @@ test("F-028 / F-010: staff post with a photo (description and consent required) 
   await expect(page.getByText("Posted.")).toBeVisible()
 
   const [post] = await sql`select embed_url, image_paths, image_alts from posts where org_id = ${org.id}`
-  expect(post.embed_url).toBe("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ")
+  expect(post.embed_url).toBe("https://www.youtube-nocookie.com/embed/M7lc1UVf-VE")
   expect(post.image_paths[0]).toMatch(new RegExp(`^${org.id}/`))
   expect(post.image_alts).toEqual([altText])
 
@@ -136,7 +136,7 @@ test("F-034: a foundation tags a grantee; it stays private until the nonprofit c
   // Signed-out visitors don't see the unconfirmed grant.
   const anon = await page.context().browser()!.newPage()
   await anon.goto(`/o/${slug}`)
-  await expect(anon.getByRole("heading", { name: "Funded by" })).toHaveCount(0)
+  await expect(anon.getByRole("heading", { name: "Top supporters" })).toHaveCount(0)
 
   // The nonprofit confirms it from its dashboard.
   await page.goto(`/dashboard/${kitchen.id}`)
@@ -145,7 +145,7 @@ test("F-034: a foundation tags a grantee; it stays private until the nonprofit c
   await expect.poll(async () => (await sql`select confirmed_at from grants where id = ${grant.id}`)[0].confirmed_at).not.toBeNull()
 
   await anon.goto(`/o/${slug}`)
-  await expect(anon.getByRole("heading", { name: "Funded by" })).toBeVisible()
+  await expect(anon.getByRole("heading", { name: "Top supporters" }).first()).toBeVisible()
   await anon.goto(`/o/${slug}?tab=about`)
   await expect(anon.getByText("$7,500, Community dinner supplies")).toBeVisible()
   await anon.close()
@@ -199,7 +199,8 @@ test("F-038: 'I give through this fund' shows what that giving became on the don
   await page.goto(`/u/${handle}`)
   await expect(page.getByRole("heading", { name: "What my giving became" })).toBeVisible()
   const fund = page.getByRole("region", { name: "Grants from Lakeshore Community Foundation" })
-  await expect(fund.getByRole("link", { name: /Latest report: The new walk-in freezer is in/ })).toBeVisible()
+  await expect(fund.getByRole("link", { name: "Harbor Table" })).toBeVisible()
+  await expect(fund.getByText(/Latest report/)).toHaveCount(0)
 
   // Visitors see it too, worded for someone else.
   const anon = await page.context().browser()!.newPage()
@@ -365,7 +366,7 @@ test("F-049: the bell shows a quiet dot for new items; opening the inbox clears 
     await expect(bell).not.toContainText(/\d/) // a dot, never a number
 
     await bell.click()
-    await expect(page.getByText("Riverside Family Foundation recorded a $3,000 grant to you.")).toBeVisible()
+    await expect(page.getByRole("link", { name: /Riverside Family Foundation recorded a \$3,000 grant to you\./ })).toBeVisible()
     await expect.poll(async () => {
       await page.goto("/")
       return page.getByRole("link", { name: /Notifications/ }).innerText()
@@ -417,9 +418,9 @@ test("F-053: a donor thanks an org privately; its staff see the note and can rem
 
 test("F-052: log a gift in the private giving journal; totals by year; nobody else can open it", async () => {
   await page.goto("/giving")
-  await page.getByLabel("Organization", { exact: true }).selectOption({ label: "Harbor Table" })
+  await page.locator("#gift-org").selectOption({ label: "Harbor Table" })
   await page.getByLabel("Amount ($)").fill("75")
-  await page.getByLabel("Note (optional)").fill(`Gift ${id}`)
+  await page.locator("#gift-note").fill(`Gift ${id}`)
   await page.getByRole("button", { name: "Log gift" }).click()
   const year = new Date().toISOString().slice(0, 4)
   const panel = page.getByRole("region", { name: year })
@@ -429,6 +430,15 @@ test("F-052: log a gift in the private giving journal; totals by year; nobody el
   const anon = await page.context().browser()!.newPage()
   await anon.goto("/giving")
   await expect(anon).toHaveURL(/\/login/)
+
+  // F-076: totals appear on the profile only after opting in.
+  const [{ handle }] = await sql`select handle from profiles where id = ${userId}`
+  await anon.goto(`/u/${handle}`)
+  await expect(anon.getByRole("region", { name: "Giving" })).toHaveCount(0)
+  await page.getByLabel(/Show my giving totals on my profile/).check()
+  await expect.poll(async () => (await sql`select show_giving_totals s from profiles where id = ${userId}`)[0].s).toBe(true)
+  await anon.goto(`/u/${handle}`)
+  await expect(anon.getByRole("region", { name: "Giving" }).getByText("$75", { exact: true }).first()).toBeVisible()
   await anon.close()
 })
 
@@ -441,7 +451,7 @@ test("F-055: after Donate, a quiet link logs the gift with the org preselected",
   await (await popup).close()
   await page.getByRole("link", { name: "Gave? Log it" }).click()
   await expect(page).toHaveURL(/\/giving\?org=/)
-  await expect(page.getByLabel("Organization", { exact: true })).toHaveValue(kitchen.id)
+  await expect(page.locator("#gift-org")).toHaveValue(kitchen.id)
 })
 
 test("F-056: a foundation sees its confirmed grants with no report yet", async () => {
@@ -580,7 +590,8 @@ test("F-073: edit your profile: headline, location, About, causes and a cover fr
   await expect(page.getByText("Tacoma, WA")).toBeVisible()
   await expect(page.getByText(`I give where I live. ${id}`)).toBeVisible()
   await expect(page.locator('main img[src$="covers/lavender.webp"]')).toBeVisible()
-  await expect(page.getByRole("list", { name: "Causes I care about" }).getByRole("link", { name: "Animals" })).toBeVisible()
+  // Causes are saved (they shape suggestions), not shown as labels on the profile.
+  await expect.poll(async () => (await sql`select count(*)::int n from profile_causes where user_id = ${userId} and cause_slug = 'animals'`)[0].n).toBe(1)
 })
 
 test("F-073: staff add location, founding year, team and programs; they show on the profile", async () => {
@@ -596,6 +607,144 @@ test("F-073: staff add location, founding year, team and programs; they show on 
   await expect(page.getByText("Springfield, IL").first()).toBeVisible()
   await expect(page.getByText("2 staff · 40 volunteers").first()).toBeVisible()
   await expect(page.getByRole("listitem").filter({ hasText: "Soup night" })).toBeVisible()
+})
+
+test("F-079: a donor posts from Home with a spotlight; it shows on their profile; they can delete it", async () => {
+  await page.goto("/")
+  await page.getByRole("button", { name: "Start a post" }).click()
+  await page.getByLabel("What do you want to share?").fill(`Harbor Table needs pot washers this weekend ${id}`)
+  await page.getByLabel("Spotlight an organization").selectOption({ label: "Harbor Table" })
+  // F-080: a photo, uploaded to the person's own folder, with a description and consent.
+  await page.locator('input[type="file"]').first().setInputFiles(SEED_PHOTO)
+  await page.getByLabel("Description for photo 1").fill(`Our pot-washing crew ${id}`)
+  await page.getByLabel(/Anyone identifiable in my photos/).check()
+  await page.getByRole("button", { name: "Post", exact: true }).click()
+  await expect(page.getByText("Posted. It's at the top of your feed.")).toBeVisible()
+  const [row] = await sql`select image_paths from posts where body like ${`%pot washers this weekend ${id}%`}`
+  expect(row.image_paths[0]).toMatch(new RegExp(`^people/${userId}/`))
+  const mine = page.locator("article").filter({ hasText: `pot washers this weekend ${id}` }).first()
+  await expect(mine).toBeVisible()
+  await expect(mine.getByRole("link", { name: /Harbor Table.*View/ })).toBeVisible()
+  await expect(mine.getByAltText(`Our pot-washing crew ${id}`)).toBeVisible()
+
+  const [{ handle }] = await sql`select handle from profiles where id = ${userId}`
+  await page.goto(`/u/${handle}`)
+  const onProfile = page.locator("article").filter({ hasText: `pot washers this weekend ${id}` }).first()
+  await expect(onProfile).toBeVisible()
+  page.once("dialog", (d) => d.accept())
+  await onProfile.getByRole("button", { name: "More actions" }).click()
+  await page.getByRole("menuitem", { name: "Delete post" }).click()
+  await expect.poll(async () => (await sql`select count(*)::int n from posts where body like ${`%${id}%`} and org_id is null`)[0].n).toBe(0)
+})
+
+test("F-081: log volunteer hours privately; opt in to show them on the profile", async () => {
+  await page.goto("/giving")
+  await page.locator("#hours-org").selectOption({ label: "Harbor Table" })
+  await page.getByRole("textbox", { name: "Hours", exact: true }).fill("3.5")
+  await page.locator("#hours-note").fill(`Dinner crew ${id}`)
+  await page.getByRole("button", { name: "Log hours" }).click()
+  await expect(page.getByRole("region", { name: "Volunteer hours" }).getByText(`Dinner crew ${id}`)).toBeVisible()
+
+  const [{ handle }] = await sql`select handle from profiles where id = ${userId}`
+  const anon = await page.context().browser()!.newPage()
+  await anon.goto(`/u/${handle}`)
+  await expect(anon.getByRole("region", { name: "Volunteering" })).toHaveCount(0)
+  await page.getByLabel(/Show my volunteer hours on my profile/).check()
+  await expect.poll(async () => (await sql`select show_volunteer_hours s from profiles where id = ${userId}`)[0].s).toBe(true)
+  await anon.goto(`/u/${handle}`)
+  await expect(anon.getByRole("region", { name: "Volunteering" }).getByRole("listitem").filter({ hasText: "Harbor Table" })).toContainText("3.5 hours")
+  await expect(anon.getByText(`Dinner crew ${id}`)).toHaveCount(0) // notes stay private
+  await anon.close()
+})
+
+test("F-082: staff confirm a volunteer's hours; the profile shows them as confirmed", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  const VOL = "00000000-0000-4000-c000-000000000005"
+  await sql`update profiles set show_volunteer_hours = true where id = ${VOL}`
+  await sql`insert into volunteer_hours (user_id, org_id, hours, served_on, note) values (${VOL}, ${kitchen.id}, 4, current_date - 1, ${`Soup night ${id}`})`
+  await page.goto("/notifications")
+  await expect(page.getByRole("link", { name: /logged 4 volunteer hours with you/ }).first()).toBeVisible()
+  await page.goto(`/dashboard/${kitchen.id}`)
+  const card = page.locator("[data-slot=card]").filter({ hasText: "Volunteer hours to confirm" })
+  const row = card.getByRole("listitem").filter({ hasText: `Soup night ${id}` })
+  await row.getByRole("button", { name: /^Confirm/ }).click()
+  await expect(row).toHaveCount(0)
+  const [{ handle }] = await sql`select handle from profiles where id = ${VOL}`
+  await page.goto(`/u/${handle}`)
+  await expect(page.getByRole("region", { name: "Volunteering" }).getByRole("listitem").filter({ hasText: orgName })).toContainText("Confirmed")
+})
+
+test("F-084: staff post a call for donations with a goal; it shows the goal and a Donate button", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  await page.goto(`/dashboard/${kitchen.id}`)
+  await page.getByLabel("Type").selectOption("call_donations")
+  await page.getByLabel("Donate link").fill("https://example.org/kitchen/give")
+  await page.getByLabel("Goal in $ (optional)").fill("2,500")
+  await page.getByLabel("What happened?").fill(`Help us buy a second stove ${id}`)
+  await page.getByRole("button", { name: "Post", exact: true }).click()
+  await expect(page.getByText("Posted.")).toBeVisible()
+  await page.goto(`/o/${slug}?tab=posts`)
+  const post = page.locator("article").filter({ hasText: `second stove ${id}` })
+  await expect(post.getByText("Goal $2,500")).toBeVisible()
+  await expect(post.getByRole("link", { name: /Donate/ })).toHaveAttribute("href", "https://example.org/kitchen/give")
+})
+
+test("F-086: follow a person from their profile; their posts reach Following; unfollow", async () => {
+  const [author] = await sql`select p.handle, p.id, x.body from posts x join profiles p on p.id = x.author_id where x.org_id is null order by x.created_at desc limit 1`
+  await page.goto(`/u/${author.handle}`)
+  await page.locator("main").getByRole("button", { name: "Follow", exact: true }).first().click()
+  await expect(page.locator("main").getByRole("button", { name: "Following" }).first()).toBeVisible()
+  await expect.poll(async () => (await sql`select count(*)::int n from person_follows where follower_id = ${userId} and followee_id = ${author.id}`)[0].n).toBe(1)
+  await page.goto("/following")
+  await expect(page.locator("article").filter({ hasText: author.body.slice(0, 40) }).first()).toBeVisible()
+  await page.goto(`/u/${author.handle}`)
+  await page.locator("main").getByRole("button", { name: "Following" }).first().click()
+  await expect.poll(async () => (await sql`select count(*)::int n from person_follows where follower_id = ${userId} and followee_id = ${author.id}`)[0].n).toBe(0)
+})
+
+test("F-088: Following: follow a cause, open it to see its organizations, switch tabs", async () => {
+  await sql`delete from profile_causes where user_id = ${userId} and cause_slug = 'animals'`
+  await page.goto("/following")
+  await expect(page.getByRole("heading", { name: "Your causes", exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Follow Animals" }).click()
+  await expect(page.getByRole("button", { name: "Following Animals" })).toHaveAttribute("aria-pressed", "true")
+  await expect.poll(async () => (await sql`select count(*)::int n from profile_causes where user_id = ${userId} and cause_slug = 'animals'`)[0].n).toBe(1)
+  await page.getByRole("button", { name: /^Animals .*organizations, show them/ }).click()
+  const panel = page.locator("#cause-panel-animals")
+  await expect(panel.getByRole("link", { name: "Second Chance Paws" })).toBeVisible()
+  await expect(panel.getByRole("button", { name: /Following cause/ })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole("navigation", { name: "Filter by your causes" }).getByRole("link", { name: "Animals" })).toBeVisible()
+  await page.getByRole("navigation", { name: "Following sections" }).getByRole("link", { name: /Organizations/ }).click()
+  await expect(page).toHaveURL(/tab=orgs/)
+  await expect(page.getByRole("link", { name: "Harbor Table" }).first()).toBeVisible()
+})
+
+test("F-089: notifications tell donors about events they're going to and calls from orgs they follow", async () => {
+  await page.goto("/notifications")
+  await expect(page.getByRole("link", { name: new RegExp(`Coming up: Soup night ${id}`) })).toBeVisible()
+  await expect(page.getByRole("link", { name: /is asking for (volunteers|donations)/ }).first()).toBeVisible()
+})
+
+test("F-090: a volunteer call says who has volunteered there (confirmed hours, opted in only)", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  const VOL = "00000000-0000-4000-c000-000000000005"
+  const shown = async () => (await sql`select count(*)::int n from org_volunteers(${kitchen.id}, 50)`)[0]?.n ?? 0
+  await sql`update profiles set show_volunteer_hours = false where id = ${VOL}`
+  const hidden = await shown()
+  await sql`update profiles set show_volunteer_hours = true where id = ${VOL}`
+  expect(await shown()).toBe(hidden + 1) // F-082 confirmed VOL's hours; counted only when opted in
+})
+
+test("B-031: no page scrolls sideways, from small phones to narrow desktop windows", async () => {
+  for (const path of ["/", "/following", "/notifications"]) {
+    await page.goto(path)
+    for (const width of [320, 360, 660, 700, 1024]) {
+      await page.setViewportSize({ width, height: 900 })
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth), { message: `${path} at ${width}px` }).toBeLessThanOrEqual(width)
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 720 })
 })
 
 test("F-015: staff can't open another org's dashboard", async () => {

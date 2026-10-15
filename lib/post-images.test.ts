@@ -19,3 +19,12 @@ describe("validateImages", () => {
     expect(validateImages(ORG, [`${ORG}/0000000a-0000-4000-8000-000000000000.svg`], ["x"])).toHaveProperty("error")
   })
 })
+
+describe("F-080 donor photos", () => {
+  it("accepts only uploads in the person's own folder", () => {
+    const me = "10000000-0000-4000-8000-000000000001"
+    const p = `people/${me}/11111111-2222-4333-8444-555555555555.webp`
+    expect(validateImages(`people/${me}`, [p], ["A volunteer shift"])).toEqual({ paths: [p], alts: ["A volunteer shift"] })
+    expect(validateImages(`people/${me}`, [p.replace(me, "10000000-0000-4000-8000-000000000002")], ["x"])).toHaveProperty("error")
+  })
+})

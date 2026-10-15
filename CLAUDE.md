@@ -12,8 +12,8 @@ LinkedIn for generosity. Phase I = the network. Phase II = AI media tools. See `
 - Mutations go in `app/actions.ts` as server actions; reads in `lib/queries.ts`. Exception: one-click signals (follow, support, moved) go through `app/api/signals` with keepalive.
 - Feeds page with "Show older posts" (cursor in `lib/cursor.ts`). No infinite scroll.
 - AI output is always a draft a human saves. AI never writes to the DB directly.
-- Feeds stay chronological. No public engagement counts.
+- Feeds stay chronological. No public like-style counts: "moved" totals reach only the author/org; comment counts are public (decision 0015).
 - Every feature or bug fix adds a dated entry to the Ledger in `CONTEXT.md` (next F-/B- ID, testable behavior, test file or `none`) in the same commit. Name regression tests after the ID.
 
 ## Commands
-`npx supabase start` (needs Docker) · `npm run dev` (port 3100) · `npm run lint` · `npm run typecheck` · `npm test` · `npm run test:e2e` · `npm run build` · `npm run db:push`
+`npx supabase start` (needs Docker) · `npm run dev` (port 3100) · `npm run lint` · `npm run typecheck` · `npm test` · `npm run test:e2e` (own Supabase stack on 553xx + build on :3200; `npm run e2e:stack -- stop` frees it) · `npm run build` · `npm run db:push`

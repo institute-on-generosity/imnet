@@ -25,16 +25,18 @@ type RowProps = { event: OrgEvent | EventWithOrg; going: boolean; signedIn: bool
 export function EventRow({ event: e, going, signedIn, compact }: RowProps) {
   const org = "org" in e ? e.org : null
   if (compact) {
-    // Sidebar: fixed date tile, title, then time and host on one line, with a small RSVP below.
+    // Sidebar (F-092): small date tile, title, then time and host on one line, RSVP beside.
     return (
-      <li className="group relative flex gap-3 py-3">
-        <DateTile iso={e.starts_at} className="mt-[3px]" />
+      <li className="group relative flex items-center gap-2.5 py-2.5">
+        <DateTile iso={e.starts_at} className="size-10" />
         <div className="min-w-0 flex-1">
-          <Link href={`/e/${e.id}`} className="line-clamp-2 text-sm leading-snug font-semibold group-hover:underline after:absolute after:inset-0">{e.title}</Link>
-          <p className="mt-0.5 text-xs text-muted-foreground"><LocalTime iso={e.starts_at} format="time" /></p>
-          {org && <Link href={`/o/${org.slug}`} className="relative block truncate text-xs text-muted-foreground hover:underline">{org.name}</Link>}
-          <div className="relative mt-1.5 w-fit"><ToggleSignal kind="rsvp" id={e.id} on={going} signedIn={signedIn} label={`to ${e.title}`} size="sm" /></div>
+          <Link href={`/e/${e.id}`} className="line-clamp-1 text-[13px] leading-5 font-semibold group-hover:underline after:absolute after:inset-0">{e.title}</Link>
+          <p className="truncate text-xs leading-4 text-muted-foreground">
+            <LocalTime iso={e.starts_at} format="time" />
+            {org && <>, <Link href={`/o/${org.slug}`} className="relative hover:underline">{org.name}</Link></>}
+          </p>
         </div>
+        <div className="relative shrink-0"><ToggleSignal kind="rsvp" id={e.id} on={going} signedIn={signedIn} label={`to ${e.title}`} size="sm" /></div>
       </li>
     )
   }
@@ -81,7 +83,7 @@ export function UpcomingEvents({ events, rsvpIds, signedIn, cause }: { events: E
       <ul className="mt-1 divide-y">
         {events.map((e) => <EventRow key={e.id} event={e} going={rsvpIds.has(e.id)} signedIn={signedIn} compact />)}
       </ul>
-      <Link href={cause ? `/events?cause=${cause}` : "/events"} className="mt-2 block text-sm font-semibold text-leaf hover:underline">See all events</Link>
+      <Link href={cause ? `/events?cause=${cause}` : "/events"} className="block border-t pt-2.5 text-sm font-semibold text-leaf hover:underline">See all events</Link>
     </Panel>
   )
 }

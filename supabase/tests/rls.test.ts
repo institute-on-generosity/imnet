@@ -232,6 +232,20 @@ describe("network", () => {
     expect((await t.as(null, `select moved_count('${post.id}') n`)).rows![0].n).toBeNull()
   })
 
+  it("F-094: comment counts are public; moved counts only reach the author and the org's staff", async () => {
+    const [orgPost] = await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'counted story') returning id`)
+    const [donorPost] = await t.owner(`insert into posts (author_id, body) values ('${DONOR}', 'my giving story') returning id`)
+    await t.owner(`insert into moved (user_id, post_id) values ('${STAFF}', '${donorPost.id}'), ('${DONOR}', '${orgPost.id}')`)
+    await t.owner(`insert into comments (post_id, user_id, body) values ('${orgPost.id}', '${DONOR}', 'hi'), ('${orgPost.id}', '${STAFF}', 'hello')`)
+    const counts = async (who: string | null, id: string) => (await t.as(who, `select comments::int c, moved::int m from post_counts(array['${id}']::uuid[])`)).rows![0]
+
+    expect(await counts(null, String(orgPost.id))).toEqual({ c: 2, m: null })
+    expect(await counts(DONOR, String(orgPost.id))).toEqual({ c: 2, m: null })
+    expect(await counts(STAFF, String(orgPost.id))).toEqual({ c: 2, m: 1 })
+    expect((await counts(DONOR, String(donorPost.id))).m).toBe(1) // the author
+    expect((await counts(STAFF, String(donorPost.id))).m).toBeNull()
+  })
+
   it("F-046: saved posts are private to the person who saved them", async () => {
     const [post] = await t.owner(`select id from posts limit 1`)
     expect((await t.as(DONOR, `insert into saved_posts (user_id, post_id) values ('${DONOR}', '${post.id}')`)).error).toBeUndefined()
@@ -648,5 +662,148 @@ describe("full profiles", () => {
     expect((await t.as(DONOR, `update profiles set cover_url = 'https://evil.example/x.jpg' where id = '${DONOR}'`)).error).toMatch(/check constraint/)
     expect((await t.as(DONOR, `update profiles set cover_url = 'covers/lavender.webp', location = 'Tacoma, WA', about = 'Hi' where id = '${DONOR}' returning id`)).rows).toHaveLength(1)
     expect((await t.as(DONOR, `update profiles set about = 'hacked' where id = '${STAFF}' returning id`)).rows ?? []).toHaveLength(0)
+  })
+})
+
+describe("giving totals", () => {
+  it("F-076 / B-028: totals and causes supported only when opted in; no invented per-cause amounts", async () => {
+    const G = "10000000-0000-4000-8000-0000000000e6"
+    await t.owner(`insert into auth.users (id, email) values ('${G}', 'totals@example.com') on conflict do nothing`)
+    await t.owner(`delete from org_causes where org_id in ('${ORG_1}', '${ORG_2}')`)
+    await t.owner(`insert into org_causes (org_id, cause_slug) values ('${ORG_1}', 'hunger'), ('${ORG_1}', 'health'), ('${ORG_2}', 'housing')`)
+    await t.as(G, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 100, current_date - 10), ('${ORG_1}', 100, current_date - 10), ('${ORG_2}', 50, current_date - 3)`)
+    expect((await t.as(null, `select * from giving_summary('${G}')`)).rows).toHaveLength(0)
+    await t.as(G, `update profiles set show_giving_totals = true where id = '${G}'`)
+    // B-028: causes are listed, never given made-up amounts; the total is what was logged.
+    const rows = (await t.as(null, `select cause_slug, total::int, orgs::int from giving_summary('${G}')`)).rows!
+    expect(rows).toEqual([
+      { cause_slug: "health", total: 250, orgs: 2 },
+      { cause_slug: "housing", total: 250, orgs: 2 },
+      { cause_slug: "hunger", total: 250, orgs: 2 },
+    ])
+    expect((await t.as(DONOR, `update profiles set show_giving_totals = true where id = '${G}' returning id`)).rows ?? []).toHaveLength(0)
+    // F-077: by organization, under the same opt-in.
+    expect((await t.as(null, `select name, amount::int, causes from giving_by_org('${G}')`)).rows).toEqual([
+      { name: "Harbor Table", amount: 200, causes: ["Health", "Hunger & Food"] },
+      { name: "Open Door Homes", amount: 50, causes: ["Housing & Homelessness"] },
+    ])
+    await t.as(G, `update profiles set show_giving_totals = false where id = '${G}'`)
+    expect((await t.as(null, `select * from giving_by_org('${G}')`)).rows).toHaveLength(0)
+  })
+})
+
+describe("top supporters", () => {
+  it("F-078: foundations by confirmed grants and opted-in people by their gifts, largest first", async () => {
+    const A = "10000000-0000-4000-8000-0000000000e7", B = "10000000-0000-4000-8000-0000000000e8"
+    await t.owner(`insert into auth.users (id, email) values ('${A}', 'top.a@example.com'), ('${B}', 'top.b@example.com') on conflict do nothing`)
+    await t.owner(`update profiles set display_name = 'Shown Giver', show_giving_totals = true where id = '${A}'`)
+    await t.owner(`insert into gifts (user_id, org_id, amount_usd, given_on) values ('${A}', '${ORG_2}', 900, current_date), ('${B}', '${ORG_2}', 5000, current_date)`)
+    await t.owner(`insert into grants (foundation_id, grantee_id, amount_usd, confirmed_at) values ('${FOUNDATION}', '${ORG_2}', 1500, now()), ('${FOUNDATION}', '${ORG_2}', 99999, null)`)
+    const rows = (await t.as(null, `select kind, name, amount::int from top_supporters('${ORG_2}')`)).rows!
+    expect(rows.find((r) => r.kind === "foundation")).toMatchObject({ name: "Lakeshore Community Foundation" })
+    expect(rows.find((r) => r.name === "Shown Giver")).toMatchObject({ amount: 900 })
+    expect(rows.some((r) => r.amount === 5000)).toBe(false)   // B didn't opt in
+    expect(rows.some((r) => Number(r.amount) >= 99999)).toBe(false)  // unconfirmed grant
+  })
+})
+
+describe("donor photo storage", () => {
+  it("F-080: people upload only into their own folder; org folders still work for staff", async () => {
+    const up = (who: string, name: string) => t.as(who, `insert into storage.objects (bucket_id, name) values ('post-images', '${name}')`)
+    expect((await up(DONOR, `people/${DONOR}/a.webp`)).error).toBeUndefined()
+    expect((await up(DONOR, `people/${STAFF}/a.webp`)).error).toMatch(/row-level security/)
+    expect((await up(DONOR, `${ORG_1}/a.webp`)).error).toMatch(/row-level security/)
+    expect((await up(STAFF, `${ORG_1}/b.webp`)).error).toBeUndefined()
+  })
+})
+
+describe("donor posts", () => {
+  const OTHER = "10000000-0000-4000-8000-0000000000e9"
+  beforeAll(async () => {
+    await t.owner(`insert into auth.users (id, email) values ('${OTHER}', 'other9@example.com') on conflict do nothing`)
+  })
+
+  it("F-079: a donor posts as themselves (text, optional spotlight); everyone reads it", async () => {
+    const r = await t.as(DONOR, `insert into posts (author_id, body, about_org_id) values ('${DONOR}', 'Harbor Table needs Saturday cooks!', '${ORG_1}') returning id`)
+    expect(r.error).toBeUndefined()
+    const id = r.rows![0].id
+    expect((await t.as(null, `select body from posts where id = '${id}'`)).rows).toHaveLength(1)
+    expect((await t.as(DONOR, `insert into posts (author_id, body) values ('${OTHER}', 'impersonating')`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `insert into posts (author_id, body, kind) values ('${DONOR}', 'x', 'ask')`)).error).toMatch(/check constraint/)
+    // F-080: photos only from your own folder, with alt text and consent.
+    expect((await t.as(DONOR, `insert into posts (author_id, body, image_paths, image_alts, beneficiary_consent) values ('${DONOR}', 'x', '{${ORG_1}/a.jpg}', '{alt}', true)`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into posts (author_id, body, image_paths, image_alts, beneficiary_consent) values ('${DONOR}', 'x', '{people/${OTHER}/a.jpg}', '{alt}', true)`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into posts (author_id, body, image_paths, image_alts, beneficiary_consent) values ('${DONOR}', 'x', '{people/${DONOR}/a.jpg}', '{alt}', false)`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into posts (author_id, body, image_paths, image_alts, beneficiary_consent) values ('${DONOR}', 'x', '{people/${DONOR}/a.jpg}', '{alt}', true)`)).error).toBeUndefined()
+    expect((await t.as(DONOR, `insert into posts (author_id, body, about_org_id) values ('${DONOR}', 'x', '${ORG_PENDING}')`)).error).toMatch(/row-level security/)
+  })
+
+  it("F-079: only the author edits or deletes a donor post, and can't move it under an org", async () => {
+    const id = (await t.as(DONOR, `insert into posts (author_id, body) values ('${DONOR}', 'mine') returning id`)).rows![0].id
+    expect((await t.as(OTHER, `update posts set body = 'hacked' where id = '${id}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(STAFF, `delete from posts where id = '${id}' returning id`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(DONOR, `update posts set org_id = '${ORG_1}' where id = '${id}'`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `update posts set body = 'edited' where id = '${id}' returning id`)).rows).toHaveLength(1)
+    expect((await t.as(DONOR, `delete from posts where id = '${id}' returning id`)).rows).toHaveLength(1)
+  })
+})
+
+describe("volunteer hours", () => {
+  it("F-081: hours are private until opted in; then totals per org show; nobody logs for someone else", async () => {
+    const V = "10000000-0000-4000-8000-0000000000ea"
+    await t.owner(`insert into auth.users (id, email) values ('${V}', 'volunteer@example.com') on conflict do nothing`)
+    expect((await t.as(V, `insert into volunteer_hours (org_id, hours, served_on) values ('${ORG_1}', 3, current_date - 2), ('${ORG_1}', 2.5, current_date - 1), ('${ORG_2}', 4, current_date)`)).error).toBeUndefined()
+    expect((await t.as(V, `insert into volunteer_hours (org_id, hours, served_on) values ('${ORG_1}', 30, current_date)`)).error).toMatch(/check constraint/)
+    expect((await t.as(V, `insert into volunteer_hours (org_id, hours, served_on) values ('${ORG_1}', 2, current_date + 1)`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into volunteer_hours (user_id, org_id, hours, served_on) values ('${V}', '${ORG_1}', 2, current_date)`)).error).toMatch(/row-level security/)
+    expect((await t.as(DONOR, `select id from volunteer_hours where user_id = '${V}'`)).rows).toHaveLength(0)
+    expect((await t.as(null, `select * from volunteer_summary('${V}')`)).rows).toHaveLength(0)
+    await t.as(V, `update profiles set show_volunteer_hours = true where id = '${V}'`)
+    expect((await t.as(null, `select name, hours::float from volunteer_summary('${V}')`)).rows).toEqual([{ name: "Harbor Table", hours: 5.5 }, { name: "Open Door Homes", hours: 4 }])
+  })
+})
+
+describe("confirming volunteer hours", () => {
+  it("F-082: the org's staff confirm or decline; volunteers can't confirm themselves; edits reset", async () => {
+    const V = "10000000-0000-4000-8000-0000000000eb"
+    await t.owner(`insert into auth.users (id, email) values ('${V}', 'confirmme@example.com') on conflict do nothing`)
+    await t.owner(`update profiles set show_volunteer_hours = true where id = '${V}'`)
+    const a = (await t.as(V, `insert into volunteer_hours (org_id, hours, served_on) values ('${ORG_1}', 3, current_date) returning id`)).rows![0].id
+    const b = (await t.as(V, `insert into volunteer_hours (org_id, hours, served_on) values ('${ORG_1}', 2, current_date) returning id`)).rows![0].id
+
+    expect((await t.as(V, `update volunteer_hours set confirmed_at = now() where id = '${a}'`)).error).toMatch(/permission denied/)
+    expect((await t.as(V, `select review_volunteer_hours('${a}', true)`)).error).toMatch(/not your organization/)
+    expect((await t.as(DONOR, `select review_volunteer_hours('${a}', true)`)).error).toMatch(/not your organization/)
+    expect((await t.as(STAFF, `select id from volunteer_hours where id = '${a}'`)).rows).toHaveLength(1) // staff see shifts logged with them
+    expect((await t.as(STAFF, `select review_volunteer_hours('${a}', true)`)).error).toBeUndefined()
+    expect((await t.as(STAFF, `select review_volunteer_hours('${b}', false)`)).error).toBeUndefined()
+    expect((await t.as(null, `select hours::float, confirmed::float from volunteer_summary('${V}')`)).rows).toEqual([{ hours: 3, confirmed: 3 }])
+
+    await t.as(V, `update volunteer_hours set hours = 4 where id = '${a}'`)
+    expect((await t.owner(`select confirmed_at from volunteer_hours where id = '${a}'`))[0].confirmed_at).toBeNull()
+  })
+})
+
+describe("calls for volunteers and donations", () => {
+  it("F-084: calls need a link; only donation calls take a goal; other posts can't carry call fields", async () => {
+    const ins = (sql: string) => t.as(STAFF, `insert into posts (org_id, author_id, body, kind, action_url, action_date, goal_usd) values ('${ORG_1}', '${STAFF}', 'x', ${sql})`)
+    expect((await ins(`'call_volunteers', 'https://harbor.example.org/signup', current_date + 3, null`)).error).toBeUndefined()
+    expect((await ins(`'call_donations', 'https://harbor.example.org/give', current_date + 30, 5000`)).error).toBeUndefined()
+    expect((await ins(`'call_volunteers', null, null, null`)).error).toMatch(/check constraint/)
+    expect((await ins(`'call_volunteers', 'https://x.example.org', null, 500`)).error).toMatch(/check constraint/)
+    expect((await ins(`'call_donations', 'javascript:alert(1)', null, null`)).error).toMatch(/check constraint/)
+    expect((await ins(`'update', 'https://x.example.org', null, null`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into posts (author_id, body, kind, action_url) values ('${DONOR}', 'x', 'call_donations', 'https://x.example.org')`)).error).toMatch(/check constraint/)
+  })
+})
+
+describe("following people", () => {
+  it("F-086: you follow people as yourself, not yourself; follows are private", async () => {
+    expect((await t.as(DONOR, `insert into person_follows (followee_id) values ('${STAFF}')`)).error).toBeUndefined()
+    expect((await t.as(DONOR, `insert into person_follows (followee_id) values ('${DONOR}')`)).error).toMatch(/check constraint/)
+    expect((await t.as(DONOR, `insert into person_follows (follower_id, followee_id) values ('${ADMIN}', '${STAFF}')`)).error).toMatch(/row-level security/)
+    expect((await t.as(STAFF, `select * from person_follows`)).rows).toHaveLength(0) // the followed person can't see it
+    expect((await t.as(null, `select * from person_follows`)).rows ?? []).toHaveLength(0)
+    expect((await t.as(DONOR, `select followee_id from person_follows`)).rows).toEqual([{ followee_id: STAFF }])
   })
 })

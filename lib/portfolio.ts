@@ -6,7 +6,7 @@ export function portfolioContext(posts: Pick<Post, "id" | "org_id" | "report_gra
   const context = new Map<string, OrgSummary>()
   for (const p of posts) {
     const foundation = p.report_grant?.foundation
-    if (foundation && !followedOrgIds.has(p.org_id) && followedOrgIds.has(foundation.id)) context.set(p.id, foundation)
+    if (foundation && p.org_id && !followedOrgIds.has(p.org_id) && followedOrgIds.has(foundation.id)) context.set(p.id, foundation)
   }
   return context
 }

@@ -82,17 +82,3 @@ export function NeedRow({ need: n, compact, interested = false, signedIn = false
     </li>
   )
 }
-
-// Home sidebar: the newest few needs across the network.
-export function WaysToHelp({ needs, cause }: { needs: NeedWithOrg[]; cause?: string }) {
-  if (needs.length === 0) return null
-  return (
-    <Panel aria-labelledby="ways-to-help" className="p-4">
-      <h2 id="ways-to-help" className="font-sans text-base font-semibold tracking-normal">Ways to help</h2>
-      <ul className="mt-1 divide-y">
-        {needs.map((n) => <NeedRow key={n.id} need={n} compact />)}
-      </ul>
-      <Link href={cause ? `/needs?cause=${cause}` : "/needs"} className="mt-2 block text-sm font-semibold text-leaf hover:underline">See all needs</Link>
-    </Panel>
-  )
-}

@@ -9,9 +9,10 @@ test("F-001 / F-027: Explore shows posts newest first, with photos, alt text and
   await keys.scrollIntoViewIfNeeded()
   await expect(keys).toBeVisible()
   await expect(page.getByText("Photo: Shixart1985, CC BY 2.0, via Wikimedia Commons")).toBeVisible()
-  // Newest first: the 1-day-old Okafor story comes before the 2-day-old pantry story.
-  const text = await page.locator("main").innerText()
-  expect(text.indexOf("Okafor family")).toBeLessThan(text.indexOf("10,000th family visit"))
+  // Newest first: post times on the page only go back in time.
+  const times = await page.locator("article header time").evaluateAll((els) => els.map((e) => e.getAttribute("datetime")!))
+  expect(times.length).toBeGreaterThan(5)
+  expect([...times].sort().reverse()).toEqual(times)
 })
 
 test("F-001: cause filter shows only orgs in that cause", async ({ page }) => {
@@ -25,7 +26,8 @@ test("F-001: cause filter shows only orgs in that cause", async ({ page }) => {
 
 test("F-032: org videos autoplay muted on screen and pause when scrolled away", async ({ page }) => {
   await page.goto("/o/greenway-stewards")
-  const video = page.getByLabel("Volunteers with hand tools re-cutting a dirt trail across a dry hillside")
+  // The same clip appears on a trail-crew call too; check the first one.
+  const video = page.getByLabel("Volunteers with hand tools re-cutting a dirt trail across a dry hillside").first()
   await video.evaluate((v) => v.scrollIntoView({ block: "center" }))
   // Under a full parallel-ish run the dev server is slow to serve the clip; allow time to buffer.
   await expect.poll(() => video.evaluate((v: HTMLVideoElement) => !v.paused && v.muted && v.currentTime > 0), { timeout: 25_000 }).toBe(true)
@@ -40,7 +42,7 @@ test.describe("with reduced motion", () => {
   test.use({ reducedMotion: "reduce" })
   test("F-032: videos don't autoplay when the device asks to reduce motion", async ({ page }) => {
     await page.goto("/o/greenway-stewards")
-    const video = page.getByLabel("Volunteers with hand tools re-cutting a dirt trail across a dry hillside")
+    const video = page.getByLabel("Volunteers with hand tools re-cutting a dirt trail across a dry hillside").first()
     await video.scrollIntoViewIfNeeded()
     await page.waitForTimeout(1500)
     expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true)
@@ -50,15 +52,17 @@ test.describe("with reduced motion", () => {
 test("F-033: foundations and nonprofits look different, and the feed filters by type", async ({ page }) => {
   await page.goto("/")
   // Post headers stay quiet: foundations get a small landmark marker; nonprofits none.
-  const grantPost = page.locator("article").filter({ hasText: "Fall Community Fund grants are out" }).first()
-  await expect(grantPost.locator('header [title="Foundation"]')).toHaveCount(1)
-  const harborPost = page.locator("article").filter({ hasText: "10,000th family visit" }).first()
+  const foundationPost = page.locator("article").filter({ has: page.locator('header a[href="/o/lakeshore-community-foundation"]') }).first()
+  await page.goto("/?type=foundation")
+  await expect(foundationPost.locator('header [title="Foundation"]')).toHaveCount(1)
+  await page.goto("/")
+  const harborPost = page.locator("article").filter({ has: page.locator('header a[href="/o/harbor-table"]') }).first()
   await expect(harborPost.locator('header [title="Foundation"]')).toHaveCount(0)
 
-  await page.getByRole("navigation", { name: "Filter by organization type" }).getByRole("link", { name: "Foundations" }).click()
+  await page.getByRole("navigation", { name: "Filter by who's posting" }).getByRole("link", { name: "Foundations" }).click()
   await expect(page).toHaveURL(/type=foundation/)
-  await expect(page.getByText("Fall Community Fund grants are out")).toBeVisible()
-  await expect(page.getByText("10,000th family visit")).toHaveCount(0)
+  await expect(page.locator("article header [title='Foundation']").first()).toBeVisible()
+  await expect(page.locator('article header a[href="/o/harbor-table"]')).toHaveCount(0)
 
   await page.goto("/o/lakeshore-community-foundation")
   await expect(page.locator("main h1 + span", { hasText: "Foundation" })).toBeVisible()
@@ -74,8 +78,8 @@ test("F-034 / F-035: foundation posts link confirmed grantees; profiles show Fun
   await expect(page).toHaveURL(/\/o\/harbor-table$/)
 
   // Compact funders card beside the story; full details on About.
-  await expect(page.getByRole("heading", { name: "Funded by" })).toBeVisible()
-  await page.getByRole("link", { name: "See grant details" }).first().click()
+  await expect(page.getByRole("heading", { name: "Top supporters" }).first()).toBeVisible()
+  await page.getByRole("link", { name: "About", exact: true }).click()
   await expect(page.getByText("$25,000, New walk-in freezer")).toBeVisible()
 
   await page.goto("/o/lakeshore-community-foundation")
@@ -140,8 +144,8 @@ test("F-039: /calls lists open calls soonest deadline first; closed calls drop o
 test("F-040: a nonprofit funded by two foundations shows as co-funded", async ({ page }) => {
   await page.goto("/o/harbor-table")
   await expect(page.getByRole("link", { name: /Co-funded by Lakeshore Community Foundation and 1 other/ })).toBeVisible()
-  await expect(page.getByRole("heading", { name: "Funded by" })).toBeVisible()
   await page.goto("/o/harbor-table?tab=about")
+  await expect(page.getByRole("heading", { name: "Funded by" })).toBeVisible()
   await expect(page.getByText("$10,000, Fresh produce program")).toBeVisible()
   await page.goto("/o/riverbend-readers")
   await expect(page.getByRole("link", { name: /Backed by Lakeshore Community Foundation/ })).toBeVisible()
@@ -225,14 +229,14 @@ test("F-003: unknown org is a 404", async ({ page }) => {
 
 test("F-025: search finds orgs by name", async ({ page }) => {
   await page.goto("/")
-  await page.getByRole("searchbox", { name: "Search", exact: true }).first().fill("river")
+  await page.getByRole("combobox", { name: "Search" }).fill("river")
   await page.keyboard.press("Enter")
   await expect(page.getByRole("region", { name: "Organizations" }).getByRole("link", { name: /Riverbend Readers/ })).toBeVisible()
 })
 
 test("F-002: Following requires sign-in", async ({ page }) => {
   await page.goto("/following")
-  await expect(page).toHaveURL(/\/login$/)
+  await expect(page).toHaveURL(/\/login(\?next=%2F|\?next=\/)following$/)
 })
 
 test("F-051: a profile lists current needs with a way to help; met needs say so", async ({ page }) => {
@@ -245,9 +249,9 @@ test("F-051: a profile lists current needs with a way to help; met needs say so"
   await expect(page.getByRole("button", { name: "Send a thank-you note" })).toHaveCount(0)
 })
 
-test("F-054: Ways to help lists open needs across orgs, filters by cause, and appears on Home", async ({ page }) => {
+test("F-054: Ways to help lists open needs across orgs and filters by cause", async ({ page }) => {
   await page.goto("/needs")
-  await expect(page.getByRole("heading", { name: "Ways to help" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Ways to help", level: 1 })).toBeVisible()
   await expect(page.getByRole("link", { name: "Help with Saturday dinner crew" })).toBeVisible()
   await expect(page.getByText("Walk-in cooler repair")).toHaveCount(0) // met needs drop off
 
@@ -255,11 +259,19 @@ test("F-054: Ways to help lists open needs across orgs, filters by cause, and ap
   await expect(page.getByRole("link", { name: "Help with Blankets and towels" })).toBeVisible()
   await expect(page.getByRole("link", { name: "Help with Saturday dinner crew" })).toHaveCount(0)
 
+})
+
+test("F-085: Home's Calls to help card toggles between volunteer and donation calls", async ({ page }) => {
   await page.goto("/")
-  const side = page.getByRole("region", { name: "Ways to help" })
-  await expect(side.getByRole("link", { name: /^Help with / })).toHaveCount(3)
-  await side.getByRole("link", { name: "See all needs" }).click()
-  await expect(page).toHaveURL(/\/needs$/)
+  const card = page.getByRole("region", { name: "Calls to help" })
+  await expect(card.getByRole("tab", { name: "Volunteer" })).toHaveAttribute("aria-selected", "true")
+  await expect(card.getByRole("link", { name: /^Sign up/ }).first()).toBeVisible()
+  await card.getByRole("tab", { name: "Donate" }).click()
+  await expect(card.getByRole("tab", { name: "Donate" })).toHaveAttribute("aria-selected", "true")
+  await expect(card.getByRole("link", { name: /^Donate/ }).first()).toBeVisible()
+  await expect(card.getByText(/\$[\d,]+ goal/).first()).toBeVisible()
+  await card.getByRole("link", { name: "See all donation calls" }).click()
+  await expect(page).toHaveURL(/\/needs\?show=donate/)
 })
 
 test("F-058: events list soonest first with a cause filter; profiles and Home show upcoming events", async ({ page }) => {
@@ -286,16 +298,16 @@ test("F-062 / F-063: LinkedIn-style posts: header, action bar, inline comments w
   await page.goto("/")
   const first = page.locator("article").first()
   await expect(first.getByText(/\d[\d,]* followers?/)).toBeVisible()
-  for (const name of ["This moved me (sign in)", "Comment", "Share", "Save (sign in)"]) await expect(first.getByRole(name === "Comment" || name === "Share" ? "button" : "link", { name, exact: true })).toBeVisible()
-  await first.getByRole("button", { name: "Comment", exact: true }).click()
+  for (const name of ["This moved me (sign in)", "Share", "Save (sign in)"]) await expect(first.getByRole(name === "Share" ? "button" : "link", { name, exact: true })).toBeVisible()
+  await expect(first.getByRole("button", { name: /^Comment( \d+ comments?)?$/ })).toBeVisible()
+  await first.getByRole("button", { name: /^Comment( \d+ comments?)?$/ }).click()
   const inline = first.getByRole("region", { name: "Comments" })
   await expect(inline.getByRole("link", { name: "Sign in" })).toBeVisible()
   await expect(inline.locator("time").first()).toBeVisible()
 
   // A post whose Author reply sits under one of the five newest threads (older ones are behind "Load more").
   const [post] = await sql`select r.post_id as id from comments r
-    join posts p on p.id = r.post_id
-   where p.org_id = ${"00000000-0000-4000-a000-000000000001"} and r.as_org and r.parent_id in (
+   where r.as_org and r.parent_id in (
      select t.id from comments t where t.post_id = r.post_id and t.parent_id is null order by t.created_at desc limit 5)
    order by r.post_id limit 1`
   await page.goto(`/p/${post.id}`)
@@ -304,8 +316,9 @@ test("F-062 / F-063: LinkedIn-style posts: header, action bar, inline comments w
   // Top-level comments newest first.
   const tops = await section.locator(":scope > ul > li > div time").evaluateAll((els) => els.map((e) => e.getAttribute("datetime")!))
   expect([...tops].sort().reverse()).toEqual(tops)
-  // No counts anywhere.
-  await expect(page.getByText(/\d+ (comments?|replies|reactions?|likes?)\b/)).toHaveCount(0)
+  // No like-style counts for visitors: the comment count is public (0015), "moved" is not.
+  await expect(page.getByText(/\d+ (replies|reactions?|likes?|people moved)\b/)).toHaveCount(0)
+  await expect(page.getByRole("button", { name: /^Comment \d+ comments?$/ })).toBeVisible()
 })
 
 test("F-064: feed posts preview their newest comment; 'See more comments' opens the thread", async ({ page }) => {
@@ -342,7 +355,7 @@ test("F-068: search covers organizations, people and posts, with tabs", async ({
 })
 
 test("F-066: profiles have About and Activity; opted-in donors show 'Has given to'", async ({ page }) => {
-  const [p] = await sql`select pr.handle from profiles pr where pr.donor_badge and exists (select 1 from gifts g where g.user_id = pr.id)
+  const [p] = await sql`select pr.handle from profiles pr where pr.donor_badge and not pr.show_giving_totals and exists (select 1 from gifts g where g.user_id = pr.id)
     and exists (select 1 from comments c where c.user_id = pr.id and not c.as_org) order by pr.handle limit 1`
   await page.goto(`/u/${p.handle}`)
   await expect(page.getByRole("heading", { name: "Has given to" })).toBeVisible()
@@ -378,7 +391,7 @@ test("F-073: profiles look complete: cover photos, location, founded, team, prog
   await expect(page.locator('main img[src$="covers/mountain-lake.webp"]')).toBeVisible()
   await expect(page.getByText("Milwaukee, WI").first()).toBeVisible()
   await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible()
-  await expect(page.getByRole("heading", { name: "Has given to" })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Giving" })).toBeVisible()
   await expect(page.getByRole("link", { name: "Edit profile" })).toHaveCount(0) // not yours
 })
 
@@ -397,4 +410,107 @@ test("F-074: events open their own page: host, when, where, add to calendar, mor
   // No attendee counts.
   await expect(page.getByText(/\d+ (attendees?|going)/i)).toHaveCount(0)
   expect((await request.get("/e/00000000-0000-4000-a000-000000000999")).status()).toBe(404)
+})
+
+test("F-076 / B-028: an opted-in donor's profile shows total giving, amounts by organization and causes supported", async ({ page }) => {
+  await page.goto("/u/dana_demo")
+  const panel = page.getByRole("region", { name: "Giving" })
+  await expect(panel.getByText(/^\$[\d,]+$/).first()).toBeVisible()
+  await expect(panel.getByText(/given to \d+ organizations? since/)).toBeVisible()
+  await expect(panel.getByRole("heading", { name: "Causes supported" })).toBeVisible()
+  await expect(panel.getByRole("link", { name: "Hunger & Food" })).toBeVisible()
+  await expect(panel.getByText(/\d+%/)).toHaveCount(0) // B-028: no invented per-cause split
+  // F-077: amount to each organization, largest first.
+  const orgRow = panel.getByRole("listitem").filter({ has: page.getByRole("link", { name: "Harbor Table" }) })
+  await expect(orgRow.getByText(/^\$[\d,]+$/)).toBeVisible()
+  await expect(panel.getByText(/Self-reported/)).toBeVisible()
+  // What their giving became no longer repeats grant reports.
+  await expect(page.getByText(/Latest report/)).toHaveCount(0)
+})
+
+test("F-078: a nonprofit shows its top supporters: foundations by confirmed grants and opted-in donors, with amounts", async ({ page }) => {
+  await page.goto("/o/harbor-table")
+  const card = page.getByRole("region", { name: "Top supporters" }).first()
+  const lakeshore = card.getByRole("listitem").filter({ hasText: "Lakeshore Community Foundation" })
+  await expect(lakeshore).toContainText("$25,000")
+  // Opted-in individual donors, with self-reported totals, link to their profiles.
+  await expect(card.locator('a[href^="/u/"]').first()).toBeVisible()
+  await expect(card.getByText(/People: self-reported/)).toBeVisible()
+  await expect(card.getByText(/Foundations: confirmed grants/)).toBeVisible()
+})
+
+test("F-079: the Donors tab shows posts by people, with spotlighted organizations and comments", async ({ page }) => {
+  await page.goto("/")
+  await page.getByRole("navigation", { name: "Filter by who's posting" }).getByRole("link", { name: "Donors" }).click()
+  await expect(page).toHaveURL(/type=donor/)
+  const post = page.locator("article").filter({ hasText: "Harbor Table needs dinner crew" }).first()
+  await expect(post).toBeVisible()
+  await expect(post.locator('a[href^="/u/"]').first()).toBeVisible()
+  await expect(post.getByRole("link", { name: /Harbor Table.*View/ })).toHaveAttribute("href", "/o/harbor-table")
+  // Only people's posts here: no org headers.
+  await expect(page.locator("article header a[href^='/o/']")).toHaveCount(0)
+  await expect(page.getByRole("navigation", { name: "Filter by cause" })).toHaveCount(0)
+})
+
+test("F-081: an opted-in donor's profile shows volunteer hours by organization", async ({ page }) => {
+  await page.goto("/u/dana_demo")
+  const panel = page.getByRole("region", { name: "Volunteering" })
+  await expect(panel.getByText("20.5 hours")).toBeVisible()
+  await expect(panel.getByRole("listitem").filter({ hasText: "Harbor Table" })).toContainText("17.5 hours")
+  await expect(panel.getByRole("listitem").filter({ hasText: "Bridge Welcome Center" })).toContainText("3 hours")
+})
+
+test("F-083: the header search suggests organizations, people and events as you type; keyboard works", async ({ page }) => {
+  await page.goto("/")
+  const box = page.getByRole("combobox", { name: "Search" })
+  await box.fill("harb")
+  const list = page.getByRole("listbox", { name: "Suggestions" })
+  await expect(list.getByRole("option", { name: /Harbor Table/ })).toBeVisible()
+  await box.press("ArrowDown")
+  await expect(list.getByRole("option").first()).toHaveAttribute("aria-selected", "true")
+  await box.press("Enter")
+  await expect(page).toHaveURL(/\/o\/harbor-table$/)
+
+  await page.goto("/")
+  await box.fill("planting")
+  await expect(page.getByRole("listbox", { name: "Suggestions" }).getByRole("option", { name: /Planting day/ })).toBeVisible()
+  await box.press("Escape")
+  await expect(page.getByRole("listbox", { name: "Suggestions" })).toHaveCount(0)
+  await page.getByRole("combobox", { name: "Search" }).fill("dinner")
+  await page.getByRole("link", { name: /See all results for/ }).click()
+  await expect(page).toHaveURL(/\/search\?q=dinner/)
+  await expect(page.getByRole("region", { name: "Events" })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Ways to help" })).toBeVisible() // search results section
+})
+
+test("F-084: Ways to help shows calls for volunteers and donations, with photos, video and the right button", async ({ page }) => {
+  await page.goto("/needs")
+  await page.getByRole("navigation", { name: "Ways to help" }).getByRole("link", { name: "Volunteer" }).click()
+  await expect(page).toHaveURL(/show=volunteer/)
+  const vol = page.locator("article").filter({ hasText: "Saturday dinner crew this month" }).first()
+  await expect(vol.getByText("Volunteers needed").first()).toBeVisible()
+  await expect(vol.getByRole("link", { name: /Sign up/ })).toHaveAttribute("href", /^https:\/\/example\.org\//)
+  await expect(vol.locator("img[alt]").first()).toBeVisible()
+  await expect(page.locator("article").filter({ hasText: "Donations needed" })).toHaveCount(0)
+
+  await page.getByRole("navigation", { name: "Ways to help" }).getByRole("link", { name: "Donate" }).click()
+  const don = page.locator("article").filter({ hasText: "walk-in cooler is 19 years old" }).first()
+  await expect(don.getByText("Goal $8,500")).toBeVisible()
+  await expect(don.getByRole("link", { name: /Donate/ })).toBeVisible()
+  await expect(page.locator("article video").first()).toBeAttached() // some calls carry video
+})
+
+test("F-091: Home's right column shows calls to help and upcoming events, not org suggestions", async ({ page }) => {
+  await page.goto("/")
+  await expect(page.getByRole("heading", { name: "Calls to help" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Add to your feed" })).toHaveCount(0)
+})
+
+test("B-033: cause chips stay in place when one is selected", async ({ page }) => {
+  await page.goto("/calls")
+  const chip = page.getByRole("navigation", { name: "Filter by cause" }).getByRole("link", { name: "Health", exact: true })
+  const before = (await chip.boundingBox())!.x
+  await chip.click()
+  await expect(chip).toHaveAttribute("aria-current", "page")
+  expect(Math.round((await chip.boundingBox())!.x)).toBe(Math.round(before))
 })

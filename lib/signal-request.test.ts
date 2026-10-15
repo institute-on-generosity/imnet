@@ -24,4 +24,8 @@ describe("parseSignalRequest", () => {
     expect(parseSignalRequest(h(ok), URL_, { ...body, kind: "rsvp" })).toMatchObject({ signal: { kind: "rsvp" } })
     expect(parseSignalRequest(h(ok), URL_, { ...body, kind: "interest" })).toMatchObject({ signal: { kind: "interest" } })
   })
+
+  it("B-030: accepts any well-formed id, including demo people's ids", () => {
+    expect(parseSignalRequest(h(ok), URL_, { ...body, kind: "follow_person", id: "00000000-0000-4000-c000-000000000005" })).toMatchObject({ signal: { kind: "follow_person" } })
+  })
 })

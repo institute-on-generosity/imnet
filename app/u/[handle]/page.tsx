@@ -5,8 +5,12 @@ import { OrgMark } from "@/components/org-mark"
 import { PersonAvatar } from "@/components/person-avatar"
 import { FoundationMark } from "@/components/org-type-badge"
 import { GivingBecame } from "@/components/giving-became"
-import { getActivity, getDonorOrgs, getOrgGrants } from "@/lib/queries"
-import { CalendarDays, HandHeart, MapPin, Pencil } from "lucide-react"
+import { getActivity, getDonorOrgs, getFollowedPersonIds, getGivingSummary, getMovedPostIds, getVolunteerSummary, getOrgGrants, getPersonPosts, getSavedPostIds } from "@/lib/queries"
+import { Feed } from "@/components/post-card"
+import { GivingSummaryPanel } from "@/components/giving-summary"
+import { VolunteerSummaryPanel } from "@/components/volunteer-summary"
+import { CalendarDays, HandHeart, MapPin, Pencil, Plus } from "lucide-react"
+import { FollowButton } from "@/components/follow-button"
 import { buttonVariants } from "@/components/ui/button"
 import { personCoverSrc } from "@/lib/cover"
 import { ago } from "@/lib/comments"
@@ -23,15 +27,11 @@ async function getProfile(handle: string) {
     .eq("handle", handle)
     .maybeSingle()
   if (!profile) return null
-  const [{ data: supports }, { data: causes }] = await Promise.all([
-    supabase.from("follows").select("org:orgs(id, slug, name, logo_url, org_type)").eq("user_id", profile.id).eq("supporter", true),
-    supabase.from("profile_causes").select("cause:causes(slug, name)").eq("user_id", profile.id),
-  ])
+  const { data: supports } = await supabase.from("follows").select("org:orgs(id, slug, name, logo_url, org_type)").eq("user_id", profile.id).eq("supporter", true)
   return {
     profile,
     supports: ((supports ?? []) as unknown as { org: OrgSummary | null }[])
       .flatMap((s) => (s.org ? [s.org] : [])),
-    causes: ((causes ?? []) as unknown as { cause: { slug: string; name: string } }[]).map((c) => c.cause),
   }
 }
 
@@ -46,14 +46,22 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   const tab = rawTab === "activity" ? "activity" : "about"
   const data = await getProfile(handle)
   if (!data) notFound()
-  const { profile, supports, causes } = data
+  const { profile, supports } = data
   const name = profile.display_name ?? `@${profile.handle}`
-  const isOwn = (await getUserId()) === profile.id
-  const [funds, gaveTo, activity] = await Promise.all([
+  const viewerId = await getUserId()
+  const isOwn = viewerId === profile.id
+  const followsThem = viewerId && !isOwn ? (await getFollowedPersonIds(viewerId)).includes(profile.id) : false
+  const [funds, gaveTo, activity, totals, posts, volunteering] = await Promise.all([
     Promise.all(supports.filter((o) => o.org_type === "foundation").map(async (foundation) => ({ foundation, grants: await getOrgGrants(foundation) }))),
     getDonorOrgs(profile.id),
     getActivity(profile.id),
+    getGivingSummary(profile.id),
+    getPersonPosts(profile.id),
+    getVolunteerSummary(profile.id),
   ])
+  const shownPosts = tab === "activity" ? posts : posts.slice(0, 2)
+  const postIds = shownPosts.map((p) => p.id)
+  const [movedIds, savedIds] = await Promise.all([getMovedPostIds(viewerId, postIds), getSavedPostIds(viewerId, postIds)])
   const joined = new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
   const base = `/u/${profile.handle}`
   const shownActivity = tab === "activity" ? activity : activity.slice(0, 3)
@@ -61,7 +69,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   // Giving lists sit beside the story on desktop and after it on phones.
   const giving = (where: string) => (
     <>
-      <OrgListCard id={`gave-to-${where}`} title={isOwn ? "I've given to" : "Has given to"} note="Self-reported in their giving journal. Amounts stay private." orgs={gaveTo} icon />
+      {!totals && <OrgListCard id={`gave-to-${where}`} title={isOwn ? "I've given to" : "Has given to"} note="Self-reported in their giving journal. Amounts stay private." orgs={gaveTo} icon />}
       <OrgListCard id={`supports-${where}`} title={isOwn ? "Organizations I support" : "Organizations they support"} note="Self-reported" orgs={supports} />
     </>
   )
@@ -81,6 +89,8 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
           <div className="flex items-end justify-between gap-3">
             <PersonAvatar name={name} avatarUrl={profile.avatar_url} size="xl" className="-mt-12 block border-4 border-card bg-card sm:-mt-14" />
             {isOwn && <Link href="/settings/profile" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3" })}><Pencil aria-hidden />Edit profile</Link>}
+            {!isOwn && viewerId && <div className="mt-3"><FollowButton orgId={profile.id} orgName={name} following={followsThem} person /></div>}
+            {!isOwn && !viewerId && <Link href="/login" className={buttonVariants({ size: "sm", className: "mt-3" })}><Plus aria-hidden />Follow</Link>}
           </div>
           <h1 className="mt-3 text-3xl font-semibold">{name}</h1>
           {profile.bio && <p className="mt-1 max-w-prose text-lg leading-snug text-foreground/80">{profile.bio}</p>}
@@ -96,13 +106,6 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
               </>
             )}
           </p>
-          {causes.length > 0 && (
-            <ul aria-label={isOwn ? "Causes I care about" : "Causes they care about"} className="mt-3 flex flex-wrap gap-1.5 text-sm">
-              {causes.map((c) => (
-                <li key={c.slug}><Link href={`/?cause=${c.slug}`} className="rounded-full border border-leaf/30 bg-leaf-soft px-3 py-1 text-leaf hover:bg-leaf hover:text-white">{c.name}</Link></li>
-              ))}
-            </ul>
-          )}
         </div>
         <nav aria-label="Profile sections" className="flex border-t px-2 sm:px-4">
           {(["about", "activity"] as const).map((t) => (
@@ -120,13 +123,24 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
           <p className="story mt-2 whitespace-pre-line">{profile.about}</p>
         </Panel>
       )}
+      {tab === "about" && totals && <GivingSummaryPanel summary={totals} isOwn={isOwn} />}
+      {tab === "about" && volunteering && <VolunteerSummaryPanel summary={volunteering} isOwn={isOwn} />}
       {tab === "about" && <GivingBecame funds={funds} isOwn={isOwn} />}
       {tab === "about" && <div className="space-y-3 lg:hidden">{giving("main")}</div>}
 
+      {shownPosts.length > 0 && (
+        <section aria-labelledby="posts" className="space-y-3">
+          <h2 id="posts" className="px-1 font-sans text-lg font-semibold tracking-normal">Posts</h2>
+          <Feed posts={shownPosts} empty="" movedIds={movedIds} savedIds={savedIds} signedIn={!!viewerId} />
+          {tab === "about" && posts.length > 2 && (
+            <Link href={`${base}?tab=activity`} className={buttonVariants({ variant: "outline", className: "w-full" })}>Show all posts</Link>
+          )}
+        </section>
+      )}
       {(tab === "activity" || activity.length > 0) && (
       <Panel aria-labelledby="activity">
         <div className="flex items-baseline justify-between px-4 pt-4 sm:px-6">
-          <h2 id="activity" className="font-sans text-lg font-semibold tracking-normal">{tab === "activity" ? "Comments" : "Recent activity"}</h2>
+          <h2 id="activity" className="font-sans text-lg font-semibold tracking-normal">{tab === "activity" ? "Comments" : "Recent comments"}</h2>
         </div>
         {shownActivity.length === 0 ? (
           <p className="px-4 pt-1 pb-4 text-sm text-muted-foreground sm:px-6">No comments yet.</p>
@@ -136,13 +150,17 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
               <li key={a.id} className="px-4 py-3 sm:px-6">
                 <p className="text-xs text-muted-foreground">
                   {a.parent_id ? "Replied" : "Commented"} on a post by{" "}
-                  <Link href={`/o/${a.post.org.slug}`} className="font-medium text-foreground hover:underline">{a.post.org.name}</Link>
+                  {a.post.org ? (
+                    <Link href={`/o/${a.post.org.slug}`} className="font-medium text-foreground hover:underline">{a.post.org.name}</Link>
+                  ) : a.post.author ? (
+                    <Link href={`/u/${a.post.author.handle}`} className="font-medium text-foreground hover:underline">{a.post.author.display_name ?? `@${a.post.author.handle}`}</Link>
+                  ) : null}
                   {" "}• <time dateTime={a.created_at}>{ago(a.created_at)}</time>
                   {a.donor && <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-marigold-soft py-px pr-1.5 pl-1 text-[10px] font-semibold text-amber-800"><HandHeart className="size-3" aria-hidden />Donor</span>}
                 </p>
                 <p className="mt-1 whitespace-pre-line">{a.body}</p>
                 <Link href={`/p/${a.post.id}#comments`} className="mt-2 flex items-center gap-2 rounded-lg border bg-muted/40 p-2 text-sm hover:bg-muted">
-                  <OrgMark org={a.post.org} size="sm" />
+                  {a.post.org ? <OrgMark org={a.post.org} size="sm" /> : a.post.author ? <PersonAvatar name={a.post.author.display_name ?? a.post.author.handle} avatarUrl={a.post.author.avatar_url} size="xs" className="size-6" /> : null}
                   <span className="line-clamp-1 text-muted-foreground">{a.post.body}</span>
                 </Link>
               </li>

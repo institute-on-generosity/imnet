@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { hasUnread } from "@/lib/notifications"
 import { createClient, getUserId } from "@/lib/supabase/server"
 import { IconTip } from "./icon-tip"
+import { HeaderSearch } from "./header-search"
 import { NavLinks } from "./nav-links"
 import { CONTAINER } from "./shell"
 
@@ -24,19 +25,10 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-20 border-b bg-card">
-      <div className={`${CONTAINER} flex items-center gap-3`}>
-        <Link href="/" className="font-heading text-2xl font-semibold tracking-tight" aria-label="imnet home">imnet</Link>
+      <div className={`${CONTAINER} flex items-center gap-2 sm:gap-3`}>
+        <Link href="/" className="font-heading text-xl font-semibold tracking-tight sm:text-2xl" aria-label="imnet home">imnet</Link>
 
-        <form action="/search" role="search" className="relative hidden flex-1 sm:block sm:max-w-72">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <input
-            type="search"
-            name="q"
-            placeholder="Search orgs, people, posts"
-            aria-label="Search"
-            className="h-9 w-full rounded-md bg-muted pr-3 pl-9 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-          />
-        </form>
+        <HeaderSearch />
 
         <nav aria-label="Main" className="ml-auto flex items-center">
           {userId ? (

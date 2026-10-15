@@ -1,14 +1,16 @@
 "use client"
 
 import { Menu } from "@base-ui/react/menu"
-import { Ellipsis, Flag, Link2 } from "lucide-react"
+import { Ellipsis, Flag, Link2, Trash2 } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { reportPost } from "@/app/actions"
+import { deleteMyPost, reportPost } from "@/app/actions"
 
 const ITEM = "flex cursor-default items-center gap-3 rounded-md px-3 py-2 text-sm outline-none data-[highlighted]:bg-muted"
 
-// LinkedIn's "⋯" menu on a post: copy the link, or report it for review.
-export function PostMenu({ postId, signedIn }: { postId: string; signedIn: boolean }) {
+// LinkedIn's "⋯" menu on a post: copy the link, delete your own post, or report one for review.
+export function PostMenu({ postId, signedIn, canDelete }: { postId: string; signedIn: boolean; canDelete?: boolean }) {
+  const router = useRouter()
   const [note, setNote] = useState<string | null>(null)
   const flash = (text: string) => {
     setNote(text)
@@ -26,7 +28,12 @@ export function PostMenu({ postId, signedIn }: { postId: string; signedIn: boole
               <Menu.Item className={ITEM} onClick={async () => { await navigator.clipboard.writeText(`${window.location.origin}/p/${postId}`); flash("Link copied") }}>
                 <Link2 className="size-4" aria-hidden />Copy link to post
               </Menu.Item>
-              {signedIn && (
+              {canDelete && (
+                <Menu.Item className={ITEM} onClick={async () => { if (confirm("Delete this post?")) { await deleteMyPost(postId); router.refresh() } }}>
+                  <Trash2 className="size-4" aria-hidden />Delete post
+                </Menu.Item>
+              )}
+              {signedIn && !canDelete && (
                 <Menu.Item className={ITEM} onClick={async () => { await reportPost(postId, "Reported from the post menu"); flash("Reported. We'll review it.") }}>
                   <Flag className="size-4" aria-hidden />Report post
                 </Menu.Item>
