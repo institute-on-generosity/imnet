@@ -1052,3 +1052,27 @@ export async function getMapItems(): Promise<MapItem[]> {
   }
   return items
 }
+
+// F-102 Communities with a place, for "Communities near you" (distances are computed in the browser).
+export type PlacedCommunity = { id: string; slug: string; name: string; cause_slug: string | null; location: string; lat: number; lng: number; members: number; joined: boolean }
+export async function getPlacedCommunities(userId: string | null): Promise<PlacedCommunity[]> {
+  const supabase = await createClient()
+  const [{ data }, mine] = await Promise.all([
+    supabase.from("groups").select("id, slug, name, cause_slug, location, lat, lng").not("lat", "is", null).limit(500),
+    userId ? supabase.from("group_members").select("group_id").eq("user_id", userId) : null,
+  ])
+  const rows = (data ?? []) as Omit<PlacedCommunity, "members" | "joined">[]
+  const counts = await memberCounts(rows.map((r) => r.id))
+  const joined = new Set((mine?.data ?? []).map((m) => m.group_id))
+  return rows.map((r) => ({ ...r, members: counts.get(r.id) ?? 0, joined: joined.has(r.id) }))
+}
+
+// The viewer's profile city as coordinates, when it's one we know (to center "near you" before they share a location).
+export async function getProfileCity(userId: string | null): Promise<{ at: { lat: number; lng: number }; label: string } | null> {
+  if (!userId) return null
+  const supabase = await createClient()
+  const { data: p } = await supabase.from("profiles").select("location").eq("id", userId).maybeSingle()
+  if (!p?.location) return null
+  const { data: c } = await supabase.from("cities").select("name, lat, lng").ilike("name", p.location.trim()).maybeSingle()
+  return c ? { at: { lat: c.lat, lng: c.lng }, label: c.name } : null
+}

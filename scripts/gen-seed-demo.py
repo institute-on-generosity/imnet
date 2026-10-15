@@ -19,6 +19,14 @@ import demo_donor_posts as dposts  # noqa: E402
 import demo_donor_photos as dphotos  # noqa: E402
 import demo_calls as calls  # noqa: E402
 import demo_groups as groups  # noqa: E402
+import demo_southbay as southbay  # noqa: E402
+
+# F-102: the South Bay orgs ride along with the other demo orgs, calls and communities.
+more.ORGS += southbay.ORGS
+more.GRANTS += southbay.GRANTS
+calls.CALLS += southbay.CALLS
+groups.GROUPS += southbay.COMMUNITIES
+groups.LOCATIONS.update(southbay.COMMUNITY_LOCATIONS)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "supabase", "seed_demo.sql")
@@ -416,6 +424,7 @@ EVENTS = [
     (41, "Teen grants committee Q&A", 11, 17, "Online", "Ask our teen committee about youth-led grants."),
     (42, "Community health listening session", 30, 18, "Bellweather Health Trust offices", None),
 ]
+EVENTS += southbay.EVENTS
 out.append("insert into org_events (org_id, title, starts_at, location, detail) values")
 out.append(",\n".join(
     f"  ('{oid(o)}', {q(t)}, (date_trunc('day', now() at time zone 'America/Los_Angeles') + interval '{d} days {h} hours') at time zone 'America/Los_Angeles', {q(loc)}, {q(det) if det else 'null'})"
@@ -745,6 +754,11 @@ select (array['view','view','view','view','view','view','share','donate_click'])
  where p.org_id is not null;
 """)
 
+
+# F-102 South Bay org details (city, founded, team, about); no cover photo.
+for n, (loc, founded, team, about) in southbay.DETAILS.items():
+    out.append(f"update orgs set location = {q(loc)}, founded_year = {founded}, team_size = {q(team)}, about = {q(about)} where id = '{oid(n)}';")
+out.append("")
 
 # F-100 Groups and their chats.
 def gid(n): return f"00000000-0000-4000-e000-{n:012d}"

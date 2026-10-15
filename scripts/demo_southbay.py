@@ -1,0 +1,176 @@
+"""South Bay demo orgs (ids 46-56), imported by gen-seed-demo.py, so people around Mountain View see
+volunteering, events and communities near them (F-102). Names are invented; none is meant to resemble
+a real organization. Same tuple shapes as demo_more_orgs.ORGS / GRANTS and demo_calls.CALLS.
+"""
+
+ORGS = [
+    (46, "castro-street-community-kitchen", "Castro Street Community Kitchen", "nonprofit", ["hunger"],
+     "Hot dinners five nights a week and a free grocery shelf, no questions asked, in downtown Mountain View.",
+     "$15 serves dinner to three neighbors. $400 stocks the grocery shelf for a week.",
+     [("Dinners served this year", "21,400"), ("Volunteer shifts filled", "3,150")],
+     [("update", "Tuesday's dinner: 162 plates, and the new rice cooker paid for itself in one night.", 0.6),
+      ("impact_story", "A grandmother who used to skip meals so her grandkids could eat now sits down with them at our table on Thursdays.", 9),
+      ("ask", "We need weekday dishwashers. Two hours, 6 to 8 pm, and you eat first.", 21)],
+     [("volunteer", "Weekday dinner servers and dishwashers", "https://example.org/castro-kitchen/volunteer")]),
+    (47, "bayfront-wetlands-crew", "Bayfront Wetlands Crew", "nonprofit", ["environment"],
+     "Restoring the marsh edges along the bay trail: weeding, native planting and monthly shoreline cleanups.",
+     "$25 buys 12 native plugs. $1,200 funds a season of weekend restoration days.",
+     [("Acres restored", "38"), ("Volunteers this year", "910")],
+     [("update", "Saturday's crew pulled 41 bags of invasive ice plant and planted 600 pickleweed plugs.", 2),
+      ("impact_story", "Burrowing owls nested on the restored strip for the first time in six years.", 16)],
+     [("volunteer", "Saturday shoreline restoration", "https://example.org/bayfront/saturdays")]),
+    (48, "rengstorff-reading-club", "Rengstorff Reading Club", "nonprofit", ["education", "youth"],
+     "Free after-school reading help for second to fifth graders, with volunteer reading buddies.",
+     "$20 puts five new books on a student's home shelf. $600 trains twenty reading buddies.",
+     [("Students reading with a buddy", "220"), ("Books sent home", "4,800")],
+     [("update", "Fall buddies are matched: 96 kids, 88 volunteers. Eight kids still waiting for a buddy.", 3),
+      ("impact_story", "Mateo read a full chapter book aloud to his little sister for the first time. His buddy cried a little.", 14),
+      ("ask", "Eight students still need a Wednesday reading buddy. One hour a week, training provided.", 25)],
+     [("volunteer", "Wednesday reading buddies", "https://example.org/rengstorff/buddies")]),
+    (49, "bayshore-paws-rescue", "Bayshore Paws Rescue", "nonprofit", ["animals"],
+     "Foster-based dog and cat rescue in Sunnyvale. Every animal lives in a home until it finds one.",
+     "$50 covers a foster pet's food for a month. $250 pays for a spay or neuter.",
+     [("Adoptions this year", "312"), ("Active foster homes", "64")],
+     [("update", "Twelve adoptions at Saturday's meet-and-greet, including two seniors who'd waited all summer.", 1.5),
+      ("ask", "We need fosters for two bonded senior cats. Supplies and vet care covered.", 11)],
+     [("volunteer", "Foster homes for cats and dogs", "https://example.org/bayshore-paws/foster"),
+      ("volunteer", "Weekend adoption event helpers", "https://example.org/bayshore-paws/events")]),
+    (50, "oak-grove-senior-rides", "Oak Grove Senior Rides", "nonprofit", ["health"],
+     "Volunteer drivers taking older neighbors to medical appointments, the pharmacy and the grocery store.",
+     "$30 covers fuel for a week of rides. $500 funds a driver's background check and training.",
+     [("Rides given this year", "6,240"), ("Volunteer drivers", "118")],
+     [("impact_story", "Ruth, 91, hasn't missed a dialysis appointment in two years. Her Tuesday driver has become her friend.", 5),
+      ("update", "We added Saturday grocery runs. Waitlist for weekday medical rides is down to nine.", 18)],
+     [("volunteer", "Weekday volunteer drivers", "https://example.org/oak-grove/drive")]),
+    (51, "san-tomas-youth-robotics", "San Tomas Youth Robotics", "nonprofit", ["youth", "education"],
+     "Free robotics teams for middle and high schoolers, with volunteer engineers as mentors.",
+     "$75 buys a team's sensors for the season. $2,000 sends a team to regionals.",
+     [("Students on teams", "146"), ("Volunteer mentors", "52")],
+     [("update", "Build season starts Monday. Twelve teams, and our first all-girls team from Wilcox.", 4),
+      ("ask", "Looking for mentors who can code, wire or just encourage. Tuesday or Thursday evenings.", 20)],
+     [("volunteer", "Robotics mentors, weekday evenings", "https://example.org/san-tomas/mentor")]),
+    (52, "guadalupe-housing-collaborative", "Guadalupe Housing Collaborative", "nonprofit", ["housing"],
+     "Keeping San Jose families housed: emergency rent help, tenant clinics and move-in support.",
+     "$300 closes a typical rent gap. $1,000 covers a family's move-in deposit.",
+     [("Families kept housed", "870"), ("Clinic visits", "1,920")],
+     [("impact_story", "A bus driver's family stayed in their apartment after a medical emergency. Rent help and a payment plan did it.", 7),
+      ("update", "Free tenant clinic every Thursday evening, with volunteer attorneys and Spanish and Vietnamese interpreters.", 15)],
+     [("volunteer", "Interpreters for Thursday clinics", "mailto:clinic@example.org")]),
+    (53, "quiet-harbor-peer-support", "Quiet Harbor Peer Support", "nonprofit", ["mental-health"],
+     "Free peer support groups for teens and adults, led by trained volunteers who've been there.",
+     "$40 trains a peer facilitator for one session. $900 runs a support group for a year.",
+     [("Group sessions this year", "1,140"), ("Trained peer facilitators", "74")],
+     [("update", "New Tuesday evening group for parents of teens, in Los Altos and online.", 2.5),
+      ("impact_story", "A college student who joined a group last fall now co-leads one. She says it's the hour she looks forward to most.", 19)],
+     [("volunteer", "Peer facilitator training, spring cohort", "https://example.org/quiet-harbor/train")]),
+    (54, "mountain-view-neighbors-fund", "Mountain View Neighbors Fund", "foundation", ["hunger", "education", "housing"],
+     "A neighborhood fund: residents pool gifts and a volunteer committee grants them to local groups.",
+     "Every gift is granted to Mountain View nonprofits chosen by our neighbor committee.",
+     [("Granted locally since 2014", "$3.1M"), ("Neighbors on the committee", "15")],
+     [("update", "This fall's grants: $180,000 to nine local groups, chosen by 15 neighbors on our committee.", 6),
+      ("update", "Our neighbor committee has two open seats for 2027. Apply by November 15.", 22)],
+     []),
+    (55, "orchard-lane-family-foundation", "Orchard Lane Family Foundation", "foundation", ["youth", "education", "environment"],
+     "A Cupertino family foundation funding youth programs and outdoor learning across the South Bay.",
+     "We fund programs that put kids outside and in front of good teachers.",
+     [("Grants this year", "$420,000"), ("Grantees", "18")],
+     [("update", "Open call for outdoor education programs: up to $25,000. Applications close December 1.", 8)],
+     []),
+    (56, "south-bay-futures-fund", "South Bay Futures Fund", "foundation", ["youth", "mental-health", "health"],
+     "Funding youth mental health and wellbeing in San Jose and Santa Clara County, with teens on the grants committee.",
+     "Teens on our committee decide where our youth wellbeing grants go.",
+     [("Youth wellbeing grants", "$610,000"), ("Teens on the committee", "9")],
+     [("update", "Our teen committee picked this year's grantees: peer support, robotics and a skatepark mentoring crew.", 10)],
+     []),
+]
+
+# (org, city, founded, team, about)
+DETAILS = {
+    46: ("Mountain View, CA", 2009, "6 staff, 240 volunteers", "We started as a Tuesday soup night in a church basement. Now we cook five nights a week and keep a free grocery shelf stocked."),
+    47: ("Mountain View, CA", 2016, "3 staff, 900 volunteers", "Weekend crews restore the marsh edges along the bay trail, one weeding day at a time."),
+    48: ("Mountain View, CA", 2012, "4 staff, 88 reading buddies", "Volunteer reading buddies meet the same student every week, all year."),
+    49: ("Sunnyvale, CA", 2011, "5 staff, 64 foster homes", "Every animal lives in a foster home until it finds its own."),
+    50: ("Palo Alto, CA", 2007, "3 staff, 118 drivers", "Older neighbors get where they need to go, with a friendly driver who comes back next week."),
+    51: ("Santa Clara, CA", 2015, "2 staff, 52 mentors", "Free robotics teams for any student who wants one, mentored by volunteer engineers."),
+    52: ("San Jose, CA", 2005, "11 staff, 60 volunteers", "Rent help, tenant clinics and move-in support so families stay in their homes."),
+    53: ("Los Altos, CA", 2018, "2 staff, 74 facilitators", "Peer support groups led by trained volunteers who've been there."),
+    54: ("Mountain View, CA", 2014, "2 staff, 15-member neighbor committee", "Neighbors pool their gifts and decide together where they go."),
+    55: ("Cupertino, CA", 2003, "3 staff", "A family foundation funding youth programs and outdoor learning."),
+    56: ("San Jose, CA", 2019, "4 staff, 9 teen committee members", "Teens help decide where our youth wellbeing grants go."),
+}
+
+GRANTS = [
+    (54, 46, 30000, "A second dinner night and a walk-in fridge", 40, "Thanks to Mountain View Neighbors Fund, we added Friday dinners. 140 more plates a week."),
+    (54, 48, 18000, "Books for home shelves", 60, "Mountain View Neighbors Fund's grant sent 1,900 books home with our students this fall."),
+    (55, 47, 22000, "Weekend restoration days", 50, "Orchard Lane's grant funded 14 restoration Saturdays and 2,400 native plants."),
+    (55, 51, 15000, "Sensors and travel to regionals", 35, None),
+    (56, 53, 40000, "Teen peer support groups", 45, "With South Bay Futures Fund, we opened three new teen groups. Every seat filled in a week."),
+    (56, 52, 25000, "Move-in deposits for families", 70, None),
+]
+
+# (org, kind, body, days ago, action in N days or None, goal or None, photos, video)
+V, D = "call_volunteers", "call_donations"
+CALLS = [
+    (46, V, "Saturday prep crew: chop, stir and plate for 160 neighbors. 2 to 6 pm, no experience needed, and you eat with us.", 0.4, 3, None, [], None),
+    (47, V, "Shoreline restoration this Saturday at the bay trail. Gloves, tools and coffee provided. Bring sun protection.", 0.8, 3, None, [], None),
+    (48, V, "Eight kids still need a reading buddy on Wednesdays, 3:30 to 4:30. We train you on the first day.", 1.2, 6, None, [], None),
+    (49, V, "Adoption day helpers needed Sunday at the farmers market: walk dogs, answer questions, hand out treats.", 0.6, 4, None, [], None),
+    (49, D, "Senior cats need dental care before adoption. $180 covers one cleaning. Help us clear the list of 14.", 2.2, 28, 2500, [], None),
+    (50, V, "Weekday drivers wanted: two rides a week to the clinic or pharmacy. Mileage reimbursed, training in one evening.", 1.0, None, None, [], None),
+    (51, V, "Robotics mentors for build season, Tuesdays and Thursdays 6 to 8 pm. Coders, builders and cheerleaders all welcome.", 1.6, 9, None, [], None),
+    (52, D, "Help a family move in: $1,000 covers a deposit. We have 12 families ready to sign leases this month.", 3.0, 30, 12000, [], None),
+    (53, V, "Spring peer facilitator training is open. Six Saturday mornings, and you'll co-lead a group by summer.", 4.0, 20, None, [], None),
+]
+
+# (org, title, days ahead, hour, place, detail)
+EVENTS = [
+    (46, "Community dinner open house", 3, 17, "Castro Street Community Kitchen", "Come eat, meet the cooks, see how a shift works."),
+    (47, "Bay trail planting morning", 4, 9, "Shoreline trailhead, Mountain View", "We plant 500 natives. Kids welcome with an adult."),
+    (48, "Reading buddy orientation", 5, 18, "Rengstorff Park community room", "One hour. You'll meet your student the next week."),
+    (49, "Adoption day at the farmers market", 4, 10, "Sunnyvale farmers market", None),
+    (50, "New driver info night", 8, 18, "Palo Alto library meeting room", None),
+    (51, "Robotics build night open house", 6, 18, "San Tomas workshop, Santa Clara", "Watch teams build, try the controls, meet mentors."),
+    (52, "Free tenant clinic", 2, 18, "Guadalupe community center", "Volunteer attorneys and interpreters."),
+    (53, "Parents of teens support evening", 7, 19, "Los Altos library", "Also online."),
+    (54, "Neighbor committee open meeting", 12, 18, "Mountain View city library", "See how local grants are chosen. All welcome."),
+]
+
+# Communities around Mountain View (shape of demo_groups.GROUPS; ids 9-12)
+COMMUNITIES = [
+    (9, "mountain-view-weekend-volunteers", "Mountain View weekend volunteers",
+     "Saturday shifts at the community kitchen, bay trail planting days and pop-up drives. Swap shifts and find a buddy.",
+     "hunger", 180, 52, [
+         (0, 60, "Welcome! Castro Street Community Kitchen needs a Saturday prep crew this week, 2 to 6 pm."),
+         (2, 58, "I'm in. Is street parking okay or should I bike?"),
+         (0, 57, "Bike if you can. There's a rack by the side door."),
+         (5, 30, "Bay trail planting Saturday morning too. Doing both, wish me luck."),
+         (3, 6, "Just finished at the kitchen. 160 plates and the best cornbread I've ever had."),
+     ]),
+    (10, "south-bay-giving-circle", "South Bay giving circle",
+     "We pool a little each month and vote on where it goes. Meetups once a month in downtown Mountain View.",
+     None, 200, 47, [
+         (0, 100, "October pool: $2,260 from 41 of us. Nominations are open until Sunday."),
+         (4, 80, "Nominating Oak Grove Senior Rides. My neighbor's driver is a saint."),
+         (6, 50, "Seconding! And Rengstorff Reading Club for next month."),
+         (0, 9, "Votes are in: Oak Grove Senior Rides this month. Meetup Thursday at 7."),
+     ]),
+    (11, "bay-trail-stewards", "Bay trail stewards",
+     "Restoration days, shoreline cleanups and birding walks along the South Bay trail.",
+     "environment", 220, 33, [
+         (0, 70, "Planting morning Saturday with Bayfront Wetlands Crew. 500 plants to get in the ground."),
+         (3, 40, "Saw the burrowing owls by the restored strip this morning!"),
+         (1, 12, "Bringing my two kids Saturday. They're excited about the shovels."),
+     ]),
+    (12, "sunnyvale-foster-pets", "Sunnyvale foster pets",
+     "Foster families for cats and dogs around Sunnyvale. Supplies, tips and a lot of photos.",
+     "animals", 240, 26, [
+         (0, 50, "Two bonded senior cats need a quiet foster home. Bayshore Paws covers everything."),
+         (2, 30, "We have a spare room. Messaging them now!"),
+         (4, 8, "Our foster pup got adopted at the farmers market. Happy tears."),
+     ]),
+]
+
+COMMUNITY_LOCATIONS = {
+    "mountain-view-weekend-volunteers": "Mountain View, CA", "south-bay-giving-circle": "Mountain View, CA",
+    "bay-trail-stewards": "Palo Alto, CA", "sunnyvale-foster-pets": "Sunnyvale, CA",
+}

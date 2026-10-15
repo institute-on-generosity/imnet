@@ -141,7 +141,8 @@ export function NearMap({ items, profile }: { items: MapItem[]; profile: { at: L
 }
 
 // The map itself. Leaflet touches window, so it loads in the browser only.
-function LeafletView({ origin, items, radius, selected, onSelect }: { origin: Origin; items: (MapItem & { miles: number })[]; radius: number | null; selected: string | null; onSelect: (id: string) => void }) {
+export type MapOrigin = Origin
+export function LeafletView({ origin, items, radius, selected, onSelect }: { origin: Origin; items: (MapItem & { miles: number })[]; radius: number | null; selected: string | null; onSelect: (id: string) => void }) {
   const el = useRef<HTMLDivElement>(null)
   const map = useRef<LeafletMap | null>(null)
   const layer = useRef<LayerGroup | null>(null)

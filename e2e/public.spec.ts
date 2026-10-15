@@ -403,7 +403,7 @@ test("F-074: events open their own page: host, when, where, add to calendar, mor
   await expect(page.getByText("Event by")).toBeVisible()
   await expect(page.getByRole("link", { name: "Open in Maps" })).toHaveAttribute("href", /google\.com\/maps\/search/)
   await expect(page.getByRole("heading", { name: "Hosted by" })).toBeVisible()
-  await expect(page.getByRole("link", { name: /Going\? to Community dinner/ })).toBeVisible() // signed out: leads to sign-in
+  await expect(page.getByRole("link", { name: /Going\? to Community dinner and kitchen tour/ })).toBeVisible() // signed out: leads to sign-in
   const ics = await request.get(page.url() + "/calendar.ics")
   expect(ics.headers()["content-type"]).toContain("text/calendar")
   expect(await ics.text()).toContain("SUMMARY:Community dinner and kitchen tour")
@@ -542,5 +542,22 @@ test("F-101: Near you lists volunteering, events and communities by distance fro
   await page.getByRole("button", { name: "Communities", pressed: true }).click()
   await expect(list.getByRole("link", { name: "Oakland creek cleanup crew" })).toHaveCount(0)
   await expect(page.locator(".leaflet-marker-icon").first()).toBeVisible()
+  await ctx.close()
+})
+
+test("F-102: Communities opens with communities near you (list and map), nearest first", async ({ browser }) => {
+  const ctx = await browser.newContext({ geolocation: { latitude: 37.3894, longitude: -122.0819 }, permissions: ["geolocation"] }) // Mountain View
+  const page = await ctx.newPage()
+  await page.route("https://tile.openstreetmap.org/**", (r) => r.abort())
+  await page.goto("/communities")
+  const near = page.getByRole("region", { name: "Communities near you" })
+  await expect(near.getByText("Around your current location.")).toBeVisible()
+  const first = near.getByRole("listitem").first()
+  await expect(first).toContainText(/Mountain View|South Bay/)
+  await expect(first).toContainText(/\d(\.\d)? mi/)
+  // It comes before Discover on the page, with the map beside it.
+  const nearTop = (await near.boundingBox())!.y
+  expect(nearTop).toBeLessThan((await page.getByRole("heading", { name: /Discover/ }).boundingBox())!.y)
+  await expect(page.getByRole("application", { name: "Map of places near you" })).toBeVisible()
   await ctx.close()
 })
