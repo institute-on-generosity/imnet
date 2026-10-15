@@ -246,6 +246,18 @@ describe("network", () => {
     expect((await counts(STAFF, String(donorPost.id))).m).toBeNull()
   })
 
+  it("B-038: authors can't date their posts or point a spotlight at a hidden org", async () => {
+    const ins = await t.as(DONOR, `insert into posts (author_id, body, created_at) values ('${DONOR}', 'time travel', '2099-01-01') returning id, created_at`)
+    expect(ins.error).toBeUndefined()
+    const row = ins.rows![0] as { id: string; created_at: Date }
+    expect(new Date(row.created_at).getFullYear()).toBeLessThan(2099)
+    await t.as(DONOR, `update posts set created_at = '2099-01-01' where id = '${row.id}'`)
+    const [after] = await t.owner(`select created_at from posts where id = '${row.id}'`)
+    expect(new Date(after.created_at as string).getFullYear()).toBeLessThan(2099)
+    const hidden = await t.as(DONOR, `update posts set about_org_id = '${ORG_PENDING}' where id = '${row.id}'`)
+    expect(hidden.error).toBeDefined()
+  })
+
   it("F-046: saved posts are private to the person who saved them", async () => {
     const [post] = await t.owner(`select id from posts limit 1`)
     expect((await t.as(DONOR, `insert into saved_posts (user_id, post_id) values ('${DONOR}', '${post.id}')`)).error).toBeUndefined()

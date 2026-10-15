@@ -2,6 +2,7 @@ import { BadgeCheck, CalendarDays, Clock, FileText, HandCoins, HeartHandshake, M
 import Link from "@/components/intent-link"
 import { redirect } from "next/navigation"
 import { OrgMark } from "@/components/org-mark"
+import { LocalTime } from "@/components/local-time"
 import { PersonAvatar } from "@/components/person-avatar"
 import { Panel, TwoColumn } from "@/components/shell"
 import { getNotifications, type Notification } from "@/lib/notifications"
@@ -96,6 +97,7 @@ function Row({ n, unread }: { n: Notification; unread: boolean }) {
           <span className="block text-sm leading-snug">
             {n.actor && <><span className="font-semibold">{n.actor.name}</span> </>}
             {n.text}
+            {n.eventAt && <> <span className="text-muted-foreground"><LocalTime iso={n.eventAt} /></span></>}
           </span>
           {n.quote && <span className="mt-2 line-clamp-3 rounded-lg bg-muted px-3 py-2 text-sm">{n.quote}</span>}
           {n.volunteers && <Crew {...n.volunteers} />}

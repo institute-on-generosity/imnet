@@ -1,7 +1,7 @@
 import { CalendarClock, ExternalLink } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { formatUsd } from "@/lib/grants"
-import { callStatus, formatDeadline, todayISO } from "@/lib/open-calls"
+import { callStatus, deadlineTodayISO, formatDeadline } from "@/lib/open-calls"
 import { getCauses } from "@/lib/queries"
 import type { Post } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -15,11 +15,11 @@ const STATUS = {
 // The details of a foundation's open call, with a link out to apply.
 export async function OpenCallBlock({ post }: { post: Pick<Post, "call_deadline" | "call_apply_url" | "call_max_award" | "call_causes"> }) {
   if (!post.call_deadline || !post.call_apply_url) return null
-  const status = callStatus(post.call_deadline, todayISO())
+  const status = callStatus(post.call_deadline, deadlineTodayISO())
   const names = new Map((await getCauses()).map((c) => [c.slug, c.name]))
   const causes = post.call_causes.map((c) => names.get(c) ?? c)
 
-  const today = todayISO()
+  const today = deadlineTodayISO()
   const left = Math.round((Date.parse(`${post.call_deadline}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000)
   const when = status === "closed" ? `Closed ${formatDeadline(post.call_deadline)}` : `Apply by ${formatDeadline(post.call_deadline)}`
   const countdown = status === "closed" ? null : left === 0 ? "closes today" : `${left} ${left === 1 ? "day" : "days"} left`

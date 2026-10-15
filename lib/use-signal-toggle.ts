@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { startTransition, useState } from "react"
+import { startTransition, useRef, useState } from "react"
 import { sendSignal } from "@/lib/send-signal"
 
 type Kind = Parameters<typeof sendSignal>[0]["kind"]
@@ -13,6 +13,7 @@ export function useSignalToggle(kind: Kind, id: string, initial: boolean) {
   const [on, setOn] = useState(initial)
   const [prev, setPrev] = useState(initial)
   const router = useRouter()
+  const latest = useRef(0) // B-037: rapid clicks; ignore responses from superseded ones
   if (initial !== prev) {
     // The server's value changed (e.g. after a refresh): adopt it.
     setPrev(initial)
@@ -20,10 +21,11 @@ export function useSignalToggle(kind: Kind, id: string, initial: boolean) {
   }
   const toggle = () => {
     const next = !on
+    const mine = ++latest.current
     setOn(next)
     sendSignal({ kind, id, on: next }).then(
-      () => startTransition(() => router.refresh()),
-      () => setOn(!next),
+      () => { if (mine === latest.current) startTransition(() => router.refresh()) },
+      () => { if (mine === latest.current) setOn(!next) },
     )
   }
   return [on, toggle] as const
