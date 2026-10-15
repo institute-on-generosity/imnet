@@ -566,6 +566,15 @@ export async function isOrgStaff(userId: string | null, orgId: string): Promise<
   return !!data
 }
 
+// F-094: comment counts (public) and moved counts (null unless you wrote the post or staff its org).
+export type PostCounts = { comments: number; moved: number | null }
+export async function getPostCounts(postIds: string[]): Promise<Map<string, PostCounts>> {
+  if (postIds.length === 0) return new Map()
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("post_counts", { post_ids: postIds })
+  return new Map(((data ?? []) as { post_id: string; comments: number; moved: number | null }[]).map((r) => [r.post_id, { comments: Number(r.comments), moved: r.moved === null ? null : Number(r.moved) }]))
+}
+
 // Feed comment preview: newest top-level comment per post, for a page of posts at once.
 export async function getLatestComments(postIds: string[]): Promise<Map<string, Comment & { more: boolean }>> {
   if (postIds.length === 0) return new Map()

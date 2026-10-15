@@ -176,6 +176,7 @@ Every shipped feature and fixed bug, with the date and the behavior that must ke
 - **F-091 Home's right column is ways to help only.** "Add to your feed" suggestions are gone from Home; the column shows Calls to help and Upcoming events. Suggestions stay on Following and org pages. Test: `e2e/public.spec.ts` F-091
 - **F-092 Compact Home right column.** Calls to help and Upcoming events fit one screen: each call is one row (logo, org and date, a one-line ask, Sign up/Donate beside it); each event is one row (small date tile, title, time and host, Going? beside it). Test: `e2e/public.spec.ts` F-091
 - **F-093 Open call hierarchy.** A foundation's open call leads with the award ("Up to $15,000"), then the deadline with days left, then the causes as chips, with Apply as the one action and the status chip top right. Test: `e2e/signed-in.spec.ts` (open call test, "Up to $12,000")
+- **F-094 Counts on the action bar.** Comment shows how many comments a post has, for everyone. Moved shows how many people it moved only to the post's author, its org's staff and admins ("Only you see how many people this moved"); it updates with your own click. Decision 0015. Test: `supabase/tests/rls.test.ts` F-094
 
 ### Fixes
 

@@ -298,8 +298,9 @@ test("F-062 / F-063: LinkedIn-style posts: header, action bar, inline comments w
   await page.goto("/")
   const first = page.locator("article").first()
   await expect(first.getByText(/\d[\d,]* followers?/)).toBeVisible()
-  for (const name of ["This moved me (sign in)", "Comment", "Share", "Save (sign in)"]) await expect(first.getByRole(name === "Comment" || name === "Share" ? "button" : "link", { name, exact: true })).toBeVisible()
-  await first.getByRole("button", { name: "Comment", exact: true }).click()
+  for (const name of ["This moved me (sign in)", "Share", "Save (sign in)"]) await expect(first.getByRole(name === "Share" ? "button" : "link", { name, exact: true })).toBeVisible()
+  await expect(first.getByRole("button", { name: /^Comment( \d+ comments?)?$/ })).toBeVisible()
+  await first.getByRole("button", { name: /^Comment( \d+ comments?)?$/ }).click()
   const inline = first.getByRole("region", { name: "Comments" })
   await expect(inline.getByRole("link", { name: "Sign in" })).toBeVisible()
   await expect(inline.locator("time").first()).toBeVisible()
@@ -315,8 +316,9 @@ test("F-062 / F-063: LinkedIn-style posts: header, action bar, inline comments w
   // Top-level comments newest first.
   const tops = await section.locator(":scope > ul > li > div time").evaluateAll((els) => els.map((e) => e.getAttribute("datetime")!))
   expect([...tops].sort().reverse()).toEqual(tops)
-  // No counts anywhere.
-  await expect(page.getByText(/\d+ (comments?|replies|reactions?|likes?)\b/)).toHaveCount(0)
+  // No like-style counts for visitors: the comment count is public (0015), "moved" is not.
+  await expect(page.getByText(/\d+ (replies|reactions?|likes?|people moved)\b/)).toHaveCount(0)
+  await expect(page.getByRole("button", { name: /^Comment \d+ comments?$/ })).toBeVisible()
 })
 
 test("F-064: feed posts preview their newest comment; 'See more comments' opens the thread", async ({ page }) => {

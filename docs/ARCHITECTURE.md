@@ -69,7 +69,7 @@ scripts/                   Ops scripts (may use the secret key; the app never do
 | No fabrication | `impact_stats.source_url NOT NULL`; AI prompts grounded, outputs are drafts |
 | Human approval | AI never writes to the DB; staff edit and save |
 | Dignity / privacy | `images_need_consent` check; consent checkbox in composer |
-| No dark patterns | Chronological feeds; `moved` has no public count |
+| No dark patterns | Chronological feeds; `moved` count only for the author/org; comment counts public (0015) |
 
 ## Environments
 - Dev and prod: hosted Supabase projects (local Supabase needs Docker).

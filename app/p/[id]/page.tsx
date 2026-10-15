@@ -8,7 +8,7 @@ import { Panel, TwoColumn } from "@/components/shell"
 import { TrackView } from "@/components/track-view"
 import { buttonVariants } from "@/components/ui/button"
 import { loadComments } from "@/app/actions"
-import { getFollowedOrgIds, getFollowerCounts, getGrantsForPosts, getMovedPostIds, getPost, getSavedPostIds } from "@/lib/queries"
+import { getFollowedOrgIds, getFollowerCounts, getGrantsForPosts, getMovedPostIds, getPost, getPostCounts, getSavedPostIds } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 
 export async function generateMetadata({ params }: PageProps<"/p/[id]">): Promise<Metadata> {
@@ -26,9 +26,9 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
   if (!post) notFound()
 
   const userId = await getUserId()
-  const [movedIds, savedIds, grantsByPost, comments, counts, followed] = await Promise.all([
+  const [movedIds, savedIds, grantsByPost, comments, counts, followed, postCounts] = await Promise.all([
     getMovedPostIds(userId, [post.id]), getSavedPostIds(userId, [post.id]), getGrantsForPosts([post.id]), loadComments(post.id),
-    getFollowerCounts(post.org_id ? [post.org_id] : []), userId ? getFollowedOrgIds(userId) : Promise.resolve([]),
+    getFollowerCounts(post.org_id ? [post.org_id] : []), userId ? getFollowedOrgIds(userId) : Promise.resolve([]), getPostCounts([post.id]),
   ])
   const moved = movedIds.has(post.id)
 
@@ -66,7 +66,7 @@ export default async function PostPage({ params }: PageProps<"/p/[id]">) {
         followers={post.org_id ? (counts.get(post.org_id) ?? 0) : undefined}
         following={userId && post.org_id ? followed.includes(post.org_id) : undefined}
         canDelete={!!userId && !post.org_id && post.author_id === userId}
-        comments={comments ?? undefined} />
+        comments={comments ?? undefined} counts={postCounts.get(post.id)} />
     </TwoColumn>
   )
 }

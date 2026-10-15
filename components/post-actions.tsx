@@ -12,15 +12,19 @@ import { CommentItem, PostComments, type CommentsData } from "./post-comments"
 
 const BAR = "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-2 text-xs font-semibold text-muted-foreground transition-[color,background-color,transform] hover:bg-muted active:scale-95 sm:flex-row sm:gap-1.5 sm:text-sm"
 
-type Props = { postId: string; org: OrgSummary | null; title: string; moved: boolean; saved: boolean; signedIn: boolean; full?: boolean; comments?: CommentsData; preview?: Comment & { more: boolean } }
+type Props = { postId: string; org: OrgSummary | null; title: string; moved: boolean; saved: boolean; signedIn: boolean; full?: boolean; comments?: CommentsData; preview?: Comment & { more: boolean }; counts?: { comments: number; moved: number | null } }
 
 // LinkedIn's action bar (Moved · Comment · Share · Save) with the comment thread below it.
 // "Moved" and Save are private; there are no counts.
-export function PostActions({ postId, org, title, moved, saved, signedIn, full, comments, preview }: Props) {
+export function PostActions({ postId, org, title, moved, saved, signedIn, full, comments, preview, counts }: Props) {
   const [open, setOpen] = useState(!!full)
   const [isMoved, toggleMoved] = useSignalToggle("moved", postId, moved)
   const [isSaved, toggleSaved] = useSignalToggle("saved", postId, saved)
   const [copied, setCopied] = useState(false)
+  // F-094: the moved count only reaches the post's author and its org's team (null otherwise);
+  // it moves with your own click so it never looks stale.
+  const movedTotal = counts?.moved == null ? null : counts.moved + Number(isMoved) - Number(moved)
+  const commentTotal = counts?.comments ?? 0
 
   async function share() {
     const url = `${window.location.origin}/p/${postId}`
@@ -43,15 +47,15 @@ export function PostActions({ postId, org, title, moved, saved, signedIn, full, 
       <div className="mx-4 border-t" />
       <div className="flex items-stretch gap-1 px-2 py-1">
         {signedIn ? (
-          <button type="button" aria-pressed={isMoved} aria-label={isMoved ? "This moved you (private)" : "This moved me (private)"} title="Private: only the organization sees a total"
+          <button type="button" aria-pressed={isMoved} aria-label={isMoved ? "This moved you (private)" : "This moved me (private)"} title={movedTotal != null ? "Only you see how many people this moved" : "Private: only the author sees a total"}
             onClick={toggleMoved} className={cn(BAR, isMoved && "text-marigold")}>
-            <HandHeart className="size-5" aria-hidden />Moved
+            <HandHeart className="size-5" aria-hidden />Moved{movedTotal ? <Count n={movedTotal} label="people moved (only you see this)" /> : null}
           </button>
         ) : (
           <Link href="/login" aria-label="This moved me (sign in)" className={BAR}><HandHeart className="size-5" aria-hidden />Moved</Link>
         )}
         <button type="button" aria-expanded={open} aria-controls={open ? "comments" : undefined} onClick={() => setOpen(!open)} className={cn(BAR, open && "text-foreground")}>
-          <MessageCircle className="size-5" aria-hidden />Comment
+          <MessageCircle className="size-5" aria-hidden />Comment{commentTotal ? <Count n={commentTotal} label={commentTotal === 1 ? "comment" : "comments"} /> : null}
         </button>
         <button type="button" onClick={share} className={BAR}>
           {copied ? <Check className="size-5" aria-hidden /> : <Send className="size-5" aria-hidden />}{copied ? "Copied" : "Share"}
@@ -79,4 +83,8 @@ export function PostActions({ postId, org, title, moved, saved, signedIn, full, 
       )}
     </>
   )
+}
+
+function Count({ n, label }: { n: number; label: string }) {
+  return <span className="text-muted-foreground tabular-nums">{n}<span className="sr-only"> {label}</span></span>
 }

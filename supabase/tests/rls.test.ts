@@ -232,6 +232,20 @@ describe("network", () => {
     expect((await t.as(null, `select moved_count('${post.id}') n`)).rows![0].n).toBeNull()
   })
 
+  it("F-094: comment counts are public; moved counts only reach the author and the org's staff", async () => {
+    const [orgPost] = await t.owner(`insert into posts (org_id, body) values ('${ORG_1}', 'counted story') returning id`)
+    const [donorPost] = await t.owner(`insert into posts (author_id, body) values ('${DONOR}', 'my giving story') returning id`)
+    await t.owner(`insert into moved (user_id, post_id) values ('${STAFF}', '${donorPost.id}'), ('${DONOR}', '${orgPost.id}')`)
+    await t.owner(`insert into comments (post_id, user_id, body) values ('${orgPost.id}', '${DONOR}', 'hi'), ('${orgPost.id}', '${STAFF}', 'hello')`)
+    const counts = async (who: string | null, id: string) => (await t.as(who, `select comments::int c, moved::int m from post_counts(array['${id}']::uuid[])`)).rows![0]
+
+    expect(await counts(null, String(orgPost.id))).toEqual({ c: 2, m: null })
+    expect(await counts(DONOR, String(orgPost.id))).toEqual({ c: 2, m: null })
+    expect(await counts(STAFF, String(orgPost.id))).toEqual({ c: 2, m: 1 })
+    expect((await counts(DONOR, String(donorPost.id))).m).toBe(1) // the author
+    expect((await counts(STAFF, String(donorPost.id))).m).toBeNull()
+  })
+
   it("F-046: saved posts are private to the person who saved them", async () => {
     const [post] = await t.owner(`select id from posts limit 1`)
     expect((await t.as(DONOR, `insert into saved_posts (user_id, post_id) values ('${DONOR}', '${post.id}')`)).error).toBeUndefined()
