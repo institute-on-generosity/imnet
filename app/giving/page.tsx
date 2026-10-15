@@ -52,7 +52,10 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
 
       <Panel aria-labelledby="hours" className="p-4">
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 id="hours" className="font-semibold">Volunteer hours</h2>
+          <div>
+            <h2 id="hours" className="font-semibold">Volunteer hours</h2>
+            <p className="text-xs text-muted-foreground">The organization&apos;s team sees shifts you log with them, so they can confirm them.</p>
+          </div>
           {hours.length > 0 && <p className="text-sm text-muted-foreground">{hoursLabel(hours.reduce((a, h) => a + h.hours, 0))} logged</p>}
         </div>
         {orgs.length === 0 ? (
@@ -67,6 +70,7 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
                 <span className="w-24 shrink-0 text-muted-foreground">{day(h.served_on)}</span>
                 <span className="min-w-0 flex-1 truncate">{h.org.name}{h.note && <span className="text-muted-foreground">: {h.note}</span>}</span>
                 <span>{hoursLabel(h.hours)}</span>
+                <span className={h.confirmed_at ? "w-20 text-xs text-leaf" : "w-20 text-xs text-muted-foreground"}>{h.confirmed_at ? "Confirmed" : h.declined_at ? "Not confirmed" : "Pending"}</span>
                 <DeleteHours id={h.id} label={`${hoursLabel(h.hours)} with ${h.org.name}`} />
               </li>
             ))}

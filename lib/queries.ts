@@ -679,20 +679,39 @@ export async function getHours(userId: string): Promise<HoursEntry[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from("volunteer_hours")
-    .select("id, hours, served_on, note, org:orgs(id, slug, name)")
+    .select("id, hours, served_on, note, confirmed_at, declined_at, org:orgs(id, slug, name)")
     .eq("user_id", userId)
     .order("served_on", { ascending: false })
     .order("created_at", { ascending: false })
   return ((data ?? []) as unknown as HoursEntry[]).map((h) => ({ ...h, hours: Number(h.hours) }))
 }
 
-export type VolunteerSummary = { total: number; since: string; byOrg: (OrgSummary & { hours: number })[] }
+export type VolunteerSummary = { total: number; confirmed: number; since: string; byOrg: (OrgSummary & { hours: number; confirmed: number })[] }
 
 // A person's opted-in volunteer hours by organization; null when not shared.
 export async function getVolunteerSummary(userId: string): Promise<VolunteerSummary | null> {
   const supabase = await createClient()
   const { data } = await supabase.rpc("volunteer_summary", { target: userId })
-  const rows = ((data ?? []) as (OrgSummary & { hours: number; since: string })[]).map((r) => ({ ...r, hours: Number(r.hours) }))
+  const rows = ((data ?? []) as (OrgSummary & { hours: number; confirmed: number; since: string })[]).map((r) => ({ ...r, hours: Number(r.hours), confirmed: Number(r.confirmed) }))
   if (rows.length === 0) return null
-  return { total: rows.reduce((a, r) => a + r.hours, 0), since: rows.map((r) => r.since).sort()[0], byOrg: rows }
+  return {
+    total: rows.reduce((a, r) => a + r.hours, 0), confirmed: rows.reduce((a, r) => a + r.confirmed, 0),
+    since: rows.map((r) => r.since).sort()[0], byOrg: rows,
+  }
+}
+
+export type HoursToConfirm = { id: string; hours: number; served_on: string; note: string | null; person: { handle: string; display_name: string | null; avatar_url: string | null } }
+
+// Org staff: shifts logged with this org that haven't been confirmed or declined, oldest first.
+export async function getHoursToConfirm(orgId: string): Promise<HoursToConfirm[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("volunteer_hours")
+    .select("id, hours, served_on, note, person:profiles(handle, display_name, avatar_url)")
+    .eq("org_id", orgId)
+    .is("confirmed_at", null)
+    .is("declined_at", null)
+    .order("served_on")
+    .limit(50)
+  return ((data ?? []) as unknown as HoursToConfirm[]).map((h) => ({ ...h, hours: Number(h.hours) }))
 }

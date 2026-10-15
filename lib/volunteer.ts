@@ -1,6 +1,6 @@
 // Volunteer hours (F-081): checks for a logged shift.
 export type HoursFields = { org_id: string; hours: number; served_on: string; note: string | null }
-export type HoursEntry = { id: string; hours: number; served_on: string; note: string | null; org: { id: string; slug: string; name: string } }
+export type HoursEntry = { id: string; hours: number; served_on: string; note: string | null; confirmed_at: string | null; declined_at: string | null; org: { id: string; slug: string; name: string } }
 
 export function parseHoursFields(input: { orgId: string; hours: string; servedOn: string; note: string }, today: string): { error: string } | { fields: HoursFields } {
   if (!/^[0-9a-f-]{36}$/.test(input.orgId)) return { error: "Pick an organization." }

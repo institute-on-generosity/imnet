@@ -13217,6 +13217,11 @@ select id, '00000000-0000-4000-a000-000000000001', h, current_date - d, n from p
 insert into volunteer_hours (user_id, org_id, hours, served_on, note)
 select id, '00000000-0000-4000-a000-000000000011', 3.0, current_date - 12, 'Welcome potluck setup' from profiles where handle = 'dana_demo';
 update profiles set show_volunteer_hours = true where handle = 'dana_demo';
+-- F-082: orgs have confirmed most shifts older than ten days and declined a few.
+update volunteer_hours set confirmed_at = served_on + interval '3 days'
+ where served_on < current_date - 10 and abs(hashtext(id::text || 'confirm')) % 100 < 75;
+update volunteer_hours set declined_at = served_on + interval '4 days'
+ where confirmed_at is null and served_on < current_date - 10 and abs(hashtext(id::text || 'decline')) % 100 < 4;
 
 -- "Moved" and saves: random donors on random posts (private; only totals show to staff).
 insert into moved (user_id, post_id)

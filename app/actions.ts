@@ -702,3 +702,12 @@ export async function setVolunteerHours(on: boolean) {
   await supabase.from("profiles").update({ show_volunteer_hours: on }).eq("id", userId)
   revalidatePath("/", "layout")
 }
+
+export async function reviewHours(id: string, orgId: string, confirm: boolean) {
+  await requireUser()
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("review_volunteer_hours", { target: id, confirm })
+  if (error) throw error
+  revalidatePath(`/dashboard/${orgId}`)
+  revalidatePath("/", "layout")
+}

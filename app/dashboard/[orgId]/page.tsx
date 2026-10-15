@@ -1,7 +1,7 @@
 import Link from "@/components/intent-link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCauses, getGrantsAwaitingReport, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgDaily, getOrgTopPosts, getEventsForStaff, getInterestForStaff, getOrgNeeds, getReportableGrants, getThanks } from "@/lib/queries"
+import { getCauses, getGrantsAwaitingReport, getGrantsNeedingReport, getOrgPostsForStaff, getGrantsToConfirm, getOpenCalls, getOrgDaily, getOrgTopPosts, getEventsForStaff, getHoursToConfirm, getInterestForStaff, getOrgNeeds, getReportableGrants, getThanks } from "@/lib/queries"
 import { total } from "@/lib/analytics"
 import type { ImpactStat, Org } from "@/lib/types"
 import { createClient, getUserId } from "@/lib/supabase/server"
@@ -14,6 +14,7 @@ import { ThanksCard } from "./thanks-card"
 import { PostManager } from "./post-manager"
 import { TeamCard } from "./team-card"
 import { GrantsAwaitingReport } from "./grants-awaiting-report"
+import { HoursToConfirmCard } from "./hours-to-confirm"
 import { GrantsNeedingReport } from "./grants-needing-report"
 import { GrantsToConfirm } from "./grants-to-confirm"
 import { OpenCallsForYou } from "./open-calls-for-you"
@@ -64,6 +65,8 @@ export default async function OrgDashboardPage({ params, searchParams }: PagePro
       {org.org_type === "nonprofit" && (orgCauses ?? []).length > 0 && (
         <OpenCallsForYou calls={await getOpenCalls({ causes: (orgCauses ?? []).map((c) => c.cause_slug), limit: 5 })} />
       )}
+
+      <HoursToConfirmCard orgId={org.id} hours={await getHoursToConfirm(org.id)} />
 
       <Card id="composer" className="scroll-mt-20">
         <CardHeader><CardTitle>New post</CardTitle></CardHeader>

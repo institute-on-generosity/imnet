@@ -657,6 +657,23 @@ test("F-081: log volunteer hours privately; opt in to show them on the profile",
   await anon.close()
 })
 
+test("F-082: staff confirm a volunteer's hours; the profile shows them as confirmed", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  const VOL = "00000000-0000-4000-c000-000000000005"
+  await sql`update profiles set show_volunteer_hours = true where id = ${VOL}`
+  await sql`insert into volunteer_hours (user_id, org_id, hours, served_on, note) values (${VOL}, ${kitchen.id}, 4, current_date - 1, ${`Soup night ${id}`})`
+  await page.goto("/notifications")
+  await expect(page.getByRole("link", { name: /logged 4 volunteer hours with you/ }).first()).toBeVisible()
+  await page.goto(`/dashboard/${kitchen.id}`)
+  const card = page.locator("[data-slot=card]").filter({ hasText: "Volunteer hours to confirm" })
+  const row = card.getByRole("listitem").filter({ hasText: `Soup night ${id}` })
+  await row.getByRole("button", { name: /^Confirm/ }).click()
+  await expect(row).toHaveCount(0)
+  const [{ handle }] = await sql`select handle from profiles where id = ${VOL}`
+  await page.goto(`/u/${handle}`)
+  await expect(page.getByRole("region", { name: "Volunteering" }).getByRole("listitem").filter({ hasText: orgName })).toContainText("Confirmed")
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

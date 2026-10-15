@@ -748,3 +748,24 @@ describe("volunteer hours", () => {
     expect((await t.as(null, `select name, hours::float from volunteer_summary('${V}')`)).rows).toEqual([{ name: "Harbor Table", hours: 5.5 }, { name: "Open Door Homes", hours: 4 }])
   })
 })
+
+describe("confirming volunteer hours", () => {
+  it("F-082: the org's staff confirm or decline; volunteers can't confirm themselves; edits reset", async () => {
+    const V = "10000000-0000-4000-8000-0000000000eb"
+    await t.owner(`insert into auth.users (id, email) values ('${V}', 'confirmme@example.com') on conflict do nothing`)
+    await t.owner(`update profiles set show_volunteer_hours = true where id = '${V}'`)
+    const a = (await t.as(V, `insert into volunteer_hours (org_id, hours, served_on) values ('${ORG_1}', 3, current_date) returning id`)).rows![0].id
+    const b = (await t.as(V, `insert into volunteer_hours (org_id, hours, served_on) values ('${ORG_1}', 2, current_date) returning id`)).rows![0].id
+
+    expect((await t.as(V, `update volunteer_hours set confirmed_at = now() where id = '${a}'`)).error).toMatch(/permission denied/)
+    expect((await t.as(V, `select review_volunteer_hours('${a}', true)`)).error).toMatch(/not your organization/)
+    expect((await t.as(DONOR, `select review_volunteer_hours('${a}', true)`)).error).toMatch(/not your organization/)
+    expect((await t.as(STAFF, `select id from volunteer_hours where id = '${a}'`)).rows).toHaveLength(1) // staff see shifts logged with them
+    expect((await t.as(STAFF, `select review_volunteer_hours('${a}', true)`)).error).toBeUndefined()
+    expect((await t.as(STAFF, `select review_volunteer_hours('${b}', false)`)).error).toBeUndefined()
+    expect((await t.as(null, `select hours::float, confirmed::float from volunteer_summary('${V}')`)).rows).toEqual([{ hours: 3, confirmed: 3 }])
+
+    await t.as(V, `update volunteer_hours set hours = 4 where id = '${a}'`)
+    expect((await t.owner(`select confirmed_at from volunteer_hours where id = '${a}'`))[0].confirmed_at).toBeNull()
+  })
+})

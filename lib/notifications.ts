@@ -4,7 +4,7 @@ import { formatUsd } from "@/lib/grants"
 import { formatDeadline } from "@/lib/open-calls"
 import { createClient } from "@/lib/supabase/server"
 
-export type Notification = { key: string; at: string; text: string; href: string; kind: "grant" | "report" | "call" | "team" | "claim" | "thanks" | "comment" }
+export type Notification = { key: string; at: string; text: string; href: string; kind: "grant" | "report" | "call" | "team" | "claim" | "thanks" | "comment" | "hours" }
 
 const SINCE_DAYS = 60
 const name = (o: { name: string } | null | undefined) => o?.name ?? "An organization"
@@ -20,7 +20,7 @@ export const getNotifications = cache(async (userId: string): Promise<Notificati
   const foundations = orgs.filter((o) => o.org_type === "foundation").map((o) => o.id)
   const items: Notification[] = []
 
-  const [toConfirm, confirmed, reports, calls, claims, joined, comments, replies, notes, onMyPosts] = await Promise.all([
+  const [toConfirm, confirmed, reports, calls, claims, joined, comments, replies, notes, onMyPosts, hoursLogged] = await Promise.all([
     nonprofits.length
       ? supabase.from("grants").select("id, amount_usd, created_at, grantee_id, foundation:orgs!grants_foundation_id_fkey(name)").in("grantee_id", nonprofits).is("confirmed_at", null).gte("created_at", since)
       : null,
@@ -43,6 +43,8 @@ export const getNotifications = cache(async (userId: string): Promise<Notificati
     orgs.length ? supabase.from("thanks").select("id, org_id, created_at").in("org_id", orgs.map((o) => o.id)).neq("user_id", userId).gte("created_at", since) : null,
     // F-079: comments on your own posts.
     supabase.from("comments").select("id, post_id, created_at, author:profiles(display_name, handle), post:posts!inner(author_id, org_id)").eq("post.author_id", userId).is("post.org_id", null).neq("user_id", userId).gte("created_at", since).order("created_at", { ascending: false }).limit(30),
+    // F-082: volunteer shifts logged with your org, waiting for confirmation.
+    orgs.length ? supabase.from("volunteer_hours").select("id, org_id, hours, created_at, person:profiles(display_name, handle)").in("org_id", orgs.map((o) => o.id)).is("confirmed_at", null).is("declined_at", null).gte("created_at", since).order("created_at", { ascending: false }).limit(20) : null,
   ])
 
   for (const g of (toConfirm?.data ?? []) as unknown as { id: string; amount_usd: number | null; created_at: string; grantee_id: string; foundation: { name: string } }[]) {
@@ -72,6 +74,9 @@ export const getNotifications = cache(async (userId: string): Promise<Notificati
   for (const r of replies) items.push(r)
   for (const c of (onMyPosts?.data ?? []) as unknown as { id: string; post_id: string; created_at: string; author: { display_name: string | null; handle: string } }[]) {
     items.push({ key: `mine-${c.id}`, at: c.created_at, kind: "comment", text: `${c.author.display_name ?? `@${c.author.handle}`} commented on your post.`, href: `/p/${c.post_id}#comments` })
+  }
+  for (const h of (hoursLogged?.data ?? []) as unknown as { id: string; org_id: string; hours: number; created_at: string; person: { display_name: string | null; handle: string } }[]) {
+    items.push({ key: `hours-${h.id}`, at: h.created_at, kind: "hours", text: `${h.person.display_name ?? `@${h.person.handle}`} logged ${Number(h.hours)} volunteer hours with you. Confirm them.`, href: `/dashboard/${h.org_id}` })
   }
   return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30)
 })

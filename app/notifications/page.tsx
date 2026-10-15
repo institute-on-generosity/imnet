@@ -1,4 +1,4 @@
-import { BadgeCheck, FileText, HandCoins, HeartHandshake, Megaphone, MessageCircle, UserPlus } from "lucide-react"
+import { BadgeCheck, Clock, FileText, HandCoins, HeartHandshake, Megaphone, MessageCircle, UserPlus } from "lucide-react"
 import Link from "@/components/intent-link"
 import { redirect } from "next/navigation"
 import { Panel, TwoColumn } from "@/components/shell"
@@ -8,7 +8,7 @@ import { MarkSeen } from "./mark-seen"
 
 export const metadata = { title: "Notifications" }
 
-const ICONS = { grant: HandCoins, report: FileText, call: Megaphone, team: UserPlus, claim: BadgeCheck, thanks: HeartHandshake, comment: MessageCircle }
+const ICONS = { grant: HandCoins, report: FileText, call: Megaphone, team: UserPlus, claim: BadgeCheck, thanks: HeartHandshake, comment: MessageCircle, hours: Clock }
 const when = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 
 // A calm inbox: things that need you or that you'd want to know. No counts, no streaks.
