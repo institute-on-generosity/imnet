@@ -249,9 +249,9 @@ test("F-051: a profile lists current needs with a way to help; met needs say so"
   await expect(page.getByRole("button", { name: "Send a thank-you note" })).toHaveCount(0)
 })
 
-test("F-054: Ways to help lists open needs across orgs, filters by cause, and appears on Home", async ({ page }) => {
+test("F-054: Ways to help lists open needs across orgs and filters by cause", async ({ page }) => {
   await page.goto("/needs")
-  await expect(page.getByRole("heading", { name: "Ways to help" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Ways to help", level: 1 })).toBeVisible()
   await expect(page.getByRole("link", { name: "Help with Saturday dinner crew" })).toBeVisible()
   await expect(page.getByText("Walk-in cooler repair")).toHaveCount(0) // met needs drop off
 
@@ -259,11 +259,19 @@ test("F-054: Ways to help lists open needs across orgs, filters by cause, and ap
   await expect(page.getByRole("link", { name: "Help with Blankets and towels" })).toBeVisible()
   await expect(page.getByRole("link", { name: "Help with Saturday dinner crew" })).toHaveCount(0)
 
+})
+
+test("F-085: Home's Calls to help card toggles between volunteer and donation calls", async ({ page }) => {
   await page.goto("/")
-  const side = page.getByRole("region", { name: "Ways to help" })
-  await expect(side.getByRole("link", { name: /^Help with / })).toHaveCount(3)
-  await side.getByRole("link", { name: "See all needs" }).click()
-  await expect(page).toHaveURL(/\/needs$/)
+  const card = page.getByRole("region", { name: "Calls to help" })
+  await expect(card.getByRole("tab", { name: "Volunteer" })).toHaveAttribute("aria-selected", "true")
+  await expect(card.getByRole("link", { name: /^Sign up/ }).first()).toBeVisible()
+  await card.getByRole("tab", { name: "Donate" }).click()
+  await expect(card.getByRole("tab", { name: "Donate" })).toHaveAttribute("aria-selected", "true")
+  await expect(card.getByRole("link", { name: /^Donate/ }).first()).toBeVisible()
+  await expect(card.getByText(/Goal \$/).first()).toBeVisible()
+  await card.getByRole("link", { name: "See all donation calls" }).click()
+  await expect(page).toHaveURL(/\/needs\?show=donate/)
 })
 
 test("F-058: events list soonest first with a cause filter; profiles and Home show upcoming events", async ({ page }) => {
@@ -470,7 +478,7 @@ test("F-083: the header search suggests organizations, people and events as you 
   await page.getByRole("link", { name: /See all results for/ }).click()
   await expect(page).toHaveURL(/\/search\?q=dinner/)
   await expect(page.getByRole("region", { name: "Events" })).toBeVisible()
-  await expect(page.getByRole("region", { name: "Ways to help" })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Ways to help" })).toBeVisible() // search results section
 })
 
 test("F-084: Ways to help shows calls for volunteers and donations, with photos, video and the right button", async ({ page }) => {
