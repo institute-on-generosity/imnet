@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "@/components/intent-link"
 import { formatMiles, milesBetween, type LatLng, type MapItem } from "@/lib/geo"
 import type { PlacedCommunity } from "@/lib/queries"
+import { communityIconSrc } from "@/lib/community-icon"
 import { CommunityMark } from "./community-mark"
 import { LeafletView, type MapOrigin } from "./near-map"
 import { Panel } from "./shell"
@@ -43,7 +44,7 @@ export function CommunitiesNearYou({ communities, profile, causeNames, children 
   const pins = useMemo(
     () => (near.length ? near : shown).map((c) => ({
       id: c.id, kind: "community" as const, title: c.name, subtitle: `${c.members} ${c.members === 1 ? "member" : "members"}`,
-      href: `/communities/${c.slug}`, place: c.location, lat: c.lat, lng: c.lng, cause: c.cause_slug, miles: c.miles,
+      href: `/communities/${c.slug}`, place: c.location, lat: c.lat, lng: c.lng, cause: c.cause_slug, miles: c.miles, image: communityIconSrc(c.icon_path),
     })) satisfies (MapItem & { miles: number })[],
     [near, shown],
   )
@@ -73,7 +74,7 @@ export function CommunitiesNearYou({ communities, profile, causeNames, children 
               {shown.map((c) => (
                 <li key={c.id} className="bg-card" onMouseEnter={() => setSelected(c.id)} onFocus={() => setSelected(c.id)}>
                   <Link href={`/communities/${c.slug}`} className="flex h-full items-start gap-3 p-4 hover:bg-muted/50">
-                    <CommunityMark cause={c.cause_slug} />
+                    <CommunityMark cause={c.cause_slug} icon={c.icon_path} />
                     <div className="min-w-0 flex-1">
                       <p className="leading-snug font-semibold">{c.name}</p>
                       <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="size-3.5 shrink-0" aria-hidden /><span className="truncate">{c.location}</span><span aria-hidden>·</span><span className="shrink-0">{formatMiles(c.miles)}</span></p>

@@ -11,6 +11,7 @@ export type MapItem = LatLng & {
   place: string | null
   logo?: { name: string; logo_url: string | null; org_type?: "nonprofit" | "foundation" }
   cause: string | null
+  image?: string | null // community icon or org logo, shown on the pin (F-103)
 }
 
 const R_MILES = 3958.8

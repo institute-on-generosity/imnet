@@ -62,7 +62,7 @@ function GroupRow({ g, cause }: { g: GroupCard; cause?: string }) {
   return (
     <li>
       <Link href={`/communities/${g.slug}`} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/50">
-        <CommunityMark cause={g.cause_slug} />
+        <CommunityMark cause={g.cause_slug} icon={g.icon_path} />
         <div className="min-w-0 flex-1">
           <p className={cn("truncate", g.unread ? "font-bold" : "font-semibold")}>{g.name}</p>
           {g.description && <p className="line-clamp-2 text-sm text-muted-foreground">{g.description}</p>}

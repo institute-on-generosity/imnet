@@ -559,5 +559,8 @@ test("F-102: Communities opens with communities near you (list and map), nearest
   const nearTop = (await near.boundingBox())!.y
   expect(nearTop).toBeLessThan((await page.getByRole("heading", { name: /Discover/ }).boundingBox())!.y)
   await expect(page.getByRole("application", { name: "Map of places near you" })).toBeVisible()
+  // F-103: communities have pictures, in the list and as map pins.
+  await expect(first.locator("img[src*='/communities/']")).toBeVisible()
+  await expect(page.locator(".near-pin-img").first()).toBeVisible()
   await ctx.close()
 })

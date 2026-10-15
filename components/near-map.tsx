@@ -114,7 +114,10 @@ export function NearMap({ items, profile }: { items: MapItem[]; profile: { at: L
                 return (
                   <li key={i.id} id={`near-${i.id}`} onMouseEnter={() => setSelected(i.id)} onFocus={() => setSelected(i.id)}
                     className={cn("relative flex gap-3 px-4 py-3 transition-colors", selected === i.id ? "bg-muted/70" : "hover:bg-muted/40")}>
-                    {i.logo ? <span className="mt-0.5"><OrgMark org={i.logo} size="sm" /></span> : (
+                    {i.logo ? <span className="mt-0.5"><OrgMark org={i.logo} size="sm" /></span> : i.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={i.image} alt="" className="mt-0.5 size-6 shrink-0 rounded-md object-cover" />
+                    ) : (
                       <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: K.color }} aria-hidden><K.Icon className="size-3.5" /></span>
                     )}
                     <div className="min-w-0 flex-1">
@@ -181,9 +184,15 @@ export function LeafletView({ origin, items, radius, selected, onSelect }: { ori
     }
     for (const i of items) {
       const color = KINDS[i.kind].color
+      // F-103: a picture pin (community icon or org logo) ringed in its kind's color; a dot otherwise.
+      // Image URLs come from communityIconSrc/logoSrc, which only build our own storage URLs.
+      const html = i.image
+        ? `<span class="near-pin near-pin-img" style="--pin:${color};background-image:url('${i.image}')"></span>`
+        : `<span class="near-pin" style="--pin:${color}"></span>`
+      const size = i.image ? 36 : 22
       const mk = mod.marker([i.lat, i.lng], {
         title: i.title,
-        icon: mod.divIcon({ className: "", html: `<span class="near-pin" style="--pin:${color}"></span>`, iconSize: [22, 22], iconAnchor: [11, 11] }),
+        icon: mod.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] }),
       })
       const popup = document.createElement("div")
       popup.className = "near-popup"
