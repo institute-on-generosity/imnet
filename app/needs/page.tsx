@@ -1,10 +1,11 @@
 import { CauseFilter } from "@/components/cause-filter"
+import { UpcomingEvents } from "@/components/events-panel"
 import Link from "@/components/intent-link"
 import { NeedRow } from "@/components/needs-panel"
 import { Feed } from "@/components/post-card"
 import { Panel, TwoColumn } from "@/components/shell"
 import type { NeedKind } from "@/lib/needs"
-import { getCallPosts, getCauses, getGrantsForPosts, getMovedPostIds, getMyInterestIds, getOpenNeeds, getSavedPostIds } from "@/lib/queries"
+import { getCallPosts, getCauses, getGrantsForPosts, getMovedPostIds, getMyInterestIds, getMyRsvpIds, getOpenNeeds, getSavedPostIds, getUpcomingEvents } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
 
@@ -24,12 +25,14 @@ export default async function NeedsPage({ searchParams }: PageProps<"/needs">) {
   const active = typeof cause === "string" ? cause : undefined
   const show: Show = rawShow === "volunteer" || rawShow === "donate" ? rawShow : "all"
   const userId = await getUserId()
-  const [needs, calls, causes] = await Promise.all([
+  const [needs, calls, causes, events] = await Promise.all([
     getOpenNeeds({ cause: active, kinds: SHOW[show].needs }),
     getCallPosts({ kinds: [...SHOW[show].calls], cause: active }),
     getCauses(),
+    getUpcomingEvents({ cause: active, limit: 3 }),
   ])
   const ids = calls.map((p) => p.id)
+  const rsvpIds = await getMyRsvpIds(userId, events.map((e) => e.id))
   const [interestIds, movedIds, savedIds, grantsByPost] = await Promise.all([
     getMyInterestIds(userId, needs.map((n) => n.id)), getMovedPostIds(userId, ids), getSavedPostIds(userId, ids), getGrantsForPosts(ids),
   ])
@@ -42,11 +45,11 @@ export default async function NeedsPage({ searchParams }: PageProps<"/needs">) {
   }
 
   return (
-    <TwoColumn right={<Panel className="p-4 text-sm text-muted-foreground">Each org says how to help: a sign-up, a donate page or an email. &quot;I&apos;m interested&quot; tells only their team.</Panel>}>
+    <TwoColumn right={<UpcomingEvents events={events} rsvpIds={rsvpIds} signedIn={!!userId} cause={active} />}>
       <Panel className="space-y-3 p-4">
         <div>
           <h1 className="h-page">Ways to help</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">What organizations are asking for right now. Newest first.</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">What organizations are asking for right now. Newest first. <span className="text-faint">&quot;I&apos;m interested&quot; tells only their team.</span></p>
         </div>
         <nav aria-label="Ways to help" className="inline-flex rounded-full bg-muted p-1 text-sm">
           {(Object.keys(SHOW) as Show[]).map((s) => (

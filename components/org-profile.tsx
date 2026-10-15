@@ -83,8 +83,8 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
             <h1 className="font-heading text-3xl font-semibold tracking-tight">{org.name}</h1>
             <OrgTypeBadge type={org.org_type} className="py-1 pr-2.5 pl-2 text-xs" />
           </div>
-          {org.mission && <p className="mt-1.5 line-clamp-2 max-w-prose text-lg leading-snug text-foreground/80">{org.mission}</p>}
-          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          {org.mission && <p className="mt-1.5 line-clamp-2 max-w-prose text-lg leading-snug">{org.mission}</p>}
+          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-faint">
             {causes[0] && <span>{causes.slice(0, 2).map((c) => c.name).join(", ")}{causes.length > 2 && ` +${causes.length - 2}`}</span>}
             {causes[0] && <span aria-hidden>•</span>}
             {org.location && <><span>{org.location}</span><span aria-hidden>•</span></>}
@@ -292,7 +292,7 @@ function Backers({ grants }: { grants: Grant[] }) {
   const funders = backers(grants)
   if (funders.length === 0) return null
   return (
-    <Link href="?tab=about" title={funders.map((f) => f.name).join(", ")} className="mt-3 flex w-fit items-center gap-2.5 rounded-full border bg-card py-1 pr-3 pl-1 text-sm hover:bg-muted">
+    <Link href="?tab=about" title={funders.map((f) => f.name).join(", ")} className="group mt-2.5 flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
       <span className="flex -space-x-2">
         {funders.slice(0, 3).map((f) => (
           <span key={f.id} className="rounded-md ring-2 ring-card">

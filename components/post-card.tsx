@@ -1,5 +1,5 @@
-import { Earth } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { followersLabel } from "@/lib/followers"
 import Link from "@/components/intent-link"
 import { getFollowedOrgIds, getFollowedPersonIds, getFollowerCounts, getLatestComments, getPostCounts, type PostCounts } from "@/lib/queries"
 import type { Comment } from "@/lib/comments"
@@ -30,7 +30,6 @@ const relative = (iso: string) => {
   if (days < 30) return `${Math.floor(days / 7)}w`
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
-const followersLabel = (n: number) => `${n.toLocaleString("en-US")} ${n === 1 ? "follower" : "followers"}`
 
 // context: the followed foundation this post appears for (portfolio), shown above the header.
 // following: undefined hides the header's Follow button (signed out, or on the org's own page).
@@ -57,25 +56,10 @@ export function PostCard({ post, full = false, moved = false, saved = false, sig
             <Link href={`/o/${post.org.slug}`} tabIndex={-1} aria-hidden className="mt-0.5"><OrgMark org={post.org} size="md" /></Link>
             <div className="min-w-0 flex-1 leading-tight">
               <div className="flex min-w-0 items-center gap-1.5">
-                <Link href={`/o/${post.org.slug}`} className="truncate font-semibold hover:text-leaf hover:underline">{post.org.name}</Link>
+                <Link href={`/o/${post.org.slug}`} className="truncate text-[15px] font-semibold hover:text-leaf hover:underline">{post.org.name}</Link>
                 {post.org.org_type === "foundation" && <FoundationMark />}
               </div>
-              {followers !== undefined && <p className="mt-0.5 truncate text-xs text-muted-foreground">{followersLabel(followers)}</p>}
-              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                {post.org ? <PostKindLabel kind={post.kind} /> : <span>Post</span>}
-                <span aria-hidden>•</span>
-                <Link href={`/p/${post.id}`} aria-label={`${relative(post.created_at)} ago, open post`} className="hover:text-leaf hover:underline">
-                  <time dateTime={post.created_at}>{relative(post.created_at)}</time>
-                </Link>
-                {post.edited_at && (
-                  <>
-                    <span aria-hidden>•</span>
-                    <span title={`Edited ${new Date(post.edited_at).toLocaleString("en-US")}`}>Edited</span>
-                  </>
-                )}
-                <span aria-hidden>•</span>
-                <Earth className="size-3" aria-label="Public" />
-              </p>
+              <Meta post={post} lead={followers !== undefined ? followersLabel(followers) : undefined} kind={<PostKindLabel kind={post.kind} />} />
             </div>
             {following !== undefined && <FollowLink orgId={post.org.id} orgName={post.org.name} following={following} />}
           </>
@@ -86,23 +70,9 @@ export function PostCard({ post, full = false, moved = false, saved = false, sig
               <PersonAvatar name={post.author.display_name ?? post.author.handle} avatarUrl={post.author.avatar_url} size="lg" />
             </Link>
             <div className="min-w-0 flex-1 leading-tight">
-              <Link href={`/u/${post.author.handle}`} className="block truncate font-semibold hover:text-leaf hover:underline">{post.author.display_name ?? `@${post.author.handle}`}</Link>
+              <Link href={`/u/${post.author.handle}`} className="block truncate text-[15px] font-semibold hover:text-leaf hover:underline">{post.author.display_name ?? `@${post.author.handle}`}</Link>
               {post.author.bio && <p className="mt-0.5 truncate text-xs text-muted-foreground">{post.author.bio}</p>}
-              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                {post.org ? <PostKindLabel kind={post.kind} /> : <span>Post</span>}
-                <span aria-hidden>•</span>
-                <Link href={`/p/${post.id}`} aria-label={`${relative(post.created_at)} ago, open post`} className="hover:text-leaf hover:underline">
-                  <time dateTime={post.created_at}>{relative(post.created_at)}</time>
-                </Link>
-                {post.edited_at && (
-                  <>
-                    <span aria-hidden>•</span>
-                    <span title={`Edited ${new Date(post.edited_at).toLocaleString("en-US")}`}>Edited</span>
-                  </>
-                )}
-                <span aria-hidden>•</span>
-                <Earth className="size-3" aria-label="Public" />
-              </p>
+              <Meta post={post} />
             </div>
             {following !== undefined && post.author_id && <FollowLink orgId={post.author_id} orgName={post.author.display_name ?? post.author.handle} following={following} person />}
           </>
@@ -180,5 +150,26 @@ function Spotlight({ org }: { org: OrgSummary & { mission: string | null } }) {
       </div>
       <span className="shrink-0 rounded-full border bg-card px-3 py-1 text-sm font-semibold text-leaf">View</span>
     </Link>
+  )
+}
+
+// F-096: one quiet meta line under the name (followers, post type, time, edited), in the faint
+// tone so it sits below the name and the headline. Every post is public, so no globe.
+function Meta({ post, lead, kind }: { post: Post; lead?: string; kind?: React.ReactNode }) {
+  const parts: React.ReactNode[] = []
+  if (lead) parts.push(<span key="lead" className="max-sm:hidden">{lead}</span>)
+  if (kind) parts.push(<span key="kind" className="[&>span]:inline-flex">{kind}</span>)
+  parts.push(
+    <Link key="time" href={`/p/${post.id}`} aria-label={`${relative(post.created_at)} ago, open post`} className="hover:text-leaf hover:underline">
+      <time dateTime={post.created_at}>{relative(post.created_at)}</time>
+    </Link>,
+  )
+  if (post.edited_at) parts.push(<span key="edited" title={`Edited ${new Date(post.edited_at).toLocaleString("en-US")}`}>Edited</span>)
+  // B-040: one inline line that truncates at the end on phones (a flex row squeezed the count to nothing).
+  return (
+    <p className="mt-0.5 truncate text-xs text-faint">
+      {/* Phones: type and time matter more than the follower count, so the count steps aside. */}
+      {parts.flatMap((part, i) => (i ? [<span key={`dot${i}`} aria-hidden className={lead && i === 1 ? "max-sm:hidden" : undefined}> · </span>, part] : [part]))}
+    </p>
   )
 }

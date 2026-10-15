@@ -37,7 +37,7 @@ export function PostMedia({ post }: { post: Pick<Post, "org" | "embed_url" | "em
             ))}
           </div>
           {credits.length > 0 && (
-            <figcaption className="px-4 pt-1.5 text-[11px] text-muted-foreground">Photo: {credits.join("; ")}</figcaption>
+            <figcaption className="px-4 pt-1.5 text-[11px] text-faint">Photo: {credits.join("; ")}</figcaption>
           )}
         </figure>
       )}

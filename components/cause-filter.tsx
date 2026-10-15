@@ -7,7 +7,7 @@ import type { Cause } from "@/lib/types"
 const pill = (on: boolean) =>
   cn(
     "shrink-0 rounded-full border px-3 py-1 text-sm transition-colors",
-    on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-foreground/30",
+    on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-foreground/30 hover:text-foreground",
   )
 
 // Horizontal pill row; scrolls sideways on phones instead of wrapping into a wall.

@@ -11,15 +11,15 @@ export function GrantReportBanner({ grant }: { grant: ReportGrant }) {
   return (
     <Link
       href={`/o/${grant.foundation.slug}`}
-      className="mx-4 mt-3 flex items-start gap-2.5 rounded-lg bg-primary/5 px-3 py-2 text-sm hover:bg-primary/10"
+      className="group mx-4 mt-3 flex items-start gap-2 text-[13px] leading-snug"
     >
-      <Landmark className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+      <Landmark className="mt-px size-4 shrink-0 text-primary/70" aria-hidden />
       <span className="min-w-0">
         <span className="block">
-          <span className="font-medium">Grant report</span>
-          <span className="text-muted-foreground"> for {grant.foundation.name}</span>
+          <span className="font-semibold">Grant report</span>
+          <span className="text-muted-foreground"> for <span className="group-hover:underline">{grant.foundation.name}</span></span>
         </span>
-        {detail && <span className="block text-muted-foreground">{detail.charAt(0).toUpperCase() + detail.slice(1)}</span>}
+        {detail && <span className="block text-faint">{detail.charAt(0).toUpperCase() + detail.slice(1)}</span>}
       </span>
     </Link>
   )

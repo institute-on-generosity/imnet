@@ -44,7 +44,7 @@ export default async function DashboardPage() {
       <section className="space-y-3">
         <h2 className="h-section">Claim your nonprofit</h2>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <ClaimForm />
           </CardContent>
         </Card>

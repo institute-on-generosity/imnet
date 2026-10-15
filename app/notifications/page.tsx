@@ -105,7 +105,7 @@ function Row({ n, unread }: { n: Notification; unread: boolean }) {
             <span className="mt-2 inline-flex rounded-full border border-foreground/30 px-3 py-1 text-xs font-semibold">{n.cta}</span>
           )}
         </span>
-        <time className="shrink-0 text-xs text-muted-foreground" dateTime={n.at}>{ago(n.at)}</time>
+        <time className="shrink-0 text-xs text-faint" dateTime={n.at}>{ago(n.at)}</time>
         {unread && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-leaf" aria-label="New" />}
       </Link>
     </li>

@@ -93,8 +93,8 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
             {!isOwn && !viewerId && <Link href="/login" className={buttonVariants({ size: "sm", className: "mt-3" })}><Plus aria-hidden />Follow</Link>}
           </div>
           <h1 className="mt-3 font-heading text-3xl font-semibold tracking-tight">{name}</h1>
-          {profile.bio && <p className="mt-1 max-w-prose text-lg leading-snug text-foreground/80">{profile.bio}</p>}
-          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          {profile.bio && <p className="mt-1 max-w-prose text-lg leading-snug">{profile.bio}</p>}
+          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-faint">
             <span>@{profile.handle}</span>
             <span aria-hidden>•</span>
             {profile.location && <><span className="inline-flex items-center gap-1"><MapPin className="size-4" aria-hidden />{profile.location}</span><span aria-hidden>•</span></>}

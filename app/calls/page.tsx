@@ -16,17 +16,11 @@ export default async function CallsPage({ searchParams }: PageProps<"/calls">) {
   const [movedIds, savedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getSavedPostIds(userId, ids), getGrantsForPosts(ids)])
 
   return (
-    <TwoColumn
-      right={
-        <Panel className="p-4 text-sm text-muted-foreground">
-          Foundations&apos; calls for grants. You apply on their site.
-        </Panel>
-      }
-    >
+    <TwoColumn>
       <Panel className="space-y-3 p-4">
         <div>
           <h1 className="h-page">Open calls</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">Soonest deadline first.</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">Foundations&apos; calls for grants, soonest deadline first. <span className="text-faint">You apply on their site.</span></p>
         </div>
         <CauseFilter causes={causes} active={active} basePath="/calls" />
       </Panel>

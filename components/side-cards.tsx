@@ -55,7 +55,7 @@ export function ViewerCard({ viewer, extras }: { viewer: Viewer; extras: ViewerE
             <dd><Link href="/following" className="font-semibold text-leaf hover:underline">{viewer.following}</Link></dd>
           </div>
         </dl>
-        <p className="border-t px-4 py-2 text-xs text-muted-foreground">Only you see these.</p>
+        <p className="border-t px-4 py-2 text-xs text-faint">Only you see these.</p>
       </Panel>
 
       {extras.org && (
