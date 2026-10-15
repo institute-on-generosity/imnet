@@ -811,3 +811,74 @@ export const getViewerExtras = cache(async (userId: string): Promise<ViewerExtra
     topSupported: (support as unknown as { org: OrgSummary } | null)?.org ?? null,
   }
 })
+
+// Following page (F-088) ------------------------------------------------------------------
+export async function getFollowedCauseSlugs(userId: string): Promise<string[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("profile_causes").select("cause_slug").eq("user_id", userId)
+  return (data ?? []).map((r) => r.cause_slug)
+}
+
+
+export type FollowedOrg = OrgSummaryWithMission & { causes: string[] }
+export async function getFollowedOrgsDetail(userId: string): Promise<FollowedOrg[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("follows")
+    .select("org:orgs!inner(id, slug, name, logo_url, org_type, mission, org_causes(cause_slug))")
+    .eq("user_id", userId)
+  return ((data ?? []) as unknown as { org: OrgSummaryWithMission & { org_causes: { cause_slug: string }[] } }[])
+    .map(({ org: { org_causes, ...o } }) => ({ ...o, causes: org_causes.map((c) => c.cause_slug) }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+export async function getFollowedPeople(userId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("person_follows")
+    .select("person:profiles!person_follows_followee_id_fkey(id, handle, display_name, bio, avatar_url, location)")
+    .eq("follower_id", userId)
+  return ((data ?? []) as unknown as { person: { id: string; handle: string; display_name: string | null; bio: string | null; avatar_url: string | null; location: string | null } }[])
+    .map((r) => r.person)
+    .sort((a, b) => (a.display_name ?? a.handle).localeCompare(b.display_name ?? b.handle))
+}
+
+// Orgs in these causes the viewer doesn't follow yet, alphabetical (never popularity-ranked).
+export async function getOrgsInCauses(causes: string[], exclude: string[], limit = 5): Promise<OrgSummaryWithMission[]> {
+  if (causes.length === 0) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("orgs")
+    .select("id, slug, name, logo_url, org_type, mission, org_causes!inner(cause_slug)")
+    .eq("status", "verified")
+    .in("org_causes.cause_slug", causes)
+    .order("name")
+  const seen = new Set(exclude)
+  const out: OrgSummaryWithMission[] = []
+  for (const o of (data ?? []) as unknown as (OrgSummaryWithMission & { org_causes: unknown })[]) {
+    if (seen.has(o.id)) continue
+    seen.add(o.id)
+    const { org_causes: _c, ...rest } = o
+    void _c
+    out.push(rest)
+    if (out.length >= limit) break
+  }
+  return out
+}
+
+// Verified orgs by cause (F-088 cause panels), alphabetical.
+export const getOrgsByCause = cache(async (): Promise<Record<string, OrgSummaryWithMission[]>> => {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("org_causes")
+    .select("cause_slug, org:orgs!inner(id, slug, name, logo_url, org_type, mission, status)")
+    .eq("org.status", "verified")
+  const out: Record<string, OrgSummaryWithMission[]> = {}
+  for (const r of (data ?? []) as unknown as { cause_slug: string; org: OrgSummaryWithMission & { status: string } }[]) {
+    const { status: _s, ...org } = r.org
+    void _s
+    ;(out[r.cause_slug] ??= []).push(org)
+  }
+  for (const k in out) out[k].sort((a, b) => a.name.localeCompare(b.name))
+  return out
+})

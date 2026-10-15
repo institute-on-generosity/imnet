@@ -732,3 +732,14 @@ export async function devSignIn(next: string) {
   if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`)
   redirect(safeNext(next))
 }
+
+// Follow or unfollow a cause (F-088): your causes shape the Following page and suggestions.
+export async function setCauseFollow(slug: string, on: boolean) {
+  const userId = await requireUser()
+  if (!/^[a-z-]{2,40}$/.test(slug)) return
+  const supabase = await createClient()
+  if (on) await supabase.from("profile_causes").upsert({ user_id: userId, cause_slug: slug }, { onConflict: "user_id,cause_slug", ignoreDuplicates: true })
+  else await supabase.from("profile_causes").delete().match({ user_id: userId, cause_slug: slug })
+  revalidatePath("/following")
+  revalidatePath("/", "layout")
+}

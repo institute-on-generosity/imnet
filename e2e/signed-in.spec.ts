@@ -366,7 +366,7 @@ test("F-049: the bell shows a quiet dot for new items; opening the inbox clears 
     await expect(bell).not.toContainText(/\d/) // a dot, never a number
 
     await bell.click()
-    await expect(page.getByText("Riverside Family Foundation recorded a $3,000 grant to you.")).toBeVisible()
+    await expect(page.getByRole("link", { name: /Riverside Family Foundation recorded a \$3,000 grant to you\./ })).toBeVisible()
     await expect.poll(async () => {
       await page.goto("/")
       return page.getByRole("link", { name: /Notifications/ }).innerText()
@@ -700,6 +700,40 @@ test("F-086: follow a person from their profile; their posts reach Following; un
   await page.goto(`/u/${author.handle}`)
   await page.locator("main").getByRole("button", { name: "Following" }).first().click()
   await expect.poll(async () => (await sql`select count(*)::int n from person_follows where follower_id = ${userId} and followee_id = ${author.id}`)[0].n).toBe(0)
+})
+
+test("F-088: Following: follow a cause, open it to see its organizations, switch tabs", async () => {
+  await sql`delete from profile_causes where user_id = ${userId} and cause_slug = 'animals'`
+  await page.goto("/following")
+  await expect(page.getByRole("heading", { name: "Your causes", exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Follow Animals" }).click()
+  await expect(page.getByRole("button", { name: "Following Animals" })).toHaveAttribute("aria-pressed", "true")
+  await expect.poll(async () => (await sql`select count(*)::int n from profile_causes where user_id = ${userId} and cause_slug = 'animals'`)[0].n).toBe(1)
+  await page.getByRole("button", { name: /^Animals .*organizations, show them/ }).click()
+  const panel = page.locator("#cause-panel-animals")
+  await expect(panel.getByRole("link", { name: "Second Chance Paws" })).toBeVisible()
+  await expect(panel.getByRole("button", { name: /Following cause/ })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole("navigation", { name: "Filter by your causes" }).getByRole("link", { name: "Animals" })).toBeVisible()
+  await page.getByRole("navigation", { name: "Following sections" }).getByRole("link", { name: /Organizations/ }).click()
+  await expect(page).toHaveURL(/tab=orgs/)
+  await expect(page.getByRole("link", { name: "Harbor Table" }).first()).toBeVisible()
+})
+
+test("F-089: notifications tell donors about events they're going to and calls from orgs they follow", async () => {
+  await page.goto("/notifications")
+  await expect(page.getByRole("link", { name: new RegExp(`Coming up: Soup night ${id}`) })).toBeVisible()
+  await expect(page.getByRole("link", { name: /is asking for (volunteers|donations)/ }).first()).toBeVisible()
+})
+
+test("F-090: a volunteer call says who has volunteered there (confirmed hours, opted in only)", async () => {
+  const [kitchen] = await sql`select id from orgs where slug = ${slug}`
+  const VOL = "00000000-0000-4000-c000-000000000005"
+  const shown = async () => (await sql`select count(*)::int n from org_volunteers(${kitchen.id}, 50)`)[0]?.n ?? 0
+  await sql`update profiles set show_volunteer_hours = false where id = ${VOL}`
+  const hidden = await shown()
+  await sql`update profiles set show_volunteer_hours = true where id = ${VOL}`
+  expect(await shown()).toBe(hidden + 1) // F-082 confirmed VOL's hours; counted only when opted in
 })
 
 test("F-015: staff can't open another org's dashboard", async () => {

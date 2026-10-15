@@ -236,7 +236,7 @@ test("F-025: search finds orgs by name", async ({ page }) => {
 
 test("F-002: Following requires sign-in", async ({ page }) => {
   await page.goto("/following")
-  await expect(page).toHaveURL(/\/login$/)
+  await expect(page).toHaveURL(/\/login(\?next=%2F|\?next=\/)following$/)
 })
 
 test("F-051: a profile lists current needs with a way to help; met needs say so", async ({ page }) => {
