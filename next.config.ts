@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // e2e builds into its own folder so it never disturbs the dev server (B-034).
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   experimental: {
     // Snappy back-and-forth: reuse a page loaded in the last 30s (dynamic) or fully prefetched in
     // the last 60s (static). Server actions and router.refresh() (after every one-click signal)

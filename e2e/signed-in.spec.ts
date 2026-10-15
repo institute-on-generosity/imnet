@@ -88,7 +88,7 @@ test("F-028 / F-010: staff post with a photo (description and consent required) 
   const [org] = await sql`select id from orgs where slug = ${slug}`
   await page.goto(`/dashboard/${org.id}`)
   await page.getByLabel("What happened?").fill("Our first community dinner served 60 neighbors tonight.")
-  await page.getByLabel(/Video link/).fill("https://youtu.be/dQw4w9WgXcQ")
+  await page.getByLabel(/Video link/).fill("https://youtu.be/M7lc1UVf-VE")
   await page.locator('label:has-text("Add photos") input[type="file"]').setInputFiles(SEED_PHOTO)
   const alt = page.getByLabel("Description for photo 1")
   await expect(alt).toBeVisible()
@@ -106,7 +106,7 @@ test("F-028 / F-010: staff post with a photo (description and consent required) 
   await expect(page.getByText("Posted.")).toBeVisible()
 
   const [post] = await sql`select embed_url, image_paths, image_alts from posts where org_id = ${org.id}`
-  expect(post.embed_url).toBe("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ")
+  expect(post.embed_url).toBe("https://www.youtube-nocookie.com/embed/M7lc1UVf-VE")
   expect(post.image_paths[0]).toMatch(new RegExp(`^${org.id}/`))
   expect(post.image_alts).toEqual([altText])
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { Check, ChevronDown, Plus } from "lucide-react"
-import { Fragment, useOptimistic, useState, useTransition } from "react"
+import { Fragment, useState } from "react"
 import { setCauseFollow } from "@/app/actions"
 import { FollowButton } from "@/components/follow-button"
 import Link from "@/components/intent-link"
@@ -17,19 +17,16 @@ type Props = { causes: Cause[]; followed: string[]; orgsByCause: Record<string, 
 // Your causes (F-088). Each card shows who works on that cause (logos); open a card to see every
 // organization in it, follow them, or follow the cause with the Follow/Following pill.
 export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Props) {
-  const [mine, setMine] = useOptimistic(new Set(followed))
+  // Plain state so the pill flips on click and stays (B-032); the server is told in the background.
+  const [mine, setMine] = useState(() => new Set(followed))
   const [open, setOpen] = useState<string | null>(null)
-  const [, start] = useTransition()
   const following = new Set(followingOrgIds)
-  const toggle = (slug: string) =>
-    start(async () => {
-      const on = mine.has(slug)
-      const next = new Set(mine)
-      if (on) next.delete(slug)
-      else next.add(slug)
-      setMine(next)
-      await setCauseFollow(slug, !on)
-    })
+  const toggle = (slug: string) => {
+    const on = mine.has(slug)
+    const flip = (s: Set<string>) => { const n = new Set(s); if (on) n.delete(slug); else n.add(slug); return n }
+    setMine(flip)
+    setCauseFollow(slug, !on).catch(() => setMine((s) => { const n = new Set(s); if (on) n.add(slug); else n.delete(slug); return n }))
+  }
 
   // The panel follows its card in the source and spans the full row; dense packing lets the rest of
   // the card's row fill in before it, so the panel opens right under that row at any column count.
@@ -62,7 +59,7 @@ export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Pr
                 </span>
               </button>
               <button type="button" aria-pressed={on} aria-label={`${on ? "Following" : "Follow"} ${c.name}`} onClick={() => toggle(c.slug)}
-                className={cn("absolute top-[18px] right-3 inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition-colors",
+                className={cn("absolute top-[18px] right-3 inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition-[color,background-color,transform] active:scale-95",
                   on ? "border-leaf/40 bg-card text-leaf hover:bg-muted" : "border-leaf text-leaf hover:bg-leaf-soft")}>
                 {on ? <Check className="size-3.5" aria-hidden /> : <Plus className="size-3.5" aria-hidden />}{on ? "Following" : "Follow"}
               </button>

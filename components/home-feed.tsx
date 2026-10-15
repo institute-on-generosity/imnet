@@ -8,9 +8,9 @@ import { Feed } from "@/components/post-card"
 import { Panel, ThreeColumn } from "@/components/shell"
 import { UpcomingEvents } from "@/components/events-panel"
 import { CallsCard } from "@/components/calls-card"
-import { JoinCard, SuggestedOrgs, ViewerCard } from "@/components/side-cards"
+import { JoinCard, ViewerCard } from "@/components/side-cards"
 import { portfolioContext } from "@/lib/portfolio"
-import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getFollowedOrgs, getFollowedPersonIds, getGrantsForPosts, getCallPosts, getMovedPostIds, getMyRsvpIds, getUpcomingEvents, getSavedPostIds, getSuggestedOrgs, getViewer, getViewerExtras } from "@/lib/queries"
+import { getCauses, getConfirmedGrantIds, getFeedPage, getFollowedOrgIds, getFollowedOrgs, getFollowedPersonIds, getGrantsForPosts, getCallPosts, getMovedPostIds, getMyRsvpIds, getUpcomingEvents, getSavedPostIds, getViewer, getViewerExtras } from "@/lib/queries"
 import { createClient } from "@/lib/supabase/server"
 import { getUserId } from "@/lib/supabase/server"
 import type { FeedType } from "@/lib/feed-href"
@@ -89,8 +89,8 @@ async function LeftRail({ userId }: { userId: string | null }) {
 }
 
 async function RightRail({ userId, cause }: { userId: string | null; cause?: string }) {
-  const [suggested, volunteer, donate, events] = await Promise.all([
-    getSuggestedOrgs({ userId, cause }),
+  // F-091: Home's right column is only ways to help: calls and upcoming events.
+  const [volunteer, donate, events] = await Promise.all([
     getCallPosts({ kinds: ["call_volunteers"], cause, limit: 3 }),
     getCallPosts({ kinds: ["call_donations"], cause, limit: 3 }),
     getUpcomingEvents({ cause, limit: 3 }),
@@ -98,7 +98,6 @@ async function RightRail({ userId, cause }: { userId: string | null; cause?: str
   const rsvpIds = await getMyRsvpIds(userId, events.map((e) => e.id))
   return (
     <>
-      <SuggestedOrgs title={cause ? "Organizations in this cause" : "Add to your feed"} orgs={suggested} signedIn={!!userId} />
       <CallsCard volunteer={volunteer} donate={donate} cause={cause} />
       <UpcomingEvents events={events} rsvpIds={rsvpIds} signedIn={!!userId} cause={cause} />
     </>

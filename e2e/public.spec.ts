@@ -497,3 +497,18 @@ test("F-084: Ways to help shows calls for volunteers and donations, with photos,
   await expect(don.getByRole("link", { name: /Donate/ })).toBeVisible()
   await expect(page.locator("article video").first()).toBeAttached() // some calls carry video
 })
+
+test("F-091: Home's right column shows calls to help and upcoming events, not org suggestions", async ({ page }) => {
+  await page.goto("/")
+  await expect(page.getByRole("heading", { name: "Calls to help" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Add to your feed" })).toHaveCount(0)
+})
+
+test("B-033: cause chips stay in place when one is selected", async ({ page }) => {
+  await page.goto("/calls")
+  const chip = page.getByRole("navigation", { name: "Filter by cause" }).getByRole("link", { name: "Health", exact: true })
+  const before = (await chip.boundingBox())!.x
+  await chip.click()
+  await expect(chip).toHaveAttribute("aria-current", "page")
+  expect(Math.round((await chip.boundingBox())!.x)).toBe(Math.round(before))
+})

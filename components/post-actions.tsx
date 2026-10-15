@@ -2,16 +2,15 @@
 
 import { Bookmark, BookmarkCheck, Check, HandHeart, MessageCircle, Send } from "lucide-react"
 import Link from "@/components/intent-link"
-import { useRouter } from "next/navigation"
-import { useOptimistic, useState, useTransition } from "react"
+import { useState } from "react"
 import { logEvent } from "@/app/actions"
-import { sendSignal } from "@/lib/send-signal"
+import { useSignalToggle } from "@/lib/use-signal-toggle"
 import type { OrgSummary } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import type { Comment } from "@/lib/comments"
 import { CommentItem, PostComments, type CommentsData } from "./post-comments"
 
-const BAR = "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted sm:flex-row sm:gap-1.5 sm:text-sm"
+const BAR = "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-2 text-xs font-semibold text-muted-foreground transition-[color,background-color,transform] hover:bg-muted active:scale-95 sm:flex-row sm:gap-1.5 sm:text-sm"
 
 type Props = { postId: string; org: OrgSummary | null; title: string; moved: boolean; saved: boolean; signedIn: boolean; full?: boolean; comments?: CommentsData; preview?: Comment & { more: boolean } }
 
@@ -19,19 +18,9 @@ type Props = { postId: string; org: OrgSummary | null; title: string; moved: boo
 // "Moved" and Save are private; there are no counts.
 export function PostActions({ postId, org, title, moved, saved, signedIn, full, comments, preview }: Props) {
   const [open, setOpen] = useState(!!full)
-  const [isMoved, setMoved] = useOptimistic(moved)
-  const [isSaved, setSaved] = useOptimistic(saved)
+  const [isMoved, toggleMoved] = useSignalToggle("moved", postId, moved)
+  const [isSaved, toggleSaved] = useSignalToggle("saved", postId, saved)
   const [copied, setCopied] = useState(false)
-  const [, start] = useTransition()
-  const router = useRouter()
-
-  // After the signal lands, refresh in the background: clears prefetched pages so Saved etc. are current.
-  const toggle = (kind: "moved" | "saved", on: boolean, set: (v: boolean) => void) =>
-    start(async () => {
-      set(on)
-      await sendSignal({ kind, id: postId, on }).catch(() => {})
-      router.refresh()
-    })
 
   async function share() {
     const url = `${window.location.origin}/p/${postId}`
@@ -55,7 +44,7 @@ export function PostActions({ postId, org, title, moved, saved, signedIn, full, 
       <div className="flex items-stretch gap-1 px-2 py-1">
         {signedIn ? (
           <button type="button" aria-pressed={isMoved} aria-label={isMoved ? "This moved you (private)" : "This moved me (private)"} title="Private: only the organization sees a total"
-            onClick={() => toggle("moved", !isMoved, setMoved)} className={cn(BAR, isMoved && "text-marigold")}>
+            onClick={toggleMoved} className={cn(BAR, isMoved && "text-marigold")}>
             <HandHeart className="size-5" aria-hidden />Moved
           </button>
         ) : (
@@ -68,7 +57,7 @@ export function PostActions({ postId, org, title, moved, saved, signedIn, full, 
           {copied ? <Check className="size-5" aria-hidden /> : <Send className="size-5" aria-hidden />}{copied ? "Copied" : "Share"}
         </button>
         {signedIn ? (
-          <button type="button" aria-pressed={isSaved} aria-label={isSaved ? "Saved (private)" : "Save"} onClick={() => toggle("saved", !isSaved, setSaved)} className={cn(BAR, isSaved && "text-leaf")}>
+          <button type="button" aria-pressed={isSaved} aria-label={isSaved ? "Saved (private)" : "Save"} onClick={toggleSaved} className={cn(BAR, isSaved && "text-leaf")}>
             <SaveIcon className="size-5" aria-hidden />{isSaved ? "Saved" : "Save"}
           </button>
         ) : (

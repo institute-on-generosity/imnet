@@ -1,26 +1,16 @@
 "use client"
 
 import { Check, Plus } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useOptimistic, useTransition } from "react"
 import { Button } from "@/components/ui/button"
-import { sendSignal } from "@/lib/send-signal"
+import { useSignalToggle } from "@/lib/use-signal-toggle"
 import { cn } from "@/lib/utils"
 import { IconTip } from "./icon-tip"
 
 // full: labeled button (profiles). icon: round + / check button (sidebars, lists). person: follow a
 // person (F-086); orgId is then their profile id.
 export function FollowButton({ orgId, orgName, following, variant = "full", person }: { orgId: string; orgName?: string; following: boolean; variant?: "full" | "icon"; slug?: string; person?: boolean }) {
-  const [optimistic, setOptimistic] = useOptimistic(following)
-  const [, startTransition] = useTransition()
-  const router = useRouter()
+  const [optimistic, toggle] = useSignalToggle(person ? "follow_person" : "follow", orgId, following)
   const Icon = optimistic ? Check : Plus
-  const toggle = () =>
-    startTransition(async () => {
-      setOptimistic(!optimistic)
-      await sendSignal({ kind: person ? "follow_person" : "follow", id: orgId, on: !optimistic }).catch(() => {})
-      router.refresh()
-    })
 
   if (variant === "icon") {
     return (
@@ -30,7 +20,7 @@ export function FollowButton({ orgId, orgName, following, variant = "full", pers
           aria-pressed={optimistic}
           onClick={toggle}
           className={cn(
-            "inline-flex size-8 shrink-0 items-center justify-center rounded-full border transition-colors",
+            "inline-flex size-8 shrink-0 items-center justify-center rounded-full border transition-[color,background-color,transform] active:scale-90",
             optimistic ? "border-leaf bg-leaf-soft text-leaf" : "border-border hover:bg-muted",
           )}
         >
