@@ -24,7 +24,7 @@ export default async function CommunitiesPage({ searchParams }: PageProps<"/comm
       <Panel className="flex flex-wrap items-end justify-between gap-3 p-4">
         <div>
           <h1 className="h-page">Communities</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">People around a cause, each community with a chat for its members.</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">People around a cause, each community with a chat for its members</p>
         </div>
         <Link href={userId ? "/communities/new" : "/login?next=/communities/new"} className={buttonVariants({ variant: "outline" })}><Plus aria-hidden />Start a community</Link>
       </Panel>
