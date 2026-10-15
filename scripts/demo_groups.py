@@ -1,6 +1,7 @@
-"""Groups and their chats (F-100), imported by gen-seed-demo.py. Fictional people and orgs only.
+"""Communities and their chats (F-100), imported by gen-seed-demo.py. Fictional people and orgs only.
 
 (n, slug, name, description, cause, owner person index, members, [(author, hours ago, text)])
+LOCATIONS: each community's home city for the Near you map (F-101); None = no fixed place.
 author 0 is the owner; author k > 0 is the k-th other member (stable order per group).
 """
 
@@ -65,5 +66,30 @@ GROUPS = [
          (2, 70, "I can interpret Spanish from 5 to 8."),
          (3, 40, "First time greeting. What's the most useful thing I can do?"),
          (0, 39, "Make people feel welcome and walk them to the right table. That's most of it."),
+     ]),
+]
+
+LOCATIONS = {
+    "portland-weekend-food-volunteers": "Portland, ME", "monthly-givers-circle": None, "street-tree-planters": "Boulder, CO",
+    "foster-kitten-network-fosters": "Portland, OR", "youth-mentors": "Austin, TX", "health-screening-volunteers": "Kansas City, MO",
+    "bay-area-giving-circle": "San Francisco, CA", "oakland-creek-cleanup-crew": "Oakland, CA",
+}
+
+GROUPS += [
+    (7, "bay-area-giving-circle", "Bay Area giving circle",
+     "Neighbors who pool small monthly gifts and decide together where they go. Meetups once a month in the Mission.",
+     None, 140, 41, [
+         (0, 90, "This month's pool is $1,840 from 37 of us. Nominations for where it goes are open until Friday."),
+         (3, 70, "Nominating Pine Street Tutoring in Oakland. Their volunteers show up every week."),
+         (5, 50, "Seconding that. I visited their Thursday session, and the kids run the room."),
+         (0, 8, "Vote closes Sunday. Meetup is the 28th, same cafe."),
+     ]),
+    (8, "oakland-creek-cleanup-crew", "Oakland creek cleanup crew",
+     "Monthly creek and shoreline cleanups around Oakland. Gloves and grabbers provided; bring water and a friend.",
+     "environment", 160, 27, [
+         (0, 60, "Next cleanup: Sausal Creek, Saturday 9 am. Meet at the Dimond Park entrance."),
+         (2, 40, "Last time we pulled 14 bags out of a 200-yard stretch. Let's beat it."),
+         (4, 10, "Bringing my teenager this time. Is 14 okay?"),
+         (0, 9, "Absolutely, with a parent. See you both there!"),
      ]),
 ]

@@ -751,7 +751,8 @@ def gid(n): return f"00000000-0000-4000-e000-{n:012d}"
 def person(i): return f"00000000-0000-4000-c000-{i:012d}"
 out.append("-- Groups (F-100): the owner joins via trigger; members are a stable sample of demo people.")
 for n, slug, name, desc, cause, owner, size, msgs in groups.GROUPS:
-    out.append(f"insert into groups (id, slug, name, description, cause_slug, created_by, created_at) values ('{gid(n)}', '{slug}', {q(name)}, {q(desc)}, {q(cause) if cause else 'null'}, '{person(owner)}', now() - interval '{max(h for _, h, _ in msgs) + 24} hours');")
+    loc = groups.LOCATIONS.get(slug)
+    out.append(f"insert into groups (id, slug, name, description, cause_slug, location, created_by, created_at) values ('{gid(n)}', '{slug}', {q(name)}, {q(desc)}, {q(cause) if cause else 'null'}, {q(loc) if loc else 'null'}, '{person(owner)}', now() - interval '{max(h for _, h, _ in msgs) + 24} hours');")
     out.append(f"insert into group_members (group_id, user_id, joined_at) select '{gid(n)}', id, now() - make_interval(hours => abs(hashtext(id::text || '{slug}')) % 200) from profiles "
                f"where id::text like '00000000-0000-4000-c000-%' and id <> '{person(owner)}' order by md5('{slug}' || id::text) limit {size} on conflict do nothing;")
     for author, hours, text in msgs:
@@ -759,6 +760,8 @@ for n, slug, name, desc, cause, owner, size, msgs in groups.GROUPS:
                                                        f"order by md5('{slug}' || user_id::text) offset {author - 1} limit 1)")
         out.append(f"insert into messages (group_id, author_id, body, created_at) values ('{gid(n)}', {who}, {q(text)}, now() - interval '{hours} hours');")
     out.append(f"update group_members set last_read_at = now() where group_id = '{gid(n)}';")
+# F-101: spread each event a little around its org (within about 3 km) so pins don't stack.
+out.append("update org_events set lat = lat + ((abs(hashtext(id::text)) % 100) - 50) * 0.0005, lng = lng + ((abs(hashtext(id::text || 'x')) % 100) - 50) * 0.0006 where lat is not null;")
 out.append("")
 
 open(OUT, "w").write("\n".join(out) + "\n")

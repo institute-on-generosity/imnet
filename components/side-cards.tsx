@@ -1,4 +1,4 @@
-import { ArrowRight, Bookmark, CalendarDays, HandHelping, Megaphone, NotebookPen, Plus, Users, UsersRound } from "lucide-react"
+import { ArrowRight, Bookmark, CalendarDays, HandHelping, MapPin, Megaphone, NotebookPen, Plus, Users, UsersRound } from "lucide-react"
 import { personCoverSrc } from "@/lib/cover"
 import { formatUsd } from "@/lib/grants"
 import { hoursLabel } from "@/lib/volunteer"
@@ -76,6 +76,7 @@ export function ViewerCard({ viewer, extras }: { viewer: Viewer; extras: ViewerE
 
       <Panel className="py-1.5">
         {[
+          { href: "/nearby", label: "Near you", Icon: MapPin },
           { href: "/saved", label: "Saved posts", Icon: Bookmark },
           { href: "/following", label: "Following", Icon: Users },
           { href: "/communities", label: "Communities", Icon: UsersRound },

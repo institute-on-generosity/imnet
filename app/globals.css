@@ -202,3 +202,16 @@
 .lucide-send { translate: 4% -4%; }
 .lucide-message-circle { translate: -2% 2%; }
 .lucide-arrow-up-right, .lucide-external-link { translate: 3% -3%; }
+
+/* F-101 Near you map pins. */
+.near-pin { display: block; width: 22px; height: 22px; border-radius: 9999px; background: var(--pin); border: 3px solid #fff; box-shadow: 0 1px 4px rgb(20 33 61 / 0.35); transition: transform 0.15s; }
+.near-pin-selected .near-pin, .leaflet-marker-icon:hover .near-pin { transform: scale(1.35); }
+.near-pin-selected { z-index: 1000 !important; }
+.near-you { display: block; width: 18px; height: 18px; border-radius: 9999px; background: #2563eb; border: 3px solid #fff; box-shadow: 0 0 0 6px rgb(37 99 235 / 0.2); }
+.near-popup a { font-weight: 600; color: var(--ink); }
+.near-popup a:hover { text-decoration: underline; }
+.near-popup p { margin: 2px 0 0 !important; color: var(--ink-soft); font-size: 12px; }
+.leaflet-container { font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif; }
+/* Quiet basemap so pins carry the color. */
+.leaflet-tile-pane { filter: grayscale(0.75) brightness(1.04) contrast(0.92); }
+@media (prefers-reduced-motion: reduce) { .near-pin { transition: none; } }

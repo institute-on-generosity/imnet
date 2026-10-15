@@ -32,7 +32,7 @@ export default async function GroupsPage({ searchParams }: PageProps<"/communiti
     >
       <Panel className="p-4">
         <h1 className="h-page">Communities</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">People around a cause, each community with a chat for its members.</p>
+        <p className="mt-1.5 text-sm text-muted-foreground">People around a cause, each community with a chat for its members. <Link href="/nearby" className="font-semibold text-leaf hover:underline">Find communities near you</Link></p>
       </Panel>
 
       {mine.length > 0 && (

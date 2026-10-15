@@ -901,3 +901,19 @@ describe("groups and messages", () => {
     expect((await t.as(ALEX, `select has_unread_messages() u`)).rows![0]).toEqual({ u: false })
   })
 })
+
+describe("places", () => {
+  it("F-101: a known city in an org's location gives it map coordinates; new events start there; nobody edits cities", async () => {
+    await t.owner(`update orgs set location = 'Oakland, CA' where id = '${ORG_2}'`)
+    const [org] = await t.owner(`select lat, lng from orgs where id = '${ORG_2}'`)
+    expect(Number(org.lat)).toBeCloseTo(37.80, 1)
+    await t.owner(`update orgs set location = 'Somewhere, ZZ' where id = '${ORG_2}'`)
+    const [unknown] = await t.owner(`select lat from orgs where id = '${ORG_2}'`)
+    expect(unknown.lat).toBeNull()
+    await t.owner(`update orgs set location = 'Oakland, CA' where id = '${ORG_2}'`)
+    const [ev] = await t.owner(`insert into org_events (org_id, title, starts_at, location) values ('${ORG_2}', 'Cleanup', now() + interval '3 days', 'Lake Merritt') returning lat`)
+    expect(Number(ev.lat)).toBeCloseTo(37.80, 1)
+    expect((await t.as(DONOR, `insert into cities (name, lat, lng) values ('Fake, ZZ', 1, 1)`)).error).toBeDefined()
+    expect(n((await t.as(null, `select count(*)::int n from cities`)).rows)).toBeGreaterThan(50)
+  })
+})

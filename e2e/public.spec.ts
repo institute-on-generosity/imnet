@@ -525,3 +525,22 @@ test("F-100: communities are public to browse; their chats are for members only"
   await page.goto("/messages")
   await expect(page).toHaveURL(/\/login/)
 })
+
+test("F-101: Near you lists volunteering, events and communities by distance from your location", async ({ browser }) => {
+  const ctx = await browser.newContext({ geolocation: { latitude: 37.8044, longitude: -122.2712 }, permissions: ["geolocation"] }) // Oakland
+  const page = await ctx.newPage()
+  await page.route("https://tile.openstreetmap.org/**", (r) => r.abort()) // no network in tests
+  await page.goto("/nearby")
+  await page.getByRole("button", { name: /Use my location|Using your location/ }).click()
+  await expect(page.getByRole("button", { name: "Using your location" })).toBeVisible()
+  const list = page.getByRole("region", { name: "Near you" })
+  await expect(list.getByRole("link", { name: "Oakland creek cleanup crew" })).toBeVisible()
+  await expect(list.getByText(/^Here$|\d+(\.\d)? mi/).first()).toBeVisible()
+  // Far-away places stay off the 25-mile list.
+  await expect(list.getByRole("link", { name: "Portland weekend food volunteers" })).toHaveCount(0)
+  // Filters: hide communities.
+  await page.getByRole("button", { name: "Communities", pressed: true }).click()
+  await expect(list.getByRole("link", { name: "Oakland creek cleanup crew" })).toHaveCount(0)
+  await expect(page.locator(".leaflet-marker-icon").first()).toBeVisible()
+  await ctx.close()
+})
