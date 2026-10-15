@@ -715,3 +715,33 @@ export async function getHoursToConfirm(orgId: string): Promise<HoursToConfirm[]
     .limit(50)
   return ((data ?? []) as unknown as HoursToConfirm[]).map((h) => ({ ...h, hours: Number(h.hours) }))
 }
+
+// Search upcoming events by title (F-083).
+export async function searchEvents(q: string): Promise<EventWithOrg[]> {
+  const term = q.trim().slice(0, 100)
+  if (!term) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("org_events")
+    .select(`${EVENT_FIELDS}, org:orgs!inner(id, slug, name, logo_url, org_type)`)
+    .filter("title", "imatch", wordStartPattern(term))
+    .gt("starts_at", new Date().toISOString())
+    .order("starts_at")
+    .limit(20)
+  return (data ?? []) as unknown as EventWithOrg[]
+}
+
+// Search open needs by title (F-083).
+export async function searchNeeds(q: string): Promise<NeedWithOrg[]> {
+  const term = q.trim().slice(0, 100)
+  if (!term) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("org_needs")
+    .select("id, kind, title, detail, help_url, met_at, created_at, org:orgs!inner(id, slug, name, logo_url, org_type)")
+    .filter("title", "imatch", wordStartPattern(term))
+    .is("met_at", null)
+    .order("created_at", { ascending: false })
+    .limit(20)
+  return (data ?? []) as unknown as NeedWithOrg[]
+}

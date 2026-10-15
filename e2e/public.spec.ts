@@ -225,7 +225,7 @@ test("F-003: unknown org is a 404", async ({ page }) => {
 
 test("F-025: search finds orgs by name", async ({ page }) => {
   await page.goto("/")
-  await page.getByRole("searchbox", { name: "Search", exact: true }).first().fill("river")
+  await page.getByRole("combobox", { name: "Search" }).fill("river")
   await page.keyboard.press("Enter")
   await expect(page.getByRole("region", { name: "Organizations" }).getByRole("link", { name: /Riverbend Readers/ })).toBeVisible()
 })
@@ -444,4 +444,27 @@ test("F-081: an opted-in donor's profile shows volunteer hours by organization",
   await expect(panel.getByText("20.5 hours")).toBeVisible()
   await expect(panel.getByRole("listitem").filter({ hasText: "Harbor Table" })).toContainText("17.5 hours")
   await expect(panel.getByRole("listitem").filter({ hasText: "Bridge Welcome Center" })).toContainText("3 hours")
+})
+
+test("F-083: the header search suggests organizations, people and events as you type; keyboard works", async ({ page }) => {
+  await page.goto("/")
+  const box = page.getByRole("combobox", { name: "Search" })
+  await box.fill("harb")
+  const list = page.getByRole("listbox", { name: "Suggestions" })
+  await expect(list.getByRole("option", { name: /Harbor Table/ })).toBeVisible()
+  await box.press("ArrowDown")
+  await expect(list.getByRole("option").first()).toHaveAttribute("aria-selected", "true")
+  await box.press("Enter")
+  await expect(page).toHaveURL(/\/o\/harbor-table$/)
+
+  await page.goto("/")
+  await box.fill("planting")
+  await expect(page.getByRole("listbox", { name: "Suggestions" }).getByRole("option", { name: /Planting day/ })).toBeVisible()
+  await box.press("Escape")
+  await expect(page.getByRole("listbox", { name: "Suggestions" })).toHaveCount(0)
+  await page.getByRole("combobox", { name: "Search" }).fill("dinner")
+  await page.getByRole("link", { name: /See all results for/ }).click()
+  await expect(page).toHaveURL(/\/search\?q=dinner/)
+  await expect(page.getByRole("region", { name: "Events" })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Ways to help" })).toBeVisible()
 })
