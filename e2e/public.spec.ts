@@ -565,6 +565,9 @@ test("F-102: Communities opens with communities near you (list and map), nearest
   await expect(page.getByRole("application", { name: "Map of places near you" })).toBeVisible()
   // F-103: communities have pictures, in the list and as map pins.
   await expect(first.locator("img[src*='/communities/']")).toBeVisible()
-  await expect(page.locator(".near-pin-img").first()).toBeVisible()
+  await expect(page.locator(".pin-pic").first()).toBeVisible()
+  // F-106: nearby nonprofits and foundations can join the map, with a legend saying which is which.
+  await expect(page.getByRole("button", { name: "Foundations", pressed: true })).toBeVisible()
+  await expect(page.getByText("Foundation", { exact: true }).last()).toBeVisible()
   await ctx.close()
 })

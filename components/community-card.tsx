@@ -15,7 +15,7 @@ export function CommunityCard({ slug, name, cause_slug, icon_path, members, caus
   const meta = [causeName, `${members.toLocaleString("en-US")} ${members === 1 ? "member" : "members"}`].filter(Boolean).join(" · ")
   return (
     <Link href={`/communities/${slug}`} className={cn("group flex h-full items-start gap-3 bg-card hover:bg-muted/50", compact ? "p-3" : "p-4")}>
-      <CommunityMark cause={cause_slug} icon={icon_path} size={compact ? "sm" : "md"} className={compact ? "size-10 rounded-xl" : undefined} />
+      <CommunityMark cause={cause_slug} icon={icon_path} size={compact ? "sm" : "md"} className={compact ? "size-10" : undefined} />
       <div className="min-w-0 flex-1">
         <p className={cn("leading-snug font-semibold group-hover:underline", compact && "truncate")}>{name}</p>
         {place && (

@@ -7,15 +7,47 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "@/components/intent-link"
 import { formatMiles, milesBetween, RADII, US_CENTER, type LatLng, type MapItem, type MapKind } from "@/lib/geo"
 import { cn } from "@/lib/utils"
-import { OrgMark } from "./org-mark"
 
-// label: the filter chip; one: a single item in the list.
-const KINDS: Record<MapKind, { label: string; one: string; color: string; Icon: typeof MapPin }> = {
-  volunteer: { label: "Volunteer", one: "Volunteer", color: "#1f7a5a", Icon: HandHelping },
-  event: { label: "Events", one: "Event", color: "#14213d", Icon: CalendarDays },
-  community: { label: "Communities", one: "Community", color: "#d99a00", Icon: UsersRound },
-  nonprofit: { label: "Nonprofits", one: "Nonprofit", color: "#0e7490", Icon: Building2 },
-  foundation: { label: "Foundations", one: "Foundation", color: "#7c3aed", Icon: Landmark },
+// F-106: each kind has a color, a glyph and a pin shape, so you can tell them apart at a glance:
+// round pins are people (communities), square pins are organizations (nonprofits, foundations, as
+// logos are), and solid dots are things to do (volunteering, events). label: the filter chip;
+// one: a single item. glyph: the same icon as white strokes on a 24px grid, for pins.
+type Shape = "round" | "square" | "dot"
+const KINDS: Record<MapKind, { label: string; one: string; color: string; Icon: typeof MapPin; shape: Shape; glyph: string }> = {
+  volunteer: { label: "Volunteer", one: "Volunteer", color: "#1f7a5a", Icon: HandHelping, shape: "dot", glyph: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>' },
+  event: { label: "Events", one: "Event", color: "#14213d", Icon: CalendarDays, shape: "dot", glyph: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>' },
+  community: { label: "Communities", one: "Community", color: "#d99a00", Icon: UsersRound, shape: "round", glyph: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c3 .2 5.5 2.4 5.5 5.8"/>' },
+  nonprofit: { label: "Nonprofits", one: "Nonprofit", color: "#0e7490", Icon: Building2, shape: "square", glyph: '<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M10.5 21v-3h3v3"/>' },
+  foundation: { label: "Foundations", one: "Foundation", color: "#7c3aed", Icon: Landmark, shape: "square", glyph: '<path d="M3 21h18M5 18h14M12 3 3 8h18z"/><path d="M6 10v8M10 10v8M14 10v8M18 10v8"/>' },
+}
+export const MAP_KINDS = KINDS
+const svg = (glyph: string, size: number) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${glyph}</svg>`
+
+// The pin's HTML. Image URLs come from communityIconSrc/logoSrc, which only build our own storage URLs.
+function pinHtml(i: MapItem): { html: string; size: number } {
+  const K = KINDS[i.kind]
+  if (K.shape === "dot" || !i.image) return { html: `<span class="pin pin-dot ${K.shape === "square" ? "pin-sq" : ""}" style="--pin:${K.color}">${svg(K.glyph, 14)}</span>`, size: 28 }
+  return { html: `<span class="pin pin-pic ${K.shape === "square" ? "pin-sq" : ""}" style="--pin:${K.color};background-image:url('${i.image}')"><span class="pin-badge">${svg(K.glyph, 10)}</span></span>`, size: 38 }
+}
+
+// What each pin means, in the map's corner.
+export function MapLegend({ kinds }: { kinds: MapKind[] }) {
+  return (
+    <div className="pointer-events-none absolute bottom-6 left-2 z-[500] rounded-lg bg-card/95 px-2.5 py-2 text-xs shadow-md ring-1 ring-border">
+      <ul className="space-y-1">
+        {kinds.map((k) => {
+          const K = KINDS[k]
+          return (
+            <li key={k} className="flex items-center gap-2">
+              <span className={cn("grid size-4 place-items-center", K.shape === "square" ? "rounded-[4px]" : "rounded-full")} style={{ backgroundColor: K.color }}
+                dangerouslySetInnerHTML={{ __html: svg(K.glyph, 10) }} />
+              {K.one}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
 }
 type Origin = { at: LatLng; label: string; source: "device" | "profile" | "none" }
 
@@ -117,18 +149,20 @@ export function NearMap({ items, profile }: { items: MapItem[]; profile: { at: L
                 return (
                   <li key={i.id} id={`near-${i.id}`} onMouseEnter={() => setSelected(i.id)} onFocus={() => setSelected(i.id)}
                     className={cn("relative flex gap-3 px-4 py-3 transition-colors", selected === i.id ? "bg-muted/70" : "hover:bg-muted/40")}>
-                    {i.logo ? <span className="mt-0.5"><OrgMark org={i.logo} size="sm" /></span> : i.image ? (
+                    {K.shape !== "dot" && i.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={i.image} alt="" className="mt-0.5 size-6 shrink-0 rounded-md object-cover" />
+                      <img src={i.image} alt="" className={cn("mt-0.5 size-9 shrink-0 object-cover ring-2", K.shape === "square" ? "rounded-lg" : "rounded-full")} style={{ ["--tw-ring-color" as string]: K.color }} />
                     ) : (
-                      <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-md text-white" style={{ backgroundColor: K.color }} aria-hidden><K.Icon className="size-3.5" /></span>
+                      <span className={cn("mt-0.5 grid size-9 shrink-0 place-items-center text-white", K.shape === "square" ? "rounded-lg" : "rounded-full")} style={{ backgroundColor: K.color }} aria-hidden><K.Icon className="size-4" /></span>
                     )}
                     <div className="min-w-0 flex-1">
-                      <Link href={i.href} className="line-clamp-2 text-sm leading-snug font-semibold after:absolute after:inset-0 hover:underline">{i.title}</Link>
+                      <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[11px] font-semibold" style={{ color: K.color, backgroundColor: `${K.color}17` }}>
+                        <K.Icon className="size-3" aria-hidden />{K.one}
+                      </span>
+                      <Link href={i.href} className="mt-0.5 line-clamp-2 block text-sm leading-snug font-semibold after:absolute after:inset-0 hover:underline">{i.title}</Link>
                       <p className="truncate text-xs text-muted-foreground">{i.subtitle}</p>
                       <p className="mt-0.5 flex items-center gap-1.5 text-xs text-faint">
-                        <span className="size-1.5 rounded-full" style={{ backgroundColor: K.color }} aria-hidden />{K.one}
-                        <span aria-hidden>·</span>{formatMiles(i.miles)}{i.place && <><span aria-hidden>·</span><span className="truncate">{i.place}</span></>}
+                        <span className="font-semibold text-foreground/80">{formatMiles(i.miles)}</span>{i.place && <><span aria-hidden>·</span><span className="truncate">{i.place}</span></>}
                       </p>
                     </div>
                   </li>
@@ -202,14 +236,8 @@ export function LeafletView({ origin, items, radius, selected, onSelect }: { ori
       }
     }
     for (const i of items) {
-      const color = KINDS[i.kind].color
       const [dx, dy] = fan(i)
-      // F-103: a picture pin (community icon or org logo) ringed in its kind's color; a dot otherwise.
-      // Image URLs come from communityIconSrc/logoSrc, which only build our own storage URLs.
-      const html = i.image
-        ? `<span class="near-pin near-pin-img" style="--pin:${color};background-image:url('${i.image}')"></span>`
-        : `<span class="near-pin" style="--pin:${color}"></span>`
-      const size = i.image ? 36 : 22
+      const { html, size } = pinHtml(i)
       const mk = mod.marker([i.lat, i.lng], {
         title: i.title,
         icon: mod.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2 - dx, size / 2 - dy] }),
@@ -234,8 +262,14 @@ export function LeafletView({ origin, items, radius, selected, onSelect }: { ori
 
   // Highlight the selected pin.
   useEffect(() => {
-    for (const [id, mk] of markers.current) mk.getElement()?.classList.toggle("near-pin-selected", id === selected)
+    for (const [id, mk] of markers.current) mk.getElement()?.classList.toggle("pin-selected", id === selected)
   }, [selected, items])
 
-  return <div ref={el} className="size-full bg-muted" role="application" aria-label="Map of places near you" />
+  const present = (Object.keys(KINDS) as MapKind[]).filter((k) => items.some((i) => i.kind === k))
+  return (
+    <div className="relative size-full">
+      <div ref={el} className="size-full bg-muted" role="application" aria-label="Map of places near you" />
+      {present.length > 0 && <MapLegend kinds={present} />}
+    </div>
+  )
 }

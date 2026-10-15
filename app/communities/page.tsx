@@ -4,7 +4,7 @@ import { CauseFilter } from "@/components/cause-filter"
 import { CommunitiesNearYou } from "@/components/communities-near-you"
 import { CONTAINER, Panel } from "@/components/shell"
 import { buttonVariants } from "@/components/ui/button"
-import { getCauses, getDiscoverGroups, getMyGroups, getPlacedCommunities, getProfileCity } from "@/lib/queries"
+import { getCauses, getDiscoverGroups, getMapItems, getMyGroups, getPlacedCommunities, getProfileCity } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 
 export const metadata = { title: "Communities" }
@@ -14,9 +14,10 @@ export default async function CommunitiesPage({ searchParams }: PageProps<"/comm
   const { cause } = await searchParams
   const active = typeof cause === "string" ? cause : undefined
   const userId = await getUserId()
-  const [mine, discover, causes, placed, profileCity] = await Promise.all([
-    userId ? getMyGroups(userId) : [], getDiscoverGroups(userId, active), getCauses(), getPlacedCommunities(userId), getProfileCity(userId),
+  const [mine, discover, causes, placed, profileCity, mapItems] = await Promise.all([
+    userId ? getMyGroups(userId) : [], getDiscoverGroups(userId, active), getCauses(), getPlacedCommunities(userId), getProfileCity(userId), getMapItems(),
   ])
+  const orgs = mapItems.filter((i) => i.kind === "nonprofit" || i.kind === "foundation")
 
   return (
     <div className={`${CONTAINER} space-y-3`}>
@@ -30,7 +31,7 @@ export default async function CommunitiesPage({ searchParams }: PageProps<"/comm
 
       {/* F-102: near you first (list left, map right); your communities and Discover follow on the left. */}
       <CommunitiesNearYou communities={placed} profile={profileCity} causeNames={Object.fromEntries(causes.map((c) => [c.slug, c.name]))}
-        mine={mine} discover={discover} discoverTitle={mine.length ? "Discover more" : "Discover communities"}
+        orgs={orgs} mine={mine} discover={discover} discoverTitle={mine.length ? "Discover more" : "Discover communities"}
         filter={<CauseFilter causes={causes} active={active} basePath="/communities" hrefFor={(c) => (c ? `/communities?cause=${c}` : "/communities")} />} />
     </div>
   )

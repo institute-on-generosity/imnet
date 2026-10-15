@@ -7,7 +7,7 @@ import { formatMiles, milesBetween, type LatLng, type MapItem } from "@/lib/geo"
 import type { GroupCard, PlacedCommunity } from "@/lib/queries"
 import { communityIconSrc } from "@/lib/community-icon"
 import { CommunityCard, CommunityGrid } from "./community-card"
-import { LeafletView, type MapOrigin } from "./near-map"
+import { LeafletView, MAP_KINDS, type MapOrigin } from "./near-map"
 import { Panel } from "./shell"
 
 const RADIUS_MI = 50
@@ -19,13 +19,15 @@ const SHOW = 6
 type Props = {
   communities: PlacedCommunity[]; profile: { at: LatLng; label: string } | null; causeNames: Record<string, string>
   mine: GroupCard[]; discover: GroupCard[]; filter: React.ReactNode; discoverTitle: string
+  orgs: MapItem[] // nearby nonprofits and foundations, shown on the map when toggled on (F-106)
 }
 
-export function CommunitiesNearYou({ communities, profile, causeNames, mine, discover, filter, discoverTitle }: Props) {
+export function CommunitiesNearYou({ communities, profile, causeNames, mine, discover, filter, discoverTitle, orgs }: Props) {
   const [origin, setOrigin] = useState<MapOrigin | null>(profile ? { ...profile, source: "profile" } : null)
   const [locating, setLocating] = useState(false)
   const [denied, setDenied] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
+  const [showOrgs, setShowOrgs] = useState<Set<"nonprofit" | "foundation">>(new Set(["nonprofit", "foundation"]))
 
   const locate = () => {
     if (!navigator.geolocation) return setDenied(true)
@@ -54,6 +56,15 @@ export function CommunitiesNearYou({ communities, profile, causeNames, mine, dis
     })) satisfies (MapItem & { miles: number })[],
     [near, shown],
   )
+  // Nearby organizations join the map so you can see how communities, nonprofits and foundations differ.
+  const orgPins = useMemo(() => {
+    if (!origin) return []
+    const ranked = orgs.filter((o) => showOrgs.has(o.kind as "nonprofit" | "foundation")).map((o) => ({ ...o, miles: milesBetween(origin.at, o) })).sort((a, b) => a.miles - b.miles)
+    const close = ranked.filter((o) => o.miles <= RADIUS_MI)
+    return close.length ? close : ranked.slice(0, 6)
+  }, [orgs, origin, showOrgs])
+  const allPins = useMemo(() => [...pins, ...orgPins], [pins, orgPins])
+  const toggleOrg = (k: "nonprofit" | "foundation") => setShowOrgs((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n })
 
   return (
     <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_420px]">
@@ -111,8 +122,21 @@ export function CommunitiesNearYou({ communities, profile, causeNames, mine, dis
         </Panel>
       </div>
       {/* The map: sticky beside the list on wide screens, first on phones. */}
-      <div className="order-first h-[38dvh] min-h-[260px] overflow-hidden rounded-xl border lg:order-none lg:sticky lg:top-20 lg:h-[calc(100dvh-110px)]">
-        <LeafletView origin={origin ?? { at: { lat: 39.5, lng: -98.35 }, label: "the United States", source: "none" }} items={pins} radius={null} selected={selected} onSelect={setSelected} />
+      <div className="relative order-first h-[38dvh] min-h-[260px] overflow-hidden rounded-xl border lg:order-none lg:sticky lg:top-20 lg:h-[calc(100dvh-110px)]">
+        <LeafletView origin={origin ?? { at: { lat: 39.5, lng: -98.35 }, label: "the United States", source: "none" }} items={allPins} radius={null} selected={selected} onSelect={setSelected} />
+        {/* Also show organizations near you. */}
+        <div role="group" aria-label="Also show on the map" className="absolute top-2 right-2 z-[500] flex gap-1.5">
+          {(["nonprofit", "foundation"] as const).map((k) => {
+            const K = MAP_KINDS[k], on = showOrgs.has(k)
+            return (
+              <button key={k} type="button" aria-pressed={on} onClick={() => toggleOrg(k)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-card/95 py-1 pr-2.5 pl-2 text-xs font-semibold shadow-md ring-1 ring-border transition-[opacity,transform] active:scale-95"
+                style={{ color: on ? K.color : "var(--ink-faint)" }}>
+                <K.Icon className="size-3.5" aria-hidden />{K.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

@@ -3,7 +3,8 @@ import { CAUSE_ICON } from "@/lib/cause-icons"
 import { communityIconSrc } from "@/lib/community-icon"
 import { cn } from "@/lib/utils"
 
-const SIZES = { sm: "size-8 rounded-lg [&>svg]:size-4", md: "size-12 rounded-xl [&>svg]:size-6", lg: "size-16 rounded-2xl [&>svg]:size-8" }
+// Round, like a person's avatar: communities are people; organizations' logos are square (F-106).
+const SIZES = { sm: "size-8 rounded-full [&>svg]:size-4", md: "size-12 rounded-full [&>svg]:size-6", lg: "size-16 rounded-full [&>svg]:size-8" }
 
 // F-100/F-103: a community's picture, or its cause icon on a soft tile when it has none.
 export function CommunityMark({ cause, icon, size = "md", className }: { cause: string | null; icon?: string | null; size?: keyof typeof SIZES; className?: string }) {
