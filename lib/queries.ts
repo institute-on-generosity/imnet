@@ -1,4 +1,6 @@
 import type { MapItem } from "@/lib/geo"
+import { communityIconSrc } from "@/lib/community-icon"
+import { logoSrc } from "@/lib/logo"
 import { cache } from "react"
 import { type Cursor, encodeCursor, olderThan } from "@/lib/cursor"
 import { type DayRow, fillDays, type Series, total } from "@/lib/analytics"
@@ -913,7 +915,7 @@ export async function getOrgDonations(orgId: string): Promise<OrgDonations> {
 // ---------------------------------------------------------------------------
 // F-100 Groups and messages
 // ---------------------------------------------------------------------------
-export type Group = { id: string; slug: string; name: string; description: string | null; cause_slug: string | null; created_at: string }
+export type Group = { id: string; slug: string; name: string; description: string | null; cause_slug: string | null; icon_path: string | null; location?: string | null; created_at: string }
 export type GroupCard = Group & { members: number; lastAt: string | null; unread: boolean }
 export type ChatAuthor = { id: string; handle: string; display_name: string | null; avatar_url: string | null }
 export type ChatMessage = { id: string; body: string; created_at: string; author: ChatAuthor }
@@ -929,7 +931,7 @@ async function memberCounts(ids: string[]) {
 // Your groups, most recently active first, with a quiet unread flag.
 export async function getMyGroups(userId: string): Promise<GroupCard[]> {
   const supabase = await createClient()
-  const { data } = await supabase.from("group_members").select("last_read_at, group:groups!inner(id, slug, name, description, cause_slug, created_at)").eq("user_id", userId)
+  const { data } = await supabase.from("group_members").select("last_read_at, group:groups!inner(id, slug, name, description, cause_slug, icon_path, created_at)").eq("user_id", userId)
   const rows = (data ?? []) as unknown as { last_read_at: string; group: Group }[]
   const ids = rows.map((r) => r.group.id)
   const [counts, latest] = await Promise.all([
@@ -949,7 +951,7 @@ export async function getMyGroups(userId: string): Promise<GroupCard[]> {
 // Groups to discover (not yet joined), largest first within a cause.
 export async function getDiscoverGroups(userId: string | null, cause?: string): Promise<GroupCard[]> {
   const supabase = await createClient()
-  let q = supabase.from("groups").select("id, slug, name, description, cause_slug, created_at").limit(100)
+  let q = supabase.from("groups").select("id, slug, name, description, cause_slug, icon_path, created_at").limit(100)
   if (cause) q = q.eq("cause_slug", cause)
   const { data } = await q
   let groups = (data ?? []) as Group[]
@@ -964,7 +966,7 @@ export async function getDiscoverGroups(userId: string | null, cause?: string): 
 
 export async function getGroupBySlug(slug: string, userId: string | null) {
   const supabase = await createClient()
-  const { data } = await supabase.from("groups").select("id, slug, name, description, cause_slug, created_at").eq("slug", slug).maybeSingle()
+  const { data } = await supabase.from("groups").select("id, slug, name, description, cause_slug, icon_path, location, created_at").eq("slug", slug).maybeSingle()
   if (!data) return null
   const group = data as Group
   const [counts, me] = await Promise.all([
@@ -1027,38 +1029,43 @@ export async function getMapItems(): Promise<MapItem[]> {
   const today = now.slice(0, 10)
   const ORG = "id, slug, name, logo_url, org_type, location, lat, lng, org_causes(cause_slug)"
   type O = { id: string; slug: string; name: string; logo_url: string | null; org_type: "nonprofit" | "foundation"; location: string | null; lat: number | null; lng: number | null; org_causes: { cause_slug: string }[] }
-  const [calls, needs, events, groups] = await Promise.all([
+  const [calls, needs, events, groups, orgs] = await Promise.all([
     supabase.from("posts").select(`id, body, action_date, org:orgs!posts_org_id_fkey!inner(${ORG})`).eq("kind", "call_volunteers").not("org.lat", "is", null).or(`action_date.is.null,action_date.gte.${today}`).order("created_at", { ascending: false }).limit(200),
     supabase.from("org_needs").select(`id, title, kind, org:orgs!inner(${ORG})`).is("met_at", null).eq("kind", "volunteer").not("org.lat", "is", null).limit(200),
     supabase.from("org_events").select(`id, title, starts_at, location, lat, lng, org:orgs!inner(${ORG})`).gt("starts_at", now).not("lat", "is", null).order("starts_at").limit(300),
-    supabase.from("groups").select("id, slug, name, description, cause_slug, location, lat, lng").not("lat", "is", null).limit(300),
+    supabase.from("groups").select("id, slug, name, description, cause_slug, icon_path, location, lat, lng").not("lat", "is", null).limit(300),
+    // F-105: the organizations themselves, nonprofits and foundations.
+    supabase.from("orgs").select("id, slug, name, mission, logo_url, org_type, location, lat, lng, org_causes(cause_slug)").eq("status", "verified").not("lat", "is", null).limit(500),
   ])
   const counts = await memberCounts(((groups.data ?? []) as { id: string }[]).map((g) => g.id))
   const logo = (o: O) => ({ name: o.name, logo_url: o.logo_url, org_type: o.org_type })
   const day = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })
   const items: MapItem[] = []
   for (const c of (calls.data ?? []) as unknown as { id: string; body: string; action_date: string | null; org: O }[]) {
-    items.push({ id: `call-${c.id}`, kind: "volunteer", title: c.body.split(/(?<=[.!?])\s/)[0].slice(0, 90), subtitle: `${c.org.name}${c.action_date ? ` · ${day(c.action_date)}` : ""}`, href: `/p/${c.id}`, place: c.org.location, lat: c.org.lat!, lng: c.org.lng!, logo: logo(c.org), cause: c.org.org_causes[0]?.cause_slug ?? null })
+    items.push({ id: `call-${c.id}`, kind: "volunteer", title: c.body.split(/(?<=[.!?])\s/)[0].slice(0, 90), subtitle: `${c.org.name}${c.action_date ? ` · ${day(c.action_date)}` : ""}`, href: `/p/${c.id}`, place: c.org.location, lat: c.org.lat!, lng: c.org.lng!, logo: logo(c.org), image: logoSrc(c.org.logo_url), cause: c.org.org_causes[0]?.cause_slug ?? null })
   }
   for (const n of (needs.data ?? []) as unknown as { id: string; title: string; org: O }[]) {
-    items.push({ id: `need-${n.id}`, kind: "volunteer", title: n.title, subtitle: n.org.name, href: `/o/${n.org.slug}#needs`, place: n.org.location, lat: n.org.lat!, lng: n.org.lng!, logo: logo(n.org), cause: n.org.org_causes[0]?.cause_slug ?? null })
+    items.push({ id: `need-${n.id}`, kind: "volunteer", title: n.title, subtitle: n.org.name, href: `/o/${n.org.slug}#needs`, place: n.org.location, lat: n.org.lat!, lng: n.org.lng!, logo: logo(n.org), image: logoSrc(n.org.logo_url), cause: n.org.org_causes[0]?.cause_slug ?? null })
   }
   for (const e of (events.data ?? []) as unknown as { id: string; title: string; starts_at: string; location: string; lat: number; lng: number; org: O }[]) {
-    items.push({ id: `event-${e.id}`, kind: "event", title: e.title, subtitle: `${e.org.name} · ${new Date(e.starts_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, href: `/e/${e.id}`, place: e.location, lat: e.lat, lng: e.lng, logo: logo(e.org), cause: e.org.org_causes[0]?.cause_slug ?? null })
+    items.push({ id: `event-${e.id}`, kind: "event", title: e.title, subtitle: `${e.org.name} · ${new Date(e.starts_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, href: `/e/${e.id}`, place: e.location, lat: e.lat, lng: e.lng, logo: logo(e.org), image: logoSrc(e.org.logo_url), cause: e.org.org_causes[0]?.cause_slug ?? null })
   }
-  for (const g of (groups.data ?? []) as { id: string; slug: string; name: string; description: string | null; cause_slug: string | null; location: string | null; lat: number; lng: number }[]) {
+  for (const g of (groups.data ?? []) as { id: string; slug: string; name: string; description: string | null; cause_slug: string | null; icon_path: string | null; location: string | null; lat: number; lng: number }[]) {
     const m = counts.get(g.id) ?? 0
-    items.push({ id: `community-${g.id}`, kind: "community", title: g.name, subtitle: `Community · ${m} ${m === 1 ? "member" : "members"}`, href: `/communities/${g.slug}`, place: g.location, lat: g.lat, lng: g.lng, cause: g.cause_slug })
+    items.push({ id: `community-${g.id}`, kind: "community", title: g.name, subtitle: `Community · ${m} ${m === 1 ? "member" : "members"}`, href: `/communities/${g.slug}`, place: g.location, lat: g.lat, lng: g.lng, cause: g.cause_slug, image: communityIconSrc(g.icon_path) })
+  }
+  for (const o of (orgs.data ?? []) as unknown as (O & { mission: string | null })[]) {
+    items.push({ id: `org-${o.id}`, kind: o.org_type, title: o.name, subtitle: o.mission ?? (o.org_type === "foundation" ? "Foundation" : "Nonprofit"), href: `/o/${o.slug}`, place: o.location, lat: o.lat!, lng: o.lng!, logo: logo(o), image: logoSrc(o.logo_url), cause: o.org_causes[0]?.cause_slug ?? null })
   }
   return items
 }
 
 // F-102 Communities with a place, for "Communities near you" (distances are computed in the browser).
-export type PlacedCommunity = { id: string; slug: string; name: string; cause_slug: string | null; location: string; lat: number; lng: number; members: number; joined: boolean }
+export type PlacedCommunity = { id: string; slug: string; name: string; cause_slug: string | null; icon_path: string | null; location: string; lat: number; lng: number; members: number; joined: boolean }
 export async function getPlacedCommunities(userId: string | null): Promise<PlacedCommunity[]> {
   const supabase = await createClient()
   const [{ data }, mine] = await Promise.all([
-    supabase.from("groups").select("id, slug, name, cause_slug, location, lat, lng").not("lat", "is", null).limit(500),
+    supabase.from("groups").select("id, slug, name, cause_slug, icon_path, location, lat, lng").not("lat", "is", null).limit(500),
     userId ? supabase.from("group_members").select("group_id").eq("user_id", userId) : null,
   ])
   const rows = (data ?? []) as Omit<PlacedCommunity, "members" | "joined">[]

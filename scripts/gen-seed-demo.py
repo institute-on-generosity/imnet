@@ -774,6 +774,7 @@ for n, slug, name, desc, cause, owner, size, msgs in groups.GROUPS:
                                                        f"order by md5('{slug}' || user_id::text) offset {author - 1} limit 1)")
         out.append(f"insert into messages (group_id, author_id, body, created_at) values ('{gid(n)}', {who}, {q(text)}, now() - interval '{hours} hours');")
     out.append(f"update group_members set last_read_at = now() where group_id = '{gid(n)}';")
+    out.append(f"update groups set icon_path = 'communities/{gid(n)}/icon.png' where id = '{gid(n)}';  -- F-103 (scripts/gen-community-icons.mjs)")
 # F-101: spread each event a little around its org (within about 3 km) so pins don't stack.
 out.append("update org_events set lat = lat + ((abs(hashtext(id::text)) % 100) - 50) * 0.0005, lng = lng + ((abs(hashtext(id::text || 'x')) % 100) - 50) * 0.0006 where lat is not null;")
 out.append("")

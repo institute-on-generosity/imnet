@@ -1,7 +1,7 @@
 // F-101 Distances for the Near you map, computed in the browser (your location never leaves it).
 
 export type LatLng = { lat: number; lng: number }
-export type MapKind = "volunteer" | "event" | "community"
+export type MapKind = "volunteer" | "event" | "community" | "nonprofit" | "foundation"
 export type MapItem = LatLng & {
   id: string
   kind: MapKind
@@ -11,6 +11,7 @@ export type MapItem = LatLng & {
   place: string | null
   logo?: { name: string; logo_url: string | null; org_type?: "nonprofit" | "foundation" }
   cause: string | null
+  image?: string | null // community icon or org logo, shown on the pin (F-103)
 }
 
 const R_MILES = 3958.8

@@ -519,7 +519,8 @@ test("F-100: communities are public to browse; their chats are for members only"
   await page.goto("/communities")
   await expect(page.getByRole("heading", { name: "Communities", level: 1 })).toBeVisible()
   await page.getByRole("link", { name: /Monthly givers circle/ }).click()
-  await expect(page.getByRole("link", { name: "Join", exact: true })).toHaveAttribute("href", /\/login\?next=\/communities\/monthly-givers-circle/)
+  await expect(page.getByRole("link", { name: "Join community" }).first()).toHaveAttribute("href", /\/login\?next=\/communities\/monthly-givers-circle/)
+  await expect(page.getByRole("region", { name: "Members" }).getByText("to see who's in it")).toBeVisible() // member lists need sign-in
   await expect(page.getByRole("log")).toHaveCount(0)
   await expect(page.getByText("tip changed everything")).toHaveCount(0) // no chat content leaks
   await page.goto("/messages")
@@ -536,6 +537,9 @@ test("F-101: Near you lists volunteering, events and communities by distance fro
   const list = page.getByRole("region", { name: "Near you" })
   await expect(list.getByRole("link", { name: "Oakland creek cleanup crew" })).toBeVisible()
   await expect(list.getByText(/^Here$|\d+(\.\d)? mi/).first()).toBeVisible()
+  // F-105: the organizations themselves, foundations and nonprofits, are on the map too.
+  await expect(list.getByRole("link", { name: "Bayside Neighbors Fund", exact: true })).toBeVisible()
+  await expect(list.getByRole("link", { name: "Pine Street Tutoring", exact: true })).toBeVisible()
   // Far-away places stay off the 25-mile list.
   await expect(list.getByRole("link", { name: "Portland weekend food volunteers" })).toHaveCount(0)
   // Filters: hide communities.
@@ -559,5 +563,11 @@ test("F-102: Communities opens with communities near you (list and map), nearest
   const nearTop = (await near.boundingBox())!.y
   expect(nearTop).toBeLessThan((await page.getByRole("heading", { name: /Discover/ }).boundingBox())!.y)
   await expect(page.getByRole("application", { name: "Map of places near you" })).toBeVisible()
+  // F-103: communities have pictures, in the list and as map pins.
+  await expect(first.locator("img[src*='/communities/']")).toBeVisible()
+  await expect(page.locator(".pin-pic").first()).toBeVisible()
+  // F-106: nearby nonprofits and foundations can join the map, with a legend saying which is which.
+  await expect(page.getByRole("button", { name: "Foundations", pressed: true })).toBeVisible()
+  await expect(page.getByText("Foundation", { exact: true }).last()).toBeVisible()
   await ctx.close()
 })
