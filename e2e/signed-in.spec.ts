@@ -728,7 +728,7 @@ test("F-090: a volunteer call says who has volunteered there (confirmed hours, o
 })
 
 test("B-031: no page scrolls sideways, from small phones to narrow desktop windows", async () => {
-  for (const path of ["/", "/following", "/notifications"]) {
+  for (const path of ["/", "/following", "/notifications", "/communities", "/messages"]) {
     await page.goto(path)
     for (const width of [320, 360, 660, 700, 1024]) {
       await page.setViewportSize({ width, height: 900 })
@@ -766,6 +766,33 @@ test("F-099: donate to an organization in test mode; declined cards say so; the 
   await page.goto(`/dashboard/${kitchen.id}`)
   const card = page.locator("[data-slot=card]").filter({ hasText: "Donations on imnet" })
   await expect(card.getByText("$100").first()).toBeVisible()
+})
+
+test("F-100: join a community, post in its chat, and message a member directly", async () => {
+  await page.goto("/communities")
+  await page.getByRole("link", { name: /Youth mentors/ }).first().click()
+  await expect(page).toHaveURL(/\/communities\/youth-mentors/)
+  await expect(page.getByRole("log")).toHaveCount(0) // the chat is for members
+  await page.getByRole("button", { name: "Join" }).click()
+
+  const box = page.getByLabel("Message Youth mentors")
+  await box.fill(`Hello mentors ${id}`)
+  await box.press("Enter")
+  await expect(page.getByRole("log").getByText(`Hello mentors ${id}`)).toBeVisible()
+
+  await page.getByRole("link", { name: /^Members/ }).click()
+  await page.getByRole("button", { name: /^Message / }).first().click()
+  await expect(page).toHaveURL(/\/messages\/[0-9a-f-]{36}/)
+  const dm = page.getByLabel(/^Message /)
+  await dm.fill(`Hi from the circle ${id}`)
+  await dm.press("Enter")
+  await expect(page.getByRole("log").getByText(`Hi from the circle ${id}`)).toBeVisible()
+  const [row] = await sql`select count(*)::int n from messages m join conversation_members cm on cm.conversation_id = m.conversation_id where m.body = ${`Hi from the circle ${id}`} and cm.user_id <> ${userId}`
+  expect(row.n).toBe(1) // delivered to exactly one other person
+
+  await page.goto("/messages")
+  await expect(page.getByRole("link", { name: new RegExp(`You: Hi from the circle ${id}`) })).toBeVisible()
+  await sql`delete from group_members where user_id = ${userId}`
 })
 
 test("F-015: staff can't open another org's dashboard", async () => {

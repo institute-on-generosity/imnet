@@ -9,9 +9,10 @@ import { getActivity, getDonorOrgs, getFollowedPersonIds, getGivingSummary, getM
 import { Feed } from "@/components/post-card"
 import { GivingSummaryPanel } from "@/components/giving-summary"
 import { VolunteerSummaryPanel } from "@/components/volunteer-summary"
-import { CalendarDays, HandHeart, MapPin, Pencil, Plus } from "lucide-react"
+import { CalendarDays, HandHeart, MapPin, MessageSquare, Pencil, Plus } from "lucide-react"
+import { startConversation } from "@/app/actions"
 import { FollowButton } from "@/components/follow-button"
-import { buttonVariants } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { personCoverSrc } from "@/lib/cover"
 import { ago } from "@/lib/comments"
 import { cn } from "@/lib/utils"
@@ -51,6 +52,8 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   const viewerId = await getUserId()
   const isOwn = viewerId === profile.id
   const followsThem = viewerId && !isOwn ? (await getFollowedPersonIds(viewerId)).includes(profile.id) : false
+  // F-100: Message shows only when you may message them (a shared group, or they follow you).
+  const canMessage = viewerId && !isOwn ? !!(await (await createClient()).rpc("can_message", { other: profile.id })).data : false
   const [funds, gaveTo, activity, totals, posts, volunteering] = await Promise.all([
     Promise.all(supports.filter((o) => o.org_type === "foundation").map(async (foundation) => ({ foundation, grants: await getOrgGrants(foundation) }))),
     getDonorOrgs(profile.id),
@@ -89,7 +92,16 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
           <div className="flex items-end justify-between gap-3">
             <PersonAvatar name={name} avatarUrl={profile.avatar_url} size="xl" className="-mt-12 block border-4 border-card bg-card sm:-mt-14" />
             {isOwn && <Link href="/settings/profile" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3" })}><Pencil aria-hidden />Edit profile</Link>}
-            {!isOwn && viewerId && <div className="mt-3"><FollowButton orgId={profile.id} orgName={name} following={followsThem} person /></div>}
+            {!isOwn && viewerId && (
+              <div className="mt-3 flex gap-2">
+                <FollowButton orgId={profile.id} orgName={name} following={followsThem} person />
+                {canMessage && (
+                  <form action={startConversation.bind(null, profile.id)}>
+                    <Button type="submit" variant="outline"><MessageSquare aria-hidden />Message</Button>
+                  </form>
+                )}
+              </div>
+            )}
             {!isOwn && !viewerId && <Link href="/login" className={buttonVariants({ size: "sm", className: "mt-3" })}><Plus aria-hidden />Follow</Link>}
           </div>
           <h1 className="mt-3 font-heading text-3xl font-semibold tracking-tight">{name}</h1>

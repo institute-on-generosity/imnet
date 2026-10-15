@@ -18,6 +18,7 @@ import demo_media as media  # noqa: E402
 import demo_donor_posts as dposts  # noqa: E402
 import demo_donor_photos as dphotos  # noqa: E402
 import demo_calls as calls  # noqa: E402
+import demo_groups as groups  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "supabase", "seed_demo.sql")
@@ -743,6 +744,22 @@ select (array['view','view','view','view','view','view','share','donate_click'])
   from posts p cross join generate_series(1, 20 + abs(hashtext(p.id::text)) % 120) g
  where p.org_id is not null;
 """)
+
+
+# F-100 Groups and their chats.
+def gid(n): return f"00000000-0000-4000-e000-{n:012d}"
+def person(i): return f"00000000-0000-4000-c000-{i:012d}"
+out.append("-- Groups (F-100): the owner joins via trigger; members are a stable sample of demo people.")
+for n, slug, name, desc, cause, owner, size, msgs in groups.GROUPS:
+    out.append(f"insert into groups (id, slug, name, description, cause_slug, created_by, created_at) values ('{gid(n)}', '{slug}', {q(name)}, {q(desc)}, {q(cause) if cause else 'null'}, '{person(owner)}', now() - interval '{max(h for _, h, _ in msgs) + 24} hours');")
+    out.append(f"insert into group_members (group_id, user_id, joined_at) select '{gid(n)}', id, now() - make_interval(hours => abs(hashtext(id::text || '{slug}')) % 200) from profiles "
+               f"where id::text like '00000000-0000-4000-c000-%' and id <> '{person(owner)}' order by md5('{slug}' || id::text) limit {size} on conflict do nothing;")
+    for author, hours, text in msgs:
+        who = f"'{person(owner)}'" if author == 0 else (f"(select user_id from group_members where group_id = '{gid(n)}' and role = 'member' "
+                                                       f"order by md5('{slug}' || user_id::text) offset {author - 1} limit 1)")
+        out.append(f"insert into messages (group_id, author_id, body, created_at) values ('{gid(n)}', {who}, {q(text)}, now() - interval '{hours} hours');")
+    out.append(f"update group_members set last_read_at = now() where group_id = '{gid(n)}';")
+out.append("")
 
 open(OUT, "w").write("\n".join(out) + "\n")
 print(f"wrote {os.path.relpath(OUT)}: {len(NEW_ORGS) + len(more.ORGS)} new orgs, {len(POSTS) + sum(len(o[8]) for o in more.ORGS)} posts, "

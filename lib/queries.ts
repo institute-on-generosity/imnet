@@ -908,3 +908,112 @@ export async function getOrgDonations(orgId: string): Promise<OrgDonations> {
     monthlyDonors: new Set(list.filter((d) => d.monthly).map((d) => d.donor_handle ?? d.id)).size,
   }
 }
+
+// ---------------------------------------------------------------------------
+// F-100 Groups and messages
+// ---------------------------------------------------------------------------
+export type Group = { id: string; slug: string; name: string; description: string | null; cause_slug: string | null; created_at: string }
+export type GroupCard = Group & { members: number; lastAt: string | null; unread: boolean }
+export type ChatAuthor = { id: string; handle: string; display_name: string | null; avatar_url: string | null }
+export type ChatMessage = { id: string; body: string; created_at: string; author: ChatAuthor }
+export type ChatTarget = { group: string } | { conversation: string }
+
+async function memberCounts(ids: string[]) {
+  if (ids.length === 0) return new Map<string, number>()
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("group_member_counts", { targets: ids })
+  return new Map(((data ?? []) as { group_id: string; members: number }[]).map((r) => [r.group_id, Number(r.members)]))
+}
+
+// Your groups, most recently active first, with a quiet unread flag.
+export async function getMyGroups(userId: string): Promise<GroupCard[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("group_members").select("last_read_at, group:groups!inner(id, slug, name, description, cause_slug, created_at)").eq("user_id", userId)
+  const rows = (data ?? []) as unknown as { last_read_at: string; group: Group }[]
+  const ids = rows.map((r) => r.group.id)
+  const [counts, latest] = await Promise.all([
+    memberCounts(ids),
+    ids.length ? supabase.from("messages").select("group_id, created_at, author_id").in("group_id", ids).order("created_at", { ascending: false }).limit(500) : null,
+  ])
+  const last = new Map<string, { at: string; author: string }>()
+  for (const m of (latest?.data ?? []) as { group_id: string; created_at: string; author_id: string }[]) if (!last.has(m.group_id)) last.set(m.group_id, { at: m.created_at, author: m.author_id })
+  return rows
+    .map((r) => {
+      const l = last.get(r.group.id)
+      return { ...r.group, members: counts.get(r.group.id) ?? 0, lastAt: l?.at ?? null, unread: !!l && l.author !== userId && l.at > r.last_read_at }
+    })
+    .sort((a, b) => (b.lastAt ?? b.created_at).localeCompare(a.lastAt ?? a.created_at))
+}
+
+// Groups to discover (not yet joined), largest first within a cause.
+export async function getDiscoverGroups(userId: string | null, cause?: string): Promise<GroupCard[]> {
+  const supabase = await createClient()
+  let q = supabase.from("groups").select("id, slug, name, description, cause_slug, created_at").limit(100)
+  if (cause) q = q.eq("cause_slug", cause)
+  const { data } = await q
+  let groups = (data ?? []) as Group[]
+  if (userId) {
+    const { data: mine } = await supabase.from("group_members").select("group_id").eq("user_id", userId)
+    const joined = new Set((mine ?? []).map((m) => m.group_id))
+    groups = groups.filter((g) => !joined.has(g.id))
+  }
+  const counts = await memberCounts(groups.map((g) => g.id))
+  return groups.map((g) => ({ ...g, members: counts.get(g.id) ?? 0, lastAt: null, unread: false })).sort((a, b) => b.members - a.members || a.name.localeCompare(b.name))
+}
+
+export async function getGroupBySlug(slug: string, userId: string | null) {
+  const supabase = await createClient()
+  const { data } = await supabase.from("groups").select("id, slug, name, description, cause_slug, created_at").eq("slug", slug).maybeSingle()
+  if (!data) return null
+  const group = data as Group
+  const [counts, me] = await Promise.all([
+    memberCounts([group.id]),
+    userId ? supabase.from("group_members").select("role").match({ group_id: group.id, user_id: userId }).maybeSingle() : null,
+  ])
+  return { group, members: counts.get(group.id) ?? 0, role: (me?.data?.role ?? null) as "owner" | "member" | null }
+}
+
+export async function getGroupMembers(groupId: string): Promise<(ChatAuthor & { role: "owner" | "member"; bio: string | null })[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("group_members").select("role, joined_at, person:profiles!inner(id, handle, display_name, avatar_url, bio)").eq("group_id", groupId).order("joined_at").limit(200)
+  return ((data ?? []) as unknown as { role: "owner" | "member"; person: ChatAuthor & { bio: string | null } }[])
+    .map((r) => ({ ...r.person, role: r.role }))
+    .sort((a, b) => (a.role === b.role ? 0 : a.role === "owner" ? -1 : 1))
+}
+
+// A page of messages, oldest first (after: only newer ones, for polling).
+export async function getMessages(target: ChatTarget, opts: { after?: string; limit?: number } = {}): Promise<ChatMessage[]> {
+  const supabase = await createClient()
+  let q = supabase.from("messages").select("id, body, created_at, author:profiles!messages_author_id_fkey(id, handle, display_name, avatar_url)")
+  q = "group" in target ? q.eq("group_id", target.group) : q.eq("conversation_id", target.conversation)
+  if (opts.after) q = q.gt("created_at", opts.after)
+  const { data } = await q.order("created_at", { ascending: false }).limit(opts.limit ?? 80)
+  return ((data ?? []) as unknown as ChatMessage[]).reverse()
+}
+
+export type ConversationCard = { id: string; other: ChatAuthor; last: { body: string; at: string; mine: boolean } | null; unread: boolean }
+export async function getConversations(userId: string): Promise<ConversationCard[]> {
+  const supabase = await createClient()
+  const { data: mine } = await supabase.from("conversation_members").select("conversation_id, last_read_at").eq("user_id", userId)
+  const ids = (mine ?? []).map((m) => m.conversation_id)
+  if (ids.length === 0) return []
+  const [{ data: others }, { data: msgs }] = await Promise.all([
+    supabase.from("conversation_members").select("conversation_id, person:profiles!inner(id, handle, display_name, avatar_url)").in("conversation_id", ids).neq("user_id", userId),
+    supabase.from("messages").select("conversation_id, body, created_at, author_id").in("conversation_id", ids).order("created_at", { ascending: false }).limit(500),
+  ])
+  const readAt = new Map((mine ?? []).map((m) => [m.conversation_id, m.last_read_at as string]))
+  const last = new Map<string, { body: string; at: string; author: string }>()
+  for (const m of (msgs ?? []) as { conversation_id: string; body: string; created_at: string; author_id: string }[]) if (!last.has(m.conversation_id)) last.set(m.conversation_id, { body: m.body, at: m.created_at, author: m.author_id })
+  return ((others ?? []) as unknown as { conversation_id: string; person: ChatAuthor }[])
+    .map((o) => {
+      const l = last.get(o.conversation_id)
+      return { id: o.conversation_id, other: o.person, last: l ? { body: l.body, at: l.at, mine: l.author === userId } : null, unread: !!l && l.author !== userId && l.at > (readAt.get(o.conversation_id) ?? "") }
+    })
+    .sort((a, b) => (b.last?.at ?? "").localeCompare(a.last?.at ?? ""))
+}
+
+export async function hasUnreadMessages(): Promise<boolean> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("has_unread_messages")
+  return !!data
+}

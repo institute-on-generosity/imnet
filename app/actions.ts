@@ -23,7 +23,7 @@ import { todayISO } from "@/lib/open-calls"
 import { charge, feeCents, MAX_USD, MIN_USD } from "@/lib/payments/test-gateway"
 import { safeNext } from "@/lib/safe-next"
 import { escapeLike } from "@/lib/search"
-import { donorBadgeHint, getComments, getPost, getViewer, isOrgStaff } from "@/lib/queries"
+import { donorBadgeHint, getComments, getMessages, getPost, getViewer, isOrgStaff, type ChatMessage } from "@/lib/queries"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
 // values: what the user typed, sent back on error so forms can refill (React 19 resets forms after an action).
@@ -786,4 +786,99 @@ export async function donate(input: z.infer<typeof DonationInput>): Promise<{ ok
   revalidatePath("/giving")
   revalidatePath(`/o/${org.slug}`)
   return { ok: true, receipt: { id: row.id, orgName: org.name, amountCents, feeCents: fee, monthly, brand: result.brand, last4: result.last4, ref: result.ref, createdAt: row.created_at } }
+}
+
+// ---------------------------------------------------------------------------
+// F-100 Groups and messages
+// ---------------------------------------------------------------------------
+const slugify = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50)
+
+export async function createGroup(_: { error?: string } | null, form: FormData): Promise<{ error?: string } | null> {
+  await requireUser()
+  const name = String(form.get("name") ?? "").trim()
+  const description = String(form.get("description") ?? "").trim() || null
+  const cause = String(form.get("cause") ?? "") || null
+  if (name.length < 3 || name.length > 80) return { error: "Give the community a name of 3 to 80 characters." }
+  if (description && description.length > 500) return { error: "Keep the description under 500 characters." }
+  const supabase = await createClient()
+  const base = slugify(name).padEnd(3, "x")
+  let slug = base
+  for (let i = 2; i < 50; i++) {
+    const { data } = await supabase.from("groups").select("id").eq("slug", slug).maybeSingle()
+    if (!data) break
+    slug = `${base}-${i}`
+  }
+  const { error } = await supabase.from("groups").insert({ slug, name, description, cause_slug: cause })
+  if (error) return { error: "Couldn't start the community. Try another name." }
+  revalidatePath("/communities")
+  redirect(`/communities/${slug}`)
+}
+
+export async function joinGroup(groupId: string, slug: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("group_members").insert({ group_id: groupId })
+  revalidatePath(`/communities/${slug}`)
+  revalidatePath("/communities")
+}
+
+export async function leaveGroup(groupId: string, slug: string) {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("group_members").delete().match({ group_id: groupId, user_id: userId })
+  revalidatePath(`/communities/${slug}`)
+  revalidatePath("/communities")
+}
+
+// Any well-formed id (demo ids aren't RFC-variant UUIDs, as in B-030); RLS decides access.
+const ID = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+const ChatTargetInput = z.union([z.object({ group: ID }), z.object({ conversation: ID })])
+
+export async function sendMessage(target: z.infer<typeof ChatTargetInput>, body: string): Promise<{ ok: true; message: ChatMessage } | { ok: false; error: string }> {
+  const userId = await requireUser()
+  const t = ChatTargetInput.safeParse(target)
+  const text = body.trim()
+  if (!t.success) return { ok: false, error: "That chat isn't available." }
+  if (!text || text.length > 4000) return { ok: false, error: "Messages are 1 to 4,000 characters." }
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("messages")
+    .insert({ ...("group" in t.data ? { group_id: t.data.group } : { conversation_id: t.data.conversation }), author_id: userId, body: text })
+    .select("id, body, created_at, author:profiles!messages_author_id_fkey(id, handle, display_name, avatar_url)")
+    .single()
+  if (error || !data) return { ok: false, error: "Couldn't send. Are you still a member?" }
+  await markChatRead(t.data)
+  return { ok: true, message: data as unknown as ChatMessage }
+}
+
+// Polling: messages newer than `after`, and mark the chat read (you're looking at it).
+export async function fetchNewMessages(target: z.infer<typeof ChatTargetInput>, after: string | null): Promise<ChatMessage[]> {
+  await requireUser()
+  const t = ChatTargetInput.safeParse(target)
+  if (!t.success) return []
+  const messages = await getMessages(t.data, after ? { after } : {})
+  if (messages.length) await markChatRead(t.data)
+  return messages
+}
+
+export async function markChatRead(target: z.infer<typeof ChatTargetInput>) {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  const now = new Date().toISOString()
+  if ("group" in target) await supabase.from("group_members").update({ last_read_at: now }).match({ group_id: target.group, user_id: userId })
+  else await supabase.from("conversation_members").update({ last_read_at: now }).match({ conversation_id: target.conversation, user_id: userId })
+}
+
+export async function deleteMessage(id: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("messages").delete().eq("id", id)
+}
+
+export async function startConversation(otherId: string) {
+  await requireUser()
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc("start_conversation", { other: otherId })
+  if (error || !data) redirect("/messages?error=not-allowed")
+  redirect(`/messages/${data}`)
 }

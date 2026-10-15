@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Building2, House, Megaphone, UserRound, Users } from "lucide-react"
+import { Bell, Building2, House, Megaphone, MessageSquare, UserRound, Users, UsersRound } from "lucide-react"
 import Link from "@/components/intent-link"
 import { usePathname } from "next/navigation"
 import { Suspense, use } from "react"
@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils"
 import { PersonAvatar } from "./person-avatar"
 
 // exact: only the href itself is "current"; otherwise any path under it.
-type Item = { href: string; label: string; icon: "home" | "following" | "calls" | "notifications" | "nonprofits" | "me"; exact?: boolean; dot?: boolean | Promise<boolean>; avatar?: string | null }
-const ICONS = { home: House, following: Users, calls: Megaphone, notifications: Bell, nonprofits: Building2, me: UserRound }
+type Item = { href: string; label: string; icon: "home" | "following" | "groups" | "messages" | "calls" | "notifications" | "nonprofits" | "me"; exact?: boolean; dot?: boolean | Promise<boolean>; avatar?: string | null }
+const ICONS = { home: House, following: Users, groups: UsersRound, messages: MessageSquare, calls: Megaphone, notifications: Bell, nonprofits: Building2, me: UserRound }
 
 // Icon-over-label nav with an underline on the current page, as on LinkedIn.
 export function NavLinks({ items }: { items: Item[] }) {
@@ -28,7 +28,7 @@ export function NavLinks({ items }: { items: Item[] }) {
               prefetch
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex h-14 min-w-9 flex-col items-center justify-center gap-0.5 border-b-2 px-0.5 text-xs sm:min-w-11 sm:px-1.5 whitespace-nowrap transition-colors md:min-w-20 md:px-2",
+                "flex h-14 min-w-8 flex-col items-center justify-center gap-0.5 border-b-2 px-0.5 text-xs min-[380px]:min-w-9 sm:min-w-11 sm:px-1.5 whitespace-nowrap transition-colors lg:min-w-20 lg:px-2",
                 active ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
@@ -39,7 +39,7 @@ export function NavLinks({ items }: { items: Item[] }) {
                 {item.dot && <Suspense fallback={null}><Dot on={item.dot} /></Suspense>}
               </span>
               {/* Phones: icons only (labels stay for screen readers). */}
-              <span className="sr-only md:not-sr-only">{item.label}</span>
+              <span className="sr-only lg:not-sr-only">{item.label}</span>
 
             </Link>
           </li>

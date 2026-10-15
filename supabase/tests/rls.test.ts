@@ -843,3 +843,61 @@ describe("following people", () => {
     expect((await t.as(DONOR, `select followee_id from person_follows`)).rows).toEqual([{ followee_id: STAFF }])
   })
 })
+
+describe("groups and messages", () => {
+  const ALEX = "20000000-0000-4000-8000-000000000001" // creates a group
+  const BEA = "20000000-0000-4000-8000-000000000002" // joins it
+  const CAL = "20000000-0000-4000-8000-000000000003" // outsider
+  let group = ""
+
+  beforeAll(async () => {
+    for (const [id, who] of [[ALEX, "alex"], [BEA, "bea"], [CAL, "cal"]]) await t.owner(`insert into auth.users (id, email) values ('${id}', '${who}@groups.example.org') on conflict do nothing`)
+    const r = await t.as(ALEX, `insert into groups (slug, name, description) values ('test-circle', 'Test giving circle', 'For tests') returning id`)
+    group = (r.rows![0] as { id: string }).id
+  })
+
+  it("F-100: the creator becomes owner; anyone joins as a member, never as owner", async () => {
+    expect((await t.as(ALEX, `select role from group_members where group_id = '${group}' and user_id = '${ALEX}'`)).rows![0]).toEqual({ role: "owner" })
+    expect((await t.as(BEA, `insert into group_members (group_id, user_id, role) values ('${group}', '${BEA}', 'owner')`)).error).toBeDefined()
+    expect((await t.as(BEA, `insert into group_members (group_id, user_id) values ('${group}', '${BEA}')`)).error).toBeUndefined()
+    expect((await t.as(BEA, `update group_members set role = 'owner' where group_id = '${group}' and user_id = '${BEA}'`)).error).toBeDefined()
+    expect((await t.as(BEA, `insert into group_members (group_id, user_id) values ('${group}', '${CAL}')`)).error).toBeDefined() // can't add others
+  })
+
+  it("F-100: only members read and post in the group chat", async () => {
+    expect((await t.as(BEA, `insert into messages (group_id, author_id, body) values ('${group}', '${BEA}', 'Hello circle')`)).error).toBeUndefined()
+    expect(n((await t.as(ALEX, `select count(*)::int n from messages where group_id = '${group}'`)).rows)).toBe(1)
+    expect(n((await t.as(CAL, `select count(*)::int n from messages where group_id = '${group}'`)).rows)).toBe(0)
+    expect(n((await t.as(null, `select count(*)::int n from messages where group_id = '${group}'`)).rows)).toBe(0)
+    expect((await t.as(CAL, `insert into messages (group_id, author_id, body) values ('${group}', '${CAL}', 'let me in')`)).error).toBeDefined()
+    expect((await t.as(BEA, `insert into messages (group_id, author_id, body) values ('${group}', '${ALEX}', 'spoofed')`)).error).toBeDefined()
+    expect((await t.as(BEA, `insert into messages (group_id, author_id, body) values ('${group}', '${BEA}', '   ')`)).error).toBeDefined()
+  })
+
+  it("F-100: DMs only with people you share a group with or who follow you; one conversation per pair", async () => {
+    expect((await t.as(CAL, `select start_conversation('${ALEX}')`)).error).toBeDefined() // strangers can't
+    const first = await t.as(BEA, `select start_conversation('${ALEX}') id`)
+    expect(first.error).toBeUndefined()
+    const again = await t.as(ALEX, `select start_conversation('${BEA}') id`)
+    expect((again.rows![0] as { id: string }).id).toBe((first.rows![0] as { id: string }).id)
+    // A follow opens the door one way: CAL follows ALEX, so ALEX may message CAL.
+    await t.owner(`insert into person_follows (follower_id, followee_id) values ('${CAL}', '${ALEX}')`)
+    expect((await t.as(ALEX, `select start_conversation('${CAL}')`)).error).toBeUndefined()
+    expect((await t.as(CAL, `insert into conversations default values`)).error).toBeDefined() // only via the function
+  })
+
+  it("F-100: a DM is readable and writable only by its two people", async () => {
+    const convo = ((await t.as(BEA, `select start_conversation('${ALEX}') id`)).rows![0] as { id: string }).id
+    expect((await t.as(BEA, `insert into messages (conversation_id, author_id, body) values ('${convo}', '${BEA}', 'Hi Alex')`)).error).toBeUndefined()
+    expect(n((await t.as(ALEX, `select count(*)::int n from messages where conversation_id = '${convo}'`)).rows)).toBe(1)
+    expect(n((await t.as(CAL, `select count(*)::int n from messages where conversation_id = '${convo}'`)).rows)).toBe(0)
+    expect((await t.as(CAL, `insert into messages (conversation_id, author_id, body) values ('${convo}', '${CAL}', 'intrude')`)).error).toBeDefined()
+    expect(n((await t.as(CAL, `select count(*)::int n from conversation_members where conversation_id = '${convo}'`)).rows)).toBe(0)
+    // The unread dot: ALEX has an unread message until they mark it read; BEA only marks her own row.
+    expect((await t.as(ALEX, `select has_unread_messages() u`)).rows![0]).toEqual({ u: true })
+    await t.as(BEA, `update conversation_members set last_read_at = now() + interval '1 day' where conversation_id = '${convo}' and user_id = '${ALEX}'`)
+    expect((await t.as(ALEX, `select has_unread_messages() u`)).rows![0]).toEqual({ u: true })
+    await t.as(ALEX, `update conversation_members set last_read_at = now() + interval '1 minute' where conversation_id = '${convo}' and user_id = '${ALEX}'`)
+    expect((await t.as(ALEX, `select has_unread_messages() u`)).rows![0]).toEqual({ u: false })
+  })
+})

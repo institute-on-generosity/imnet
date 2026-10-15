@@ -19,7 +19,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 sm:px-6">
-      <h1 className="h-page">For nonprofits</h1>
+      <div>
+        <h1 className="h-page">For nonprofits</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">Manage your organization, or browse foundations&apos; <Link href="/calls" className="font-semibold text-leaf hover:underline">open calls for grants</Link>.</p>
+      </div>
 
       {orgs.length > 0 && (
         <section className="space-y-3">

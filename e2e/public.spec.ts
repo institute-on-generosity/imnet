@@ -514,3 +514,14 @@ test("B-033: cause chips stay in place when one is selected", async ({ page }) =
   await expect(chip).toHaveAttribute("aria-current", "page")
   expect(Math.round((await chip.boundingBox())!.x)).toBe(Math.round(before))
 })
+
+test("F-100: communities are public to browse; their chats are for members only", async ({ page }) => {
+  await page.goto("/communities")
+  await expect(page.getByRole("heading", { name: "Communities", level: 1 })).toBeVisible()
+  await page.getByRole("link", { name: /Monthly givers circle/ }).click()
+  await expect(page.getByRole("link", { name: "Join", exact: true })).toHaveAttribute("href", /\/login\?next=\/communities\/monthly-givers-circle/)
+  await expect(page.getByRole("log")).toHaveCount(0)
+  await expect(page.getByText("tip changed everything")).toHaveCount(0) // no chat content leaks
+  await page.goto("/messages")
+  await expect(page).toHaveURL(/\/login/)
+})
