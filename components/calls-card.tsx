@@ -5,6 +5,7 @@ import Link from "@/components/intent-link"
 import { formatUsd } from "@/lib/grants"
 import type { Post } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { DonateDialog } from "./donate-dialog"
 import { OrgMark } from "./org-mark"
 import { Panel } from "./shell"
 
@@ -12,7 +13,7 @@ type Call = Pick<Post, "id" | "body" | "action_url" | "action_date" | "goal_usd"
 const day = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 
 // Home sidebar (F-085): the newest calls for volunteers or donations, with a toggle between them.
-export function CallsCard({ volunteer, donate, cause }: { volunteer: Call[]; donate: Call[]; cause?: string }) {
+export function CallsCard({ volunteer, donate, cause, signedIn = false }: { volunteer: Call[]; donate: Call[]; cause?: string; signedIn?: boolean }) {
   const [tab, setTab] = useState<"volunteer" | "donate">(volunteer.length || !donate.length ? "volunteer" : "donate")
   if (volunteer.length === 0 && donate.length === 0) return null
   const calls = tab === "volunteer" ? volunteer : donate
@@ -35,10 +36,11 @@ export function CallsCard({ volunteer, donate, cause }: { volunteer: Call[]; don
           <li key={c.id} className="group relative flex items-center gap-2.5 py-2.5">
             {c.org && <span className="shrink-0"><OrgMark org={c.org} size="sm" /></span>}
             <div className="min-w-0 flex-1">
-              <p className="flex items-baseline gap-1.5 text-[13px] leading-5">
-                {c.org && <span className="truncate font-semibold">{c.org.name}</span>}
+              <p className="flex min-w-0 items-baseline gap-1.5 text-[13px] leading-5">
+                {/* Who's asking wins the space; the date and goal truncate first. */}
+                {c.org && <span className="max-w-[70%] shrink-0 truncate font-semibold">{c.org.name}</span>}
                 {(c.action_date || c.goal_usd) && (
-                  <span className="shrink-0 text-xs text-muted-foreground">
+                  <span className="min-w-0 truncate text-xs text-muted-foreground">
                     {c.action_date && `${tab === "donate" ? "by " : ""}${day(c.action_date)}`}
                     {c.action_date && c.goal_usd && ", "}
                     {c.goal_usd && `${formatUsd(c.goal_usd)} goal`}
@@ -47,10 +49,14 @@ export function CallsCard({ volunteer, donate, cause }: { volunteer: Call[]; don
               </p>
               <Link href={`/p/${c.id}`} className="line-clamp-1 text-xs leading-4 text-muted-foreground group-hover:text-foreground after:absolute after:inset-0">{c.body}</Link>
             </div>
+            {tab === "donate" && c.org ? (
+              <DonateDialog org={c.org} signedIn={signedIn} size="xs" tone="amber" className="relative shrink-0 [&_svg]:hidden" />
+            ) : (
             <a href={c.action_url!} target="_blank" rel="noopener noreferrer"
               className={cn("relative shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-white transition-transform active:scale-95", tab === "volunteer" ? "bg-leaf hover:bg-leaf/90" : "bg-amber-600 hover:bg-amber-700")}>
               {tab === "volunteer" ? "Sign up" : "Donate"}<span className="sr-only"> for {c.org?.name}</span>
             </a>
+            )}
           </li>
         ))}
       </ul>

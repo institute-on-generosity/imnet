@@ -4,12 +4,13 @@ import { deadlineTodayISO } from "@/lib/open-calls"
 import type { Post } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "./ui/button"
+import { DonateDialog } from "./donate-dialog"
 
 const longDay = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
 
 // A call for volunteers or donations (F-084): when or by when, the goal (donations), and the button.
 // No progress bar: imnet can't verify how much has been raised.
-export function CallBlock({ post }: { post: Pick<Post, "kind" | "action_url" | "action_date" | "goal_usd" | "org"> }) {
+export function CallBlock({ post, signedIn = false }: { post: Pick<Post, "kind" | "action_url" | "action_date" | "goal_usd" | "org">; signedIn?: boolean }) {
   if (!post.action_url || (post.kind !== "call_volunteers" && post.kind !== "call_donations")) return null
   const volunteers = post.kind === "call_volunteers"
   const ended = !!post.action_date && post.action_date < deadlineTodayISO()
@@ -28,6 +29,9 @@ export function CallBlock({ post }: { post: Pick<Post, "kind" | "action_url" | "
       </div>
       {ended ? (
         <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">Ended</span>
+      ) : !volunteers && post.org ? (
+        // F-099: give right here instead of leaving for the org's site.
+        <DonateDialog org={post.org} signedIn={signedIn} size="sm" tone="amber" />
       ) : (
         <a href={post.action_url} target="_blank" rel="noopener noreferrer" className={buttonVariants({ size: "sm", className: volunteers ? "" : "bg-amber-600 text-white hover:bg-amber-700" })}>
           {volunteers ? "Sign up" : "Donate"}<ExternalLink data-icon="inline-end" aria-hidden /><span className="sr-only"> (opens {post.org?.name ?? "their"} site)</span>

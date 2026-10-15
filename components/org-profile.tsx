@@ -1,6 +1,6 @@
 import { BadgeCheck, HandHeart, Plus } from "lucide-react"
 import Link from "@/components/intent-link"
-import { DonateButton } from "@/components/donate-button"
+import { DonateDialog } from "@/components/donate-dialog"
 import { FollowButton } from "@/components/follow-button"
 import { OrgMark } from "@/components/org-mark"
 import { OlderPosts } from "@/components/older-posts"
@@ -94,12 +94,13 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
           </p>
           {org.org_type === "nonprofit" && <Backers grants={grants} />}
           <div className="mt-4 flex flex-wrap items-center gap-2">
+            {/* F-099: Donate is the one primary action; Follow is secondary. */}
+            <DonateDialog org={org} signedIn={signedIn} giftFunds={org.what_gifts_fund} />
             {signedIn ? (
-              <FollowButton orgId={org.id} following={follow.following} />
+              <FollowButton orgId={org.id} following={follow.following} secondary />
             ) : (
-              <Link href="/login" className={buttonVariants()}><Plus aria-hidden />Follow</Link>
+              <Link href="/login" className={buttonVariants({ variant: "outline" })}><Plus aria-hidden />Follow</Link>
             )}
-            {org.everyorg_slug && <DonateButton orgId={org.id} everyorgSlug={org.everyorg_slug} signedIn={signedIn} />}
             <ShareButton path={base} title={org.name} orgId={org.id} variant="pill" />
             {signedIn && follow.following && <SupporterToggle orgId={org.id} orgType={org.org_type} supporter={follow.supporter} />}
             {signedIn && <ThanksButton orgId={org.id} orgName={org.name} />}

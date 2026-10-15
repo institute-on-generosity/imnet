@@ -93,7 +93,7 @@ async function RightRail({ userId, cause }: { userId: string | null; cause?: str
   const rsvpIds = await getMyRsvpIds(userId, events.map((e) => e.id))
   return (
     <>
-      <CallsCard volunteer={volunteer} donate={donate} cause={cause} />
+      <CallsCard volunteer={volunteer} donate={donate} cause={cause} signedIn={!!userId} />
       <UpcomingEvents events={events} rsvpIds={rsvpIds} signedIn={!!userId} cause={cause} />
     </>
   )

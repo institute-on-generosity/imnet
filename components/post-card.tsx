@@ -92,7 +92,7 @@ export function PostCard({ post, full = false, moved = false, saved = false, sig
 
       {post.about_org && <Spotlight org={post.about_org} />}
       {post.kind === "open_call" && <OpenCallBlock post={post} />}
-      <CallBlock post={post} />
+      <CallBlock post={post} signedIn={signedIn} />
       <PostMedia post={post} />
       <GrantChips grants={grants} />
 

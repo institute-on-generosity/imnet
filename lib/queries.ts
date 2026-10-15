@@ -891,3 +891,20 @@ export const getOrgsByCause = cache(async (): Promise<Record<string, OrgSummaryW
   for (const k in out) out[k].sort((a, b) => a.name.localeCompare(b.name))
   return out
 })
+
+// F-099: gifts made on imnet to an org, for its staff (names hidden for anonymous donors).
+export type OrgDonation = { id: string; amount_cents: number; monthly: boolean; created_at: string; donor_name: string | null; donor_handle: string | null; donor_avatar: string | null }
+export type OrgDonations = { list: OrgDonation[]; total30: number; count30: number; monthlyDonors: number }
+export async function getOrgDonations(orgId: string): Promise<OrgDonations> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc("org_donations", { target: orgId, lim: 200 })
+  const list = (data ?? []) as OrgDonation[]
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString()
+  const recent = list.filter((d) => d.created_at >= since)
+  return {
+    list,
+    total30: recent.reduce((a, d) => a + d.amount_cents, 0),
+    count30: recent.length,
+    monthlyDonors: new Set(list.filter((d) => d.monthly).map((d) => d.donor_handle ?? d.id)).size,
+  }
+}

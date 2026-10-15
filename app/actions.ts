@@ -20,6 +20,7 @@ import { parseHoursFields } from "@/lib/volunteer"
 import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
 import { parseCallActionFields, type CallActionFields } from "@/lib/call-fields"
 import { todayISO } from "@/lib/open-calls"
+import { charge, feeCents, MAX_USD, MIN_USD } from "@/lib/payments/test-gateway"
 import { safeNext } from "@/lib/safe-next"
 import { escapeLike } from "@/lib/search"
 import { donorBadgeHint, getComments, getPost, getViewer, isOrgStaff } from "@/lib/queries"
@@ -744,4 +745,45 @@ export async function setCauseFollow(slug: string, on: boolean) {
   if (error) throw new Error("Couldn't save") // the cause card reverts (B-037)
   revalidatePath("/following")
   revalidatePath("/", "layout")
+}
+
+// ---------------------------------------------------------------------------
+// F-099 Donate through imnet (test mode). With a real processor the card would go straight to the
+// processor's hosted fields and never reach this server; in test mode only test numbers are used
+// and nothing but brand and last four is kept. The gift also lands in the giving journal.
+// ---------------------------------------------------------------------------
+const DonationInput = z.object({
+  orgId: z.string().uuid(),
+  amountUsd: z.number().int().min(MIN_USD).max(MAX_USD),
+  monthly: z.boolean(),
+  coverFees: z.boolean(),
+  anonymous: z.boolean(),
+  card: z.object({ number: z.string().max(30), exp: z.string().max(10), cvc: z.string().max(6), zip: z.string().max(12).optional() }),
+})
+export type DonationReceipt = { id: string; orgName: string; amountCents: number; feeCents: number; monthly: boolean; brand: string; last4: string; ref: string; createdAt: string }
+
+export async function donate(input: z.infer<typeof DonationInput>): Promise<{ ok: true; receipt: DonationReceipt } | { ok: false; field?: "number" | "exp" | "cvc"; error: string }> {
+  const userId = await requireUser()
+  const parsed = DonationInput.safeParse(input)
+  if (!parsed.success) return { ok: false, error: `Choose an amount between $${MIN_USD} and $${MAX_USD.toLocaleString("en-US")}.` }
+  const { orgId, amountUsd, monthly, coverFees, anonymous, card } = parsed.data
+  const supabase = await createClient()
+  const { data: org } = await supabase.from("orgs").select("id, name, slug").eq("id", orgId).maybeSingle()
+  if (!org) return { ok: false, error: "That organization isn't available." }
+
+  const result = charge(card)
+  if (!result.ok) return { ok: false, field: result.field, error: result.error }
+  const amountCents = amountUsd * 100
+  const fee = coverFees ? feeCents(amountCents) : 0
+  const { data: row, error } = await supabase
+    .from("donations")
+    .insert({ donor_id: userId, org_id: orgId, amount_cents: amountCents, fee_cents: fee, monthly, anonymous, provider_ref: result.ref, card_brand: result.brand, card_last4: result.last4 })
+    .select("id, created_at")
+    .single()
+  if (error || !row) return { ok: false, error: "Couldn't record your gift. You weren't charged." }
+  await supabase.from("gifts").insert({ user_id: userId, org_id: orgId, amount_usd: amountUsd, given_on: todayISO(), note: `Donated on imnet${monthly ? ", monthly" : ""} (test mode)` })
+
+  revalidatePath("/giving")
+  revalidatePath(`/o/${org.slug}`)
+  return { ok: true, receipt: { id: row.id, orgName: org.name, amountCents, feeCents: fee, monthly, brand: result.brand, last4: result.last4, ref: result.ref, createdAt: row.created_at } }
 }

@@ -485,6 +485,30 @@ describe("needs, gifts and thank-you notes", () => {
     expect((await t.as(STAFF, `update org_needs set met_at = now() where id = '${id}' returning id`)).rows).toHaveLength(1)
   })
 
+  it("F-099: donations are private to the donor; staff see them via org_donations, anonymous without a name", async () => {
+    const ref = (n: number) => `pi_test_${String(n).padStart(24, "0")}`
+    const named = await t.as(DONOR, `insert into donations (donor_id, org_id, amount_cents, provider_ref, card_brand, card_last4) values ('${DONOR}', '${ORG_1}', 5000, '${ref(1)}', 'Visa', '4242') returning id`)
+    expect(named.error).toBeUndefined()
+    await t.as(DONOR, `insert into donations (donor_id, org_id, amount_cents, anonymous, provider_ref, card_brand, card_last4, created_at) values ('${DONOR}', '${ORG_1}', 2500, true, '${ref(2)}', 'Visa', '4242', '2020-01-01')`)
+
+    // The donor sees their own; nobody else can read the table, not even the org's staff.
+    expect(n((await t.as(DONOR, `select count(*)::int n from donations where org_id = '${ORG_1}'`)).rows)).toBeGreaterThanOrEqual(2)
+    expect(n((await t.as(STAFF, `select count(*)::int n from donations where donor_id = '${DONOR}'`)).rows)).toBe(0)
+
+    // Staff get the gifts, with the anonymous donor's name hidden; others get nothing.
+    const rows = (await t.as(STAFF, `select amount_cents, donor_name, created_at from org_donations('${ORG_1}') where amount_cents in (5000, 2500)`)).rows as { amount_cents: number; donor_name: string | null; created_at: Date }[]
+    expect(rows.find((r) => r.amount_cents === 5000)?.donor_name).toBeTruthy()
+    const anon = rows.find((r) => r.amount_cents === 2500)!
+    expect(anon.donor_name).toBeNull()
+    expect(new Date(anon.created_at).getFullYear()).toBeGreaterThan(2020) // can't be backdated
+    expect(n((await t.as(DONOR, `select count(*)::int n from org_donations('${ORG_1}')`)).rows)).toBe(0)
+
+    // Only the test processor, valid references and last four digits; no giving to hidden orgs.
+    expect((await t.as(DONOR, `insert into donations (donor_id, org_id, amount_cents, provider_ref, card_brand, card_last4) values ('${DONOR}', '${ORG_1}', 5000, 'ch_live_1', 'Visa', '4242')`)).error).toBeDefined()
+    expect((await t.as(DONOR, `insert into donations (donor_id, org_id, amount_cents, provider_ref, card_brand, card_last4) values ('${DONOR}', '${ORG_1}', 5000, '${ref(3)}', 'Visa', '4242424242424242')`)).error).toBeDefined()
+    expect((await t.as(DONOR, `insert into donations (donor_id, org_id, amount_cents, provider_ref, card_brand, card_last4) values ('${DONOR}', '${ORG_PENDING}', 5000, '${ref(4)}', 'Visa', '4242')`)).error).toBeDefined()
+  })
+
   it("F-052: a gift log is private to its donor and can't be backdated into the future", async () => {
     const mine = await t.as(DONOR, `insert into gifts (org_id, amount_usd, given_on) values ('${ORG_1}', 50, current_date) returning id`)
     expect(mine.error).toBeUndefined()

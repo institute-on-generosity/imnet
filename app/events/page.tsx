@@ -19,7 +19,7 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
   const rsvpIds = await getMyRsvpIds(userId, events.map((e) => e.id))
 
   return (
-    <TwoColumn right={<CallsCard volunteer={volunteer} donate={donate} cause={active} />}>
+    <TwoColumn right={<CallsCard volunteer={volunteer} donate={donate} cause={active} signedIn={!!userId} />}>
       <Panel className="space-y-3 p-4">
         <div>
           <h1 className="h-page">Events</h1>
