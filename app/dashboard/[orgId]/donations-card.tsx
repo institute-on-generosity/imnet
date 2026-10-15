@@ -29,7 +29,7 @@ export function DonationsCard({ donations: { list: donations, total30: total, co
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-xs text-faint">Test mode: no real money moved.</p>
+      <p className="mt-2 text-xs text-faint">Test mode: no real money moved</p>
     </div>
   )
 }

@@ -61,7 +61,7 @@ export function EventsEditor({ orgId, events }: { orgId: string; events: (OrgEve
         </div>
         <div className="space-y-1 sm:col-span-2">
           <Label htmlFor="event-detail">Details (optional)</Label>
-          <Textarea id="event-detail" name="detail" rows={2} maxLength={1000} placeholder="What to bring, who it's for." defaultValue={v?.detail} />
+          <Textarea id="event-detail" name="detail" rows={2} maxLength={1000} placeholder="What to bring, who it's for" defaultValue={v?.detail} />
         </div>
         <div className="flex items-center gap-3 sm:col-span-2">
           <Button type="submit" disabled={pending || !tz}><Plus aria-hidden />{pending ? "Adding..." : "Add event"}</Button>

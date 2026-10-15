@@ -20,13 +20,14 @@ export default async function CallsPage({ searchParams }: PageProps<"/calls">) {
       <Panel className="space-y-3 p-4">
         <div>
           <h1 className="h-page">Open calls</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">Foundations&apos; calls for grants, soonest deadline first. <span className="text-faint">You apply on their site.</span></p>
+          <p className="mt-1.5 text-sm text-muted-foreground">Foundations&apos; calls for grants, soonest deadline first</p>
+          <p className="text-sm text-faint">You apply on their site</p>
         </div>
         <CauseFilter causes={causes} active={active} basePath="/calls" />
       </Panel>
       <Feed
         posts={calls}
-        empty={active ? "No open calls for this cause right now. Try all causes." : "No open calls right now."}
+        empty={active ? "No open calls for this cause right now. Try all causes." : "No open calls right now"}
         movedIds={movedIds} savedIds={savedIds}
         signedIn={!!userId}
         grantsByPost={grantsByPost}

@@ -51,7 +51,7 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
       <Panel className="p-4 sm:p-6">
         <h1 className="h-page">Following</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          {myCauses.length ? `${plural(myCauses.length, "cause")}, ${plural(orgs.length, "organization")} and ${plural(people.length, "person", "people")}.` : "Pick the causes you care about to shape this page."} Only you see this.
+          {myCauses.length ? `${plural(myCauses.length, "cause")}, ${plural(orgs.length, "organization")} and ${plural(people.length, "person", "people")}.` : "Pick the causes you care about to shape this page"} Only you see this.
         </p>
         <h2 className="h-sub mt-5 mb-2">Your causes</h2>
         <CauseGrid causes={causes} followed={myCauses} orgsByCause={orgsByCause} followingOrgIds={orgs.map((o) => o.id)} />
@@ -139,7 +139,7 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
 async function FollowingFeed({ userId, orgIds, personIds, cause, before, href }: { userId: string; orgIds: string[]; personIds: string[]; cause?: string; before?: string; href: (t: Tab, c?: string) => string }) {
   const cursor = decodeCursor(before)
   if (orgIds.length === 0 && personIds.length === 0) {
-    return <Panel className="p-6 text-sm text-muted-foreground">Follow organizations and people to see their posts here.</Panel>
+    return <Panel className="p-6 text-sm text-muted-foreground">Follow organizations and people to see their posts here</Panel>
   }
   const db = await createClient()
   const { data: f } = await db.from("orgs").select("id").in("id", orgIds).eq("org_type", "foundation")
@@ -150,7 +150,7 @@ async function FollowingFeed({ userId, orgIds, personIds, cause, before, href }:
   const base = href("feed", cause)
   return (
     <>
-      <Feed posts={page.posts} empty="Nothing new in this cause yet." movedIds={movedIds} savedIds={savedIds} signedIn grantsByPost={grantsByPost} context={portfolioContext(page.posts, new Set(orgIds))} />
+      <Feed posts={page.posts} empty="Nothing new in this cause yet" movedIds={movedIds} savedIds={savedIds} signedIn grantsByPost={grantsByPost} context={portfolioContext(page.posts, new Set(orgIds))} />
       <OlderPosts olderHref={page.next ? `${base}${base.includes("?") ? "&" : "?"}before=${page.next}` : null} newestHref={base} isFirstPage={!cursor} />
     </>
   )

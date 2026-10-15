@@ -38,7 +38,7 @@ export function PostComments({ postId, org, initial }: { postId: string; org: Or
       {viewer ? (
         <Composer postId={postId} org={org} viewer={viewer} isStaff={isStaff} onPosted={refresh} />
       ) : (
-        <p className="py-2 text-sm text-muted-foreground"><Link href="/login" className="font-semibold text-leaf hover:underline">Sign in</Link> to comment.</p>
+        <p className="py-2 text-sm text-muted-foreground"><Link href="/login" className="font-semibold text-leaf hover:underline">Sign in</Link> to comment</p>
       )}
       {donorHint && (
         <p className="py-1 pl-12 text-xs text-muted-foreground">

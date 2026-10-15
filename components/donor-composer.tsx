@@ -39,12 +39,12 @@ export function DonorComposer({ viewer, orgs }: { viewer: Viewer; orgs: { id: st
           </div>
           <label htmlFor="donor-post" className="sr-only">What do you want to share?</label>
           <textarea id="donor-post" name="body" required maxLength={3000} rows={4} autoFocus defaultValue={state?.values?.body}
-            placeholder="Spread the word: a cause you care about, why you give, a need someone could help with."
+            placeholder="Spread the word: a cause you care about, why you give, a need someone could help with"
             className="field-sizing-content min-h-24 w-full resize-none bg-transparent text-[1.0625rem] outline-none placeholder:text-muted-foreground" />
           <ImagePicker key={state?.id ?? "photos"} folder={`people/${viewer.id}`} />
           <label className="flex items-start gap-2 text-sm text-muted-foreground">
             <input type="checkbox" name="beneficiary_consent" className="mt-1" defaultChecked={state?.values?.beneficiary_consent === "on"} />
-            <span>Anyone identifiable in my photos has agreed to be shown, and no one is shown while receiving help.</span>
+            <span>Anyone identifiable in my photos has agreed to be shown, and no one is shown while receiving help</span>
           </label>
           <div className="flex flex-wrap items-center gap-3 border-t pt-3">
             <label className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground">

@@ -127,7 +127,7 @@ export function ChatThread({ target, initial, viewerId, placeholder, className }
             <SendHorizontal className="size-4" aria-hidden />
           </button>
         </div>
-        <p className="mt-1 px-1 text-[11px] text-faint">Enter to send, Shift+Enter for a new line.</p>
+        <p className="mt-1 px-1 text-[11px] text-faint">Enter to send, Shift+Enter for a new line</p>
       </form>
     </div>
   )

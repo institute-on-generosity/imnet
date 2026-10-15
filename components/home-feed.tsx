@@ -36,7 +36,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
 
   const empty = followingOnly
     ? orgIds?.length || personIds?.length
-      ? "The people and organizations you follow haven't posted for this filter yet."
+      ? "The people and organizations you follow haven't posted for this filter yet"
       : "You don't follow anyone yet. Follow nonprofits, foundations and people from their profiles or posts."
     : orgType === "donor"
       ? "No posts from donors yet. Start one above."
@@ -50,7 +50,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
         <div className="sticky top-20 space-y-3">
           <Suspense fallback={<RailSkeleton rows={4} />}><RightRail userId={userId} cause={cause} /></Suspense>
           <p className="px-4 text-xs leading-relaxed text-faint">
-            Your feed: newest first, never ranked by popularity.
+            Your feed: newest first, never ranked by popularity
           </p>
         </div>
       }

@@ -28,7 +28,7 @@ export function AnalyticsCard({ series, top }: { series: Series; top: TopPost[] 
       <div>
         <h3 className="h-sub">Most viewed posts</h3>
         {top.length === 0 ? (
-          <p className="mt-1 text-sm text-muted-foreground">No posts yet.</p>
+          <p className="mt-1 text-sm text-muted-foreground">No posts yet</p>
         ) : (
           <div className="mt-2 overflow-x-auto">
             <table className="w-full text-sm">

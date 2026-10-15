@@ -54,12 +54,12 @@ export default async function GivingPage({ searchParams }: PageProps<"/giving">)
         <div className="mb-3 flex items-baseline justify-between">
           <div>
             <h2 id="hours" className="h-section">Volunteer hours</h2>
-            <p className="text-xs text-muted-foreground">The organization&apos;s team sees shifts you log with them, so they can confirm them.</p>
+            <p className="text-xs text-muted-foreground">The organization&apos;s team sees shifts you log with them, so they can confirm them</p>
           </div>
           {hours.length > 0 && <p className="text-sm text-muted-foreground">{hoursLabel(hours.reduce((a, h) => a + h.hours, 0))} logged</p>}
         </div>
         {orgs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Follow an organization to log hours with it.</p>
+          <p className="text-sm text-muted-foreground">Follow an organization to log hours with it</p>
         ) : (
           <HoursForm orgs={orgs} today={todayISO()} />
         )}

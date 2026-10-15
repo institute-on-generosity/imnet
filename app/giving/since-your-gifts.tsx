@@ -12,7 +12,7 @@ export function SinceYourGifts({ posts }: { posts: Item[] }) {
   return (
     <Panel aria-labelledby="since" className="p-4">
       <h2 id="since" className="h-section">Since your gifts</h2>
-      <p className="text-sm text-muted-foreground">News from organizations you gave to.</p>
+      <p className="text-sm text-muted-foreground">News from organizations you gave to</p>
       <ul className="mt-2 divide-y">
         {posts.map((p) => (
           <li key={p.id} className="flex gap-3 py-2.5">

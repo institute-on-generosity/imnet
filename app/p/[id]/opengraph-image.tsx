@@ -10,7 +10,7 @@ export const alt = "Post on imnet"
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const post = await getPost(id)
-  if (!post) return ogCard({ orgName: "imnet", orgType: "nonprofit", text: "Stories from nonprofits, with the sources behind them." })
+  if (!post) return ogCard({ orgName: "imnet", orgType: "nonprofit", text: "Stories from nonprofits, with the sources behind them" })
   return ogCard({
     orgName: post.org?.name ?? post.author?.display_name ?? "imnet",
     orgType: post.org?.org_type ?? "nonprofit",

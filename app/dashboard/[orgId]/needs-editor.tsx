@@ -63,7 +63,7 @@ export function NeedsEditor({ orgId, needs, interest }: { orgId: string; needs: 
         </div>
         <div className="space-y-1 sm:col-span-2">
           <Label htmlFor="need-detail">Details (optional)</Label>
-          <Textarea id="need-detail" name="detail" rows={2} maxLength={500} placeholder="Drop off at 12 Pier St, weekdays 9 to 5." defaultValue={v?.detail} />
+          <Textarea id="need-detail" name="detail" rows={2} maxLength={500} placeholder="Drop off at 12 Pier St, weekdays 9 to 5" defaultValue={v?.detail} />
         </div>
         <div className="space-y-1 sm:col-span-2">
           <Label htmlFor="need-help">How to help: link or email</Label>

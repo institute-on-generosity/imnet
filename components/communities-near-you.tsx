@@ -75,7 +75,7 @@ export function CommunitiesNearYou({ communities, profile, causeNames, mine, dis
             <div className="min-w-0">
               <h2 id="near-you" className="h-section">Communities near you</h2>
               <p className="text-sm text-muted-foreground">
-                {!origin ? "Share your location to see communities close to you." : origin.source === "device" ? "Around your current location." : `Around ${origin.label}, from your profile.`}
+                {!origin ? "Share your location to see communities close to you" : origin.source === "device" ? "Around your current location" : `Around ${origin.label}, from your profile`}
                 {" "}<Link href="/nearby" className="font-semibold text-leaf hover:underline">Volunteering and events near you</Link>
               </p>
             </div>

@@ -19,9 +19,9 @@ export default async function MessagesPage({ searchParams }: PageProps<"/message
         <div>
           <MessageSquare className="mx-auto size-8 text-faint" aria-hidden />
           {error === "not-allowed" ? (
-            <p role="alert" className="mt-3 text-sm text-destructive">You can message people you share a community with, or who follow you.</p>
+            <p role="alert" className="mt-3 text-sm text-destructive">You can message people you share a community with, or who follow you</p>
           ) : (
-            <p className="mt-3 text-sm text-muted-foreground">Pick a conversation, or find people in your communities.</p>
+            <p className="mt-3 text-sm text-muted-foreground">Pick a conversation, or find people in your communities</p>
           )}
           <Link href="/communities" className={buttonVariants({ variant: "outline", className: "mt-4" })}>Go to communities</Link>
         </div>
