@@ -1,47 +1,94 @@
 import { BadgeCheck } from "lucide-react"
 import Link from "@/components/intent-link"
-import type { FriendSuggestion, NotableGiver } from "@/lib/queries"
+import { orgCoverSrc } from "@/lib/cover"
+import type { FriendSuggestion, NotableGiver, OrgSummaryWithMission } from "@/lib/queries"
+import { FoundationMark } from "./org-type-badge"
+import { OrgMark } from "./org-mark"
 import { FollowButton } from "./follow-button"
 import { PersonAvatar } from "./person-avatar"
 
-// F-115: a horizontally scrolling row of people to follow, like a social app's onboarding.
-export function FollowRow({ id, title, subtitle, more, children }: { id: string; title: string; subtitle: string; more?: { href: string; label: string }; children: React.ReactNode }) {
+// F-116: suggestions as one Pinterest-style wall: organizations, friends and notable givers mixed,
+// cards of natural height in columns. Causes stay in their own grid above.
+export type WallOrg = OrgSummaryWithMission & { id: string; cover_url?: string | null; location?: string | null }
+export type WallItem = { kind: "org"; org: WallOrg } | { kind: "friend"; s: FriendSuggestion } | { kind: "notable"; g: NotableGiver; following: boolean }
+
+// Interleave so no two cards of the same kind sit together for long.
+export function mixWall(orgs: WallOrg[], friends: FriendSuggestion[], notable: { g: NotableGiver; following: boolean }[]): WallItem[] {
+  const lanes: WallItem[][] = [orgs.map((org) => ({ kind: "org", org })), friends.map((s) => ({ kind: "friend", s })), notable.map((n) => ({ kind: "notable", ...n }))]
+  const out: WallItem[] = []
+  for (let i = 0; lanes.some((l) => i < l.length); i++) for (const lane of lanes) if (lane[i]) out.push(lane[i])
+  return out
+}
+
+export function SuggestionWall({ items }: { items: WallItem[] }) {
+  if (items.length === 0) return null
   return (
-    <section aria-labelledby={id} className="mt-6">
+    <section aria-labelledby="suggested-for-you" className="mt-6">
       <div className="mb-2 flex items-baseline justify-between gap-3">
-        <div>
-          <h2 id={id} className="text-sm font-semibold">{title}</h2>
-          <p className="text-xs text-faint">{subtitle}</p>
-        </div>
-        {more && <Link href={more.href} className="shrink-0 text-sm font-semibold text-leaf hover:underline">{more.label}</Link>}
+        <h2 id="suggested-for-you" className="text-sm font-semibold">Suggested for you</h2>
+        <Link href="/givers" className="text-sm font-semibold text-leaf hover:underline">Notable givers</Link>
       </div>
-      <ul className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]">{children}</ul>
+      <ul className="columns-2 gap-3 sm:columns-3 [&>li]:mb-3 [&>li]:break-inside-avoid">
+        {items.map((it) => it.kind === "org" ? <OrgTile key={`o-${it.org.id}`} org={it.org} /> : it.kind === "friend" ? <PersonTile key={`f-${it.s.id}`} s={it.s} /> : <NotableTile key={`n-${it.g.id}`} g={it.g} following={it.following} />)}
+      </ul>
     </section>
   )
 }
 
-function Card({ handle, name, avatar, line1, line2, id, following }: { handle: string; name: string; avatar: string | null; line1: React.ReactNode; line2?: string | null; id: string; following: boolean }) {
+function OrgTile({ org }: { org: WallOrg }) {
+  const cover = orgCoverSrc(org.cover_url)
   return (
-    <li className="flex w-44 shrink-0 snap-start flex-col items-center rounded-xl border bg-card p-4 text-center">
-      <Link href={`/u/${handle}`} tabIndex={-1} aria-hidden><PersonAvatar name={name} avatarUrl={avatar} size="xl" className="size-20 sm:size-20" /></Link>
-      <Link href={`/u/${handle}`} className="mt-2 line-clamp-1 font-semibold hover:underline">{name}</Link>
-      <div className="mt-0.5 line-clamp-1 text-xs">{line1}</div>
-      {line2 && <p className="mt-1 line-clamp-2 min-h-8 text-xs text-muted-foreground">{line2}</p>}
-      <div className="mt-auto w-full pt-3 [&>button]:w-full [&_button]:w-full"><FollowButton orgId={id} orgName={name} following={following} person secondary /></div>
+    <li className="overflow-hidden rounded-xl border bg-card">
+      <Link href={`/o/${org.slug}`} tabIndex={-1} aria-hidden className="block">
+        {cover ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={cover} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
+        ) : (
+          <div className={org.org_type === "foundation" ? "aspect-[4/3] bg-primary" : "aspect-[4/3] bg-leaf-soft"} />
+        )}
+      </Link>
+      <div className="relative px-3 pb-3">
+        <span className="-mt-6 mb-1 block w-fit rounded-xl ring-2 ring-card"><OrgMark org={org} size="md" /></span>
+        <p className="flex items-center gap-1.5"><Link href={`/o/${org.slug}`} className="font-semibold leading-snug hover:underline">{org.name}</Link>{org.org_type === "foundation" && <FoundationMark />}</p>
+        <p className="text-xs text-faint">{org.org_type === "foundation" ? "Foundation" : "Nonprofit"}{org.location ? ` · ${org.location}` : ""}</p>
+        {org.mission && <p className="mt-1.5 line-clamp-4 text-sm text-muted-foreground">{org.mission}</p>}
+        <div className="mt-3 [&_button]:w-full"><FollowButton orgId={org.id} orgName={org.name} following={false} secondary /></div>
+      </div>
     </li>
   )
 }
 
-export function FriendCard({ s }: { s: FriendSuggestion }) {
+function PersonTile({ s }: { s: FriendSuggestion }) {
   const name = s.display_name ?? `@${s.handle}`
-  return <Card id={s.id} handle={s.handle} name={name} avatar={s.avatar_url} following={false} line1={<span className="font-medium text-leaf">{s.reason}</span>} line2={s.bio} />
+  return (
+    <li className="rounded-xl border bg-card p-4 text-center">
+      <Link href={`/u/${s.handle}`} tabIndex={-1} aria-hidden className="inline-block"><PersonAvatar name={name} avatarUrl={s.avatar_url} size="xl" className="size-20 sm:size-20" /></Link>
+      <Link href={`/u/${s.handle}`} className="mt-2 block font-semibold hover:underline">{name}</Link>
+      <p className="text-xs font-medium text-leaf">{s.reason}</p>
+      {s.bio && <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{s.bio}</p>}
+      <div className="mt-3 [&_button]:w-full"><FollowButton orgId={s.id} orgName={name} following={false} person secondary /></div>
+    </li>
+  )
 }
 
-export function NotableCard({ g, following }: { g: NotableGiver; following: boolean }) {
+function NotableTile({ g, following }: { g: NotableGiver; following: boolean }) {
   const name = g.display_name ?? `@${g.handle}`
   return (
-    <Card id={g.id} handle={g.handle} name={name} avatar={g.avatar_url} following={following}
-      line1={<span className="inline-flex items-center gap-1 font-semibold text-amber-800"><BadgeCheck className="size-3.5" aria-hidden />{g.public_figure_note ?? "Public figure"}</span>}
-      line2={g.givesTo.length ? `Gives to ${g.givesTo.map((o) => o.name).join(", ")}` : "Keeps their giving private"} />
+    <li className="rounded-xl border border-marigold/40 bg-gradient-to-b from-marigold-soft/60 to-card p-4">
+      <div className="text-center">
+        <Link href={`/u/${g.handle}`} tabIndex={-1} aria-hidden className="inline-block"><PersonAvatar name={name} avatarUrl={g.avatar_url} size="xl" className="size-20 sm:size-20" /></Link>
+        <Link href={`/u/${g.handle}`} className="mt-2 block font-semibold hover:underline">{name}</Link>
+        <p className="inline-flex items-center gap-1 text-xs font-semibold text-amber-800"><BadgeCheck className="size-3.5" aria-hidden />{g.public_figure_note ?? "Public figure"}</p>
+      </div>
+      {g.givesTo.length > 0 ? (
+        <div className="mt-3 border-t border-marigold/30 pt-2">
+          <p className="text-[11px] text-faint">Gives to</p>
+          <ul className="mt-1 space-y-1">
+            {g.givesTo.slice(0, 3).map((o) => <li key={o.id}><Link href={`/o/${o.slug}`} className="flex items-center gap-1.5 text-xs hover:underline"><OrgMark org={o} size="xs" /><span className="truncate">{o.name}</span></Link></li>)}
+          </ul>
+        </div>
+      ) : <p className="mt-2 text-center text-xs text-faint">Keeps their giving private</p>}
+      <div className="mt-3 [&_button]:w-full"><FollowButton orgId={g.id} orgName={name} following={following} person secondary /></div>
+    </li>
   )
 }

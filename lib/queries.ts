@@ -856,12 +856,12 @@ export async function getFollowedPeople(userId: string) {
 }
 
 // Orgs in these causes the viewer doesn't follow yet, alphabetical (never popularity-ranked).
-export async function getOrgsInCauses(causes: string[], exclude: string[], limit = 5): Promise<OrgSummaryWithMission[]> {
+export async function getOrgsInCauses(causes: string[], exclude: string[], limit = 5): Promise<(OrgSummaryWithMission & { cover_url?: string | null; location?: string | null })[]> {
   if (causes.length === 0) return []
   const supabase = await createClient()
   const { data } = await supabase
     .from("orgs")
-    .select("id, slug, name, logo_url, org_type, mission, org_causes!inner(cause_slug)")
+    .select("id, slug, name, logo_url, org_type, mission, cover_url, location, org_causes!inner(cause_slug)")
     .eq("status", "verified")
     .in("org_causes.cause_slug", causes)
     .order("name")

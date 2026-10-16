@@ -11,7 +11,7 @@ import { Feed } from "@/components/post-card"
 import { Panel, TwoColumn } from "@/components/shell"
 import { SuggestedOrgs } from "@/components/side-cards"
 import { FriendsActivity } from "@/components/following-friends"
-import { FollowRow, FriendCard, NotableCard } from "@/components/follow-cards"
+import { mixWall, SuggestionWall } from "@/components/follow-cards"
 import { CAUSE_ICON } from "@/lib/cause-icons"
 import { decodeCursor } from "@/lib/cursor"
 import { portfolioContext } from "@/lib/portfolio"
@@ -27,7 +27,6 @@ import { CauseGrid } from "./cause-grid"
 export const metadata = { title: "Following" }
 
 type Tab = "feed" | "orgs" | "people"
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
 // Your network (F-088): the causes you follow, then what you follow in them: a feed, the
 // organizations and the people. Suggestions come from your causes, alphabetical.
@@ -42,7 +41,9 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
   const cause = typeof rawCause === "string" && myCauses.includes(rawCause) ? rawCause : undefined
   const causeName = (slug: string) => causes.find((c) => c.slug === slug)?.name ?? slug
   const orgIds = orgs.map((o) => o.id)
-  const suggested = await getOrgsInCauses(myCauses, orgIds, 5)
+  const pool = await getOrgsInCauses(myCauses, orgIds, 11)
+  const wallOrgs = pool.slice(0, 6)
+  const suggested = pool.slice(6)
   const href = (t: Tab, c?: string) => {
     const p = new URLSearchParams()
     if (t !== "feed") p.set("tab", t)
@@ -58,22 +59,11 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
     </>}>
       <Panel className="p-4 sm:p-6">
         <h1 className="h-page">Following</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          {myCauses.length ? `${plural(myCauses.length, "cause")}, ${plural(orgs.length, "organization")} and ${plural(people.length, "person", "people")}.` : "Pick the causes you care about to shape this page"} Only you see this.
-        </p>
+        {myCauses.length === 0 && <p className="mt-1.5 text-sm text-muted-foreground">Pick the causes you care about to shape this page</p>}
         <h2 className="h-sub mt-5 mb-2">Your causes</h2>
         <CauseGrid causes={causes} followed={myCauses} orgsByCause={orgsByCause} followingOrgIds={orgs.map((o) => o.id)} />
-        {/* F-115: who to follow, as card rows. */}
-        {friends.length > 0 && (
-          <FollowRow id="friends-to-follow" title="Friends to follow" subtitle="People in your communities and near you">
-            {friends.map((s) => <FriendCard key={s.id} s={s} />)}
-          </FollowRow>
-        )}
-        {notable.length > 0 && (
-          <FollowRow id="notable-givers" title="Notable givers" subtitle="Public figures and who they give to" more={{ href: "/givers", label: "See all" }}>
-            {notable.map((g) => <NotableCard key={g.id} g={g} following={people.some((p) => p.id === g.id)} />)}
-          </FollowRow>
-        )}
+        {/* F-116: organizations, friends and notable givers to follow, mixed like a pin board. */}
+        <SuggestionWall items={mixWall(wallOrgs, friends.slice(0, 6), notable.map((g) => ({ g, following: people.some((p) => p.id === g.id) })).filter((n) => !n.following))} />
       </Panel>
 
       <Panel className="overflow-hidden">

@@ -850,10 +850,11 @@ test("F-114: Following shows what people you follow did, and notable givers to f
     // F-115: card rows to follow friends (here: people in your city) and notable givers.
     await sql`update profiles set location = 'Austin, TX' where id = ${userId}`
     await page.goto("/following")
-    await expect(page.getByRole("region", { name: "Friends to follow" })).toContainText("Near you · Austin")
-    await expect(page.getByRole("region", { name: "Friends to follow" }).getByRole("listitem").first()).toBeVisible()
-    const notable = page.getByRole("region", { name: "Notable givers" })
-    await expect(notable.getByRole("link", { name: "Dev Ramaswamy" })).toBeVisible()
+    // F-116: one mixed wall of organizations, friends and notable givers.
+    const wall = page.getByRole("region", { name: "Suggested for you" })
+    await expect(wall).toContainText("Near you · Austin")
+    await expect(wall.getByRole("link", { name: "Dev Ramaswamy", exact: true })).toBeVisible()
+    await expect(wall.getByText(/^(Nonprofit|Foundation)/).first()).toBeVisible()
   } finally {
     await sql`delete from experiences where user_id = ${FRIEND} and note = ${`Great Saturday ${id}`}`
     await sql`delete from person_follows where follower_id = ${userId} and followee_id = ${FRIEND}`
