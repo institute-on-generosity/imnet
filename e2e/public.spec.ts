@@ -580,5 +580,5 @@ test("F-113: Notable givers lists verified public figures and who they give to",
   await expect(card.getByRole("link", { name: "Castro Street Community Kitchen" })).toBeVisible()
   await expect(page.getByRole("listitem").filter({ hasText: "Rosa Lindqvist" }).getByText("Keeps their giving private")).toBeVisible()
   await card.getByRole("link", { name: "Marisol Vega" }).click()
-  await expect(page.getByText(/Public figure · Chef/)).toBeVisible()
+  await expect(page.getByTitle("Verified public figure")).toContainText("Public figure · Chef")
 })

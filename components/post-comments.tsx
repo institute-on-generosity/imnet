@@ -106,7 +106,7 @@ export function CommentItem({ comment: c, org, viewer, isStaff, postId, onChange
               </p>
               {headline && <p className="truncate text-xs text-muted-foreground">{headline}</p>}
             </div>
-            <time dateTime={c.created_at} className="shrink-0 text-xs text-faint">{ago(c.created_at)}</time>
+            <time dateTime={c.created_at} className="shrink-0 text-xs text-faint" suppressHydrationWarning>{ago(c.created_at)}</time>
           </div>
           <p className={cn("mt-1.5 text-sm whitespace-pre-line break-words", preview && "line-clamp-2")}>{c.body}</p>
         </div>
