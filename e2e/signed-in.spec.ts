@@ -760,10 +760,11 @@ test("F-099: donate to an organization in test mode; declined cards say so; the 
   await expect(dialog.getByText("Thank you")).toBeVisible()
   await expect(dialog.getByText("Visa ending 4242")).toBeVisible()
   // F-117: one tap shares "gave" with followers (no amount).
+  await dialog.getByLabel(/Show the amount/).check() // F-119: amount from the donation record
   await dialog.getByRole("button", { name: "Tell your followers you gave" }).click()
   await expect(dialog.getByText("Shared with your followers")).toBeVisible()
-  const [shared] = await sql`select kind, note from experiences where user_id = ${userId} and org_id = ${kitchen.id}`
-  expect(shared).toEqual({ kind: "gave", note: null })
+  const [shared] = await sql`select kind, note, amount_usd from experiences where user_id = ${userId} and org_id = ${kitchen.id}`
+  expect(shared).toEqual({ kind: "gave", note: null, amount_usd: 100 })
   const [row] = await sql`select amount_cents, card_last4 from donations where donor_id = ${userId} and org_id = ${kitchen.id}`
   expect(row).toEqual({ amount_cents: 10000, card_last4: "4242" })
   await dialog.getByRole("button", { name: "Done" }).click()
@@ -837,11 +838,13 @@ test("F-111 / F-112: an org page lays out ways to get involved; sharing an exper
   await path.getByRole("button", { name: "Share" }).click()
   const dialog = page.getByRole("dialog")
   await dialog.getByText("I volunteered").click()
+  await dialog.getByLabel("Hours").fill("3") // F-119
   await dialog.getByPlaceholder(/What was it like/).fill(`Lovely crew ${id}`)
   await dialog.getByRole("button", { name: "Share with my followers" }).click()
   await expect(dialog).toHaveCount(0)
   const mine = page.getByRole("region", { name: "Your experience" })
   await expect(mine.getByText(`Lovely crew ${id}`)).toBeVisible()
+  await expect(mine.getByText("volunteered 3 hrs here")).toBeVisible()
   await sql`delete from experiences where user_id = ${userId}`
 })
 

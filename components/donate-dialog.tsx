@@ -192,7 +192,7 @@ function Flow({ org, giftFunds }: { org: Org; giftFunds?: string | null }) {
             <Row label="Reference"><span className="font-mono text-xs">{receipt.ref}</span></Row>
           </dl>
           <p className="mt-4 text-sm text-muted-foreground">Added to your <Link href="/giving" className="font-semibold text-leaf hover:underline">giving journal</Link> (private)</p>
-          <ShareGift orgId={org.id} slug={org.slug} />
+          <ShareGift orgId={org.id} slug={org.slug} donationId={receipt.id} amount={money(receipt.amountCents)} />
           <Dialog.Close className={buttonVariants({ variant: "outline", size: "lg", className: "mt-4 h-11 w-full" })}>Done</Dialog.Close>
         </div>
       )}
@@ -216,13 +216,20 @@ const nextMonth = (iso: string) => {
 }
 
 // F-117: one tap to tell your followers you gave (an experience; the amount stays private).
-function ShareGift({ orgId, slug }: { orgId: string; slug: string }) {
+function ShareGift({ orgId, slug, donationId, amount }: { orgId: string; slug: string; donationId: string; amount: string }) {
   const [state, setState] = useState<"idle" | "sharing" | "shared" | "error">("idle")
+  const [showAmount, setShowAmount] = useState(false)
   if (state === "shared") return <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-leaf"><Check className="size-4" aria-hidden />Shared with your followers</p>
   return (
-    <button type="button" disabled={state === "sharing"} onClick={async () => { setState("sharing"); setState((await shareGift(orgId, slug)) ? "shared" : "error") }}
-      className={buttonVariants({ size: "lg", className: "mt-3 h-11 w-full" })}>
-      {state === "sharing" ? "Sharing..." : state === "error" ? "Try again" : "Tell your followers you gave"}
-    </button>
+    <div className="mt-3 text-left">
+      <label className="flex cursor-pointer items-center justify-center gap-2 text-sm text-muted-foreground">
+        <input type="checkbox" checked={showAmount} onChange={(e) => setShowAmount(e.target.checked)} className="size-4 accent-[var(--leaf)]" />
+        Show the amount ({amount})
+      </label>
+      <button type="button" disabled={state === "sharing"} onClick={async () => { setState("sharing"); setState((await shareGift(orgId, slug, donationId, showAmount)) ? "shared" : "error") }}
+        className={buttonVariants({ size: "lg", className: "mt-2 h-11 w-full" })}>
+        {state === "sharing" ? "Sharing..." : state === "error" ? "Try again" : "Tell your followers you gave"}
+      </button>
+    </div>
   )
 }

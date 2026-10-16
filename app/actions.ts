@@ -908,8 +908,15 @@ export async function saveExperience(orgId: string, slug: string, _: { error?: s
   const note = String(form.get("note") ?? "").trim()
   if (!["volunteered", "gave", "attended"].includes(kind)) return { error: "Pick what you did." }
   if (note.length > 280) return { error: "Keep it under 280 characters." }
+  // F-119: optional amounts, only for the matching kind.
+  const hoursRaw = String(form.get("hours") ?? "").trim()
+  const amountRaw = String(form.get("amount") ?? "").replace(/[$,\s]/g, "")
+  const hours = kind === "volunteered" && hoursRaw ? Number(hoursRaw) : null
+  const amount_usd = kind === "gave" && amountRaw ? Number(amountRaw) : null
+  if (hours !== null && !(hours > 0 && hours <= 1000)) return { error: "Hours should be between 0.5 and 1,000." }
+  if (amount_usd !== null && !(Number.isInteger(amount_usd) && amount_usd >= 1 && amount_usd <= 10_000_000)) return { error: "Enter a whole-dollar amount." }
   const supabase = await createClient()
-  const { error } = await supabase.from("experiences").upsert({ org_id: orgId, kind, note: note || null }, { onConflict: "user_id,org_id,kind" })
+  const { error } = await supabase.from("experiences").upsert({ org_id: orgId, kind, note: note || null, hours, amount_usd }, { onConflict: "user_id,org_id,kind" })
   if (error) return { error: "Couldn't share that. Try again." }
   revalidatePath(`/o/${slug}`)
   return { ok: true }
@@ -923,10 +930,16 @@ export async function deleteExperience(id: string, slug: string) {
 }
 
 // F-117: share "I gave" with your followers right after donating (no amount).
-export async function shareGift(orgId: string, slug: string): Promise<boolean> {
+export async function shareGift(orgId: string, slug: string, donationId: string, showAmount: boolean): Promise<boolean> {
   await requireUser()
   const supabase = await createClient()
-  const { error } = await supabase.from("experiences").upsert({ org_id: orgId, kind: "gave" }, { onConflict: "user_id,org_id,kind", ignoreDuplicates: true })
+  // F-119: the amount comes from your own donation record (RLS), never from the browser.
+  let amount_usd: number | null = null
+  if (showAmount) {
+    const { data } = await supabase.from("donations").select("amount_cents").match({ id: donationId, org_id: orgId }).maybeSingle()
+    amount_usd = data ? Math.round(data.amount_cents / 100) : null
+  }
+  const { error } = await supabase.from("experiences").upsert({ org_id: orgId, kind: "gave", amount_usd }, { onConflict: "user_id,org_id,kind" })
   revalidatePath(`/o/${slug}`)
   return !error
 }

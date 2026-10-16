@@ -1,5 +1,6 @@
 import { BadgeCheck } from "lucide-react"
 import Link from "@/components/intent-link"
+import { experienceVerb } from "@/lib/experience-text"
 import type { NotableGiver, PersonExperience } from "@/lib/queries"
 import { FollowButton } from "./follow-button"
 import { OrgMark } from "./org-mark"
@@ -47,7 +48,6 @@ export function NotableGiverCard({ giver, following, signedIn }: { giver: Notabl
   )
 }
 
-const VERB = { volunteered: "Volunteered at", gave: "Gave to", attended: "Went to an event at" } as const
 
 // F-111: a person's experiences, shown to them and the people who follow them.
 export function PersonExperiences({ items, isOwn, name }: { items: PersonExperience[]; isOwn: boolean; name: string }) {
@@ -61,7 +61,7 @@ export function PersonExperiences({ items, isOwn, name }: { items: PersonExperie
           <li key={e.id} className="flex gap-3">
             <OrgMark org={e.org} size="sm" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm"><span className="text-muted-foreground">{VERB[e.kind]}</span> <Link href={`/o/${e.org.slug}`} className="font-semibold hover:underline">{e.org.name}</Link></p>
+              <p className="text-sm"><span className="text-muted-foreground">{(() => { const v = experienceVerb(e); return v.charAt(0).toUpperCase() + v.slice(1) })()}</span> <Link href={`/o/${e.org.slug}`} className="font-semibold hover:underline">{e.org.name}</Link></p>
               {e.note && <p className="story mt-1 text-[0.95rem] leading-snug">&ldquo;{e.note}&rdquo;</p>}
             </div>
           </li>

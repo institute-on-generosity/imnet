@@ -1,6 +1,7 @@
 import { CalendarDays, Check, Gift, HandHelping, MessageSquareHeart, Plus, UserPlus } from "lucide-react"
 import Link from "@/components/intent-link"
-import type { Experience, ExperienceKind, Involvement } from "@/lib/queries"
+import { experienceVerb } from "@/lib/experience-text"
+import type { Experience, Involvement } from "@/lib/queries"
 import type { OrgSummary } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { DonateDialog } from "./donate-dialog"
@@ -11,7 +12,6 @@ import { PersonAvatar } from "./person-avatar"
 import { Panel } from "./shell"
 import { ToggleSignal } from "./toggle-signal"
 
-const VERB: Record<ExperienceKind, string> = { volunteered: "volunteered here", gave: "gave here", attended: "went to an event here" }
 
 // F-112: every way in, easiest first, so giving isn't the only door ("all-in giving"). Each step
 // shows a check once you've done it. Steps without anything to do right now are left out.
@@ -87,7 +87,7 @@ export function FriendsExperiences({ experiences, viewerId, slug }: { experience
               <div className="min-w-0 flex-1">
                 <p className="text-sm">
                   <Link href={`/u/${e.person.handle}`} className="font-semibold hover:underline">{name}</Link>{" "}
-                  <span className="text-muted-foreground">{VERB[e.kind]}</span>
+                  <span className="text-muted-foreground">{experienceVerb(e).replace(/ (at|to)$/, " here")}</span>
                 </p>
                 {e.note && <p className="story mt-1 rounded-lg bg-muted px-3 py-2 text-[0.95rem] leading-snug">&ldquo;{e.note}&rdquo;</p>}
               </div>

@@ -1148,19 +1148,19 @@ export async function getThisWeekNear(at: { lat: number; lng: number }, radius =
 // F-111 Experiences (shared with your followers) and F-112 the involvement path
 // ---------------------------------------------------------------------------
 export type ExperienceKind = "volunteered" | "gave" | "attended"
-export type Experience = { id: string; kind: ExperienceKind; note: string | null; created_at: string; person: ChatAuthor & { public_figure: boolean } }
+export type Experience = { id: string; kind: ExperienceKind; note: string | null; hours: number | null; amount_usd: number | null; created_at: string; person: ChatAuthor & { public_figure: boolean } }
 
 // Experiences at an org that you're allowed to see (yours and people you follow; RLS decides).
 export async function getOrgExperiences(orgId: string): Promise<Experience[]> {
   const supabase = await createClient()
-  const { data } = await supabase.from("experiences").select("id, kind, note, created_at, person:profiles!inner(id, handle, display_name, avatar_url, public_figure)").eq("org_id", orgId).order("created_at", { ascending: false }).limit(30)
+  const { data } = await supabase.from("experiences").select("id, kind, note, hours, amount_usd, created_at, person:profiles!inner(id, handle, display_name, avatar_url, public_figure)").eq("org_id", orgId).order("created_at", { ascending: false }).limit(30)
   return (data ?? []) as unknown as Experience[]
 }
 
-export type PersonExperience = { id: string; kind: ExperienceKind; note: string | null; created_at: string; org: OrgSummary }
+export type PersonExperience = { id: string; kind: ExperienceKind; note: string | null; hours: number | null; amount_usd: number | null; created_at: string; org: OrgSummary }
 export async function getPersonExperiences(userId: string): Promise<PersonExperience[]> {
   const supabase = await createClient()
-  const { data } = await supabase.from("experiences").select("id, kind, note, created_at, org:orgs!inner(id, slug, name, logo_url, org_type)").eq("user_id", userId).order("created_at", { ascending: false }).limit(20)
+  const { data } = await supabase.from("experiences").select("id, kind, note, hours, amount_usd, created_at, org:orgs!inner(id, slug, name, logo_url, org_type)").eq("user_id", userId).order("created_at", { ascending: false }).limit(20)
   return (data ?? []) as unknown as PersonExperience[]
 }
 
@@ -1214,7 +1214,7 @@ export type FriendExperience = PersonExperience & { person: ChatAuthor & { publi
 export async function getFriendsExperiences(userId: string, limit = 12): Promise<FriendExperience[]> {
   const supabase = await createClient()
   const { data } = await supabase.from("experiences")
-    .select("id, kind, note, created_at, org:orgs!inner(id, slug, name, logo_url, org_type), person:profiles!inner(id, handle, display_name, avatar_url, public_figure)")
+    .select("id, kind, note, hours, amount_usd, created_at, org:orgs!inner(id, slug, name, logo_url, org_type), person:profiles!inner(id, handle, display_name, avatar_url, public_figure)")
     .neq("user_id", userId).order("created_at", { ascending: false }).limit(limit)
   return (data ?? []) as unknown as FriendExperience[]
 }

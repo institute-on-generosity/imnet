@@ -1,11 +1,11 @@
 import { BadgeCheck } from "lucide-react"
 import Link from "@/components/intent-link"
+import { experienceVerb } from "@/lib/experience-text"
 import type { FriendExperience } from "@/lib/queries"
 import { OrgMark } from "./org-mark"
 import { PersonAvatar } from "./person-avatar"
 import { Panel } from "./shell"
 
-const VERB = { volunteered: "volunteered at", gave: "gave to", attended: "went to an event at" } as const
 const ago = (iso: string) => {
   const d = Math.round((Date.now() - Date.parse(iso)) / 86_400_000)
   return d < 1 ? "today" : d === 1 ? "yesterday" : d < 7 ? `${d}d ago` : new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
@@ -34,7 +34,7 @@ export function FriendsActivity({ items }: { items: FriendExperience[] }) {
                 <p className="truncate text-sm">
                   <Link href={`/u/${e.person.handle}`} className="relative z-10 font-semibold hover:underline">{name}</Link>
                   {e.person.public_figure && <BadgeCheck className="ml-1 inline size-3.5 text-amber-700" aria-label="Public figure" />}{" "}
-                  <span className={e.kind === "gave" ? "font-medium text-amber-800" : e.kind === "volunteered" ? "font-medium text-leaf" : "text-muted-foreground"}>{VERB[e.kind]}</span>{" "}
+                  <span className={e.kind === "gave" ? "font-medium text-amber-800" : e.kind === "volunteered" ? "font-medium text-leaf" : "text-muted-foreground"}>{experienceVerb(e)}</span>{" "}
                   <Link href={`/o/${e.org.slug}`} className="font-semibold after:absolute after:inset-0 group-hover:underline">{e.org.name}</Link>
                 </p>
                 {e.note && <p className="truncate text-xs text-muted-foreground">&ldquo;{e.note}&rdquo;</p>}

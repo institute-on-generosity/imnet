@@ -772,19 +772,22 @@ for n, handle, name, note, bio, gifts, exps in notable.PUBLIC_FIGURES:
     for slug, amount, days in gifts:
         out.append(f"insert into gifts (user_id, org_id, amount_usd, given_on) select '{fig(n)}', id, {amount}, current_date - {days} from orgs where slug = '{slug}';")
     for slug, kind, text in exps:
-        out.append(f"insert into experiences (user_id, org_id, kind, note) select '{fig(n)}', id, '{kind}', {q(text)} from orgs where slug = '{slug}';")
+        out.append(f"insert into experiences (user_id, org_id, kind, note, hours, amount_usd) select '{fig(n)}', o.id, '{kind}', {q(text)}, "
+                   f"case when '{kind}' = 'volunteered' then 4 end, (select sum(amount_usd) from gifts g where g.user_id = '{fig(n)}' and g.org_id = o.id) from orgs o where slug = '{slug}';")
 # Demo people share experiences where they volunteered (confirmed) or gave: about one in three.
-out.append("insert into experiences (user_id, org_id, kind, note, created_at)")
+out.append("insert into experiences (user_id, org_id, kind, note, created_at, hours)")
 vol = notable.NOTES["volunteered"]; gave = notable.NOTES["gave"]
 out.append(f"""select distinct on (h.user_id, h.org_id) h.user_id, h.org_id, 'volunteered',
        (array[{", ".join(q(x) for x in vol)}])[1 + abs(hashtext(h.user_id::text || h.org_id::text)) % {len(vol)}],
-       now() - make_interval(days => abs(hashtext(h.org_id::text || h.user_id::text)) % 40)
+       now() - make_interval(days => abs(hashtext(h.org_id::text || h.user_id::text)) % 40),
+       (select sum(x.hours) from volunteer_hours x where x.user_id = h.user_id and x.org_id = h.org_id)
   from volunteer_hours h where h.confirmed_at is not null and h.user_id::text like '00000000-0000-4000-c000-%' and abs(hashtext(h.user_id::text || 'exp')) % 3 = 0
 on conflict do nothing;""")
-out.append("insert into experiences (user_id, org_id, kind, note, created_at)")
+out.append("insert into experiences (user_id, org_id, kind, note, created_at, amount_usd)")
 out.append(f"""select distinct on (g.user_id, g.org_id) g.user_id, g.org_id, 'gave',
        (array[{", ".join(q(x) for x in gave)}])[1 + abs(hashtext(g.user_id::text || g.org_id::text)) % {len(gave)}],
-       now() - make_interval(days => abs(hashtext(g.org_id::text || g.user_id::text)) % 60)
+       now() - make_interval(days => abs(hashtext(g.org_id::text || g.user_id::text)) % 60),
+       (select sum(x.amount_usd) from gifts x where x.user_id = g.user_id and x.org_id = g.org_id)
   from gifts g where g.user_id::text like '00000000-0000-4000-c000-%' and abs(hashtext(g.user_id::text || 'gexp')) % 5 = 0
 on conflict do nothing;""")
 out.append("")
