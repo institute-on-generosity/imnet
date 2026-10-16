@@ -44,10 +44,10 @@ export function ImpactCard({ stats, where = "rail" }: { stats: ImpactStat[]; whe
 }
 
 // LinkedIn-style "About" summary: verification, website, causes.
-export function OrgFacts({ org, causes }: { org: Pick<Org, "website" | "slug" | "org_type" | "location" | "founded_year" | "team_size">; causes: { slug: string; name: string }[] }) {
+export function OrgFacts({ org, causes, irsVerified }: { org: Pick<Org, "website" | "slug" | "org_type" | "location" | "founded_year" | "team_size">; causes: { slug: string; name: string }[]; irsVerified?: boolean }) {
   return (
     <Panel className="space-y-2.5 p-4 text-sm">
-      <p className="flex items-center gap-2"><BadgeCheck className="size-4 shrink-0 text-leaf" aria-hidden />Verified {org.org_type}: EIN and staff email checked</p>
+      <p className="flex items-center gap-2"><BadgeCheck className="size-4 shrink-0 text-leaf" aria-hidden />Verified {org.org_type}: {irsVerified ? "IRS records match; staff email checked" : "EIN and staff email checked"}</p>
       {org.website && (
         <p className="flex items-center gap-2">
           <Globe className="size-4 shrink-0 text-muted-foreground" aria-hidden />

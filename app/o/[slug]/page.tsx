@@ -1,3 +1,4 @@
+import { lookupIrsOrg } from "@/lib/irs/nombot"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { OrgProfile } from "@/components/org-profile"
@@ -25,7 +26,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/o/[s
   const cursor = activeTab === "posts" ? decodeCursor(before) : null
 
   const userId = await getUserId()
-  const [page, follow, similar, grants, portfolio, needs, events, supporters] = await Promise.all([
+  const [page, follow, similar, grants, portfolio, needs, events, supporters, irs] = await Promise.all([
     getFeedPage({ orgIds: [data.org.id], before: cursor ?? undefined }),
     getFollow(userId, data.org.id),
     getSuggestedOrgs({ userId, cause: data.causes[0]?.slug, excludeId: data.org.id, limit: 4 }),
@@ -34,6 +35,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/o/[s
     activeTab === "home" ? getOrgNeeds(data.org.id) : Promise.resolve([]),
     activeTab === "home" ? getUpcomingEvents({ orgId: data.org.id, limit: 5 }) : Promise.resolve([]),
     activeTab === "home" && data.org.org_type === "nonprofit" ? getTopSupporters(data.org.id) : Promise.resolve([]),
+    lookupIrsOrg(data.org.ein), // F-110: public filings, when the EIN is in IRS records
   ])
   const [interestIds, rsvpIds] = await Promise.all([getMyInterestIds(userId, needs.map((n) => n.id)), getMyRsvpIds(userId, events.map((e) => e.id))])
   const { posts, next } = page
@@ -58,6 +60,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/o/[s
       events={events}
       rsvpIds={rsvpIds}
       supporters={supporters}
+      irs={irs}
     />
   )
 }

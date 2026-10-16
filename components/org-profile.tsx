@@ -10,6 +10,8 @@ import { ShareButton } from "@/components/share-button"
 import { Panel, TwoColumn } from "@/components/shell"
 import { GrantsPanel } from "@/components/grants-panel"
 import { ImpactCard, OrgFacts } from "@/components/rail-cards"
+import { PublicFilings } from "@/components/irs-panels"
+import type { IrsOrg } from "@/lib/irs/check"
 import { TopSupporters } from "@/components/top-supporters"
 import type { Supporter } from "@/lib/queries"
 import { orgCoverSrc } from "@/lib/cover"
@@ -53,9 +55,10 @@ type Props = {
   events: OrgEvent[]
   rsvpIds: Set<string>
   supporters: Supporter[]
+  irs?: IrsOrg | null
 }
 
-export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, savedIds, grants, grantsByPost, tab, needs, interestIds, events, rsvpIds, supporters }: Props) {
+export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, savedIds, grants, grantsByPost, tab, needs, interestIds, events, rsvpIds, supporters, irs }: Props) {
   const base = `/o/${org.slug}`
   return (
     <TwoColumn
@@ -68,7 +71,8 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
               {org.org_type === "nonprofit" && <TopSupporters supporters={supporters} />}
             </div>
           )}
-          <OrgFacts org={org} causes={causes} />
+          <OrgFacts org={org} causes={causes} irsVerified={!!irs} />
+          {irs && <PublicFilings irs={irs} />}
           <SuggestedOrgs title="Similar organizations" orgs={similar} signedIn={signedIn} />
         </>
       }

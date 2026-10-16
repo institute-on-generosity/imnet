@@ -21,6 +21,8 @@ import { parseCallFields, type CallFields } from "@/lib/open-call-fields"
 import { parseCallActionFields, type CallActionFields } from "@/lib/call-fields"
 import { todayISO } from "@/lib/open-calls"
 import { charge, feeCents, MAX_USD, MIN_USD } from "@/lib/payments/test-gateway"
+import { displayName, isFoundationRecord } from "@/lib/irs/check"
+import { lookupIrsOrg } from "@/lib/irs/nombot"
 import { safeNext } from "@/lib/safe-next"
 import { escapeLike } from "@/lib/search"
 import { donorBadgeHint, getComments, getMessages, getPost, getViewer, isOrgStaff, type ChatMessage } from "@/lib/queries"
@@ -881,4 +883,18 @@ export async function startConversation(otherId: string) {
   const { data, error } = await supabase.rpc("start_conversation", { other: otherId })
   if (error || !data) redirect("/messages?error=not-allowed")
   redirect(`/messages/${data}`)
+}
+
+// ---------------------------------------------------------------------------
+// F-109 Look up an EIN in IRS records (NomBot) while claiming an organization. Public data only.
+// ---------------------------------------------------------------------------
+export type EinLookup = { name: string; city: string | null; state: string | null; taxExempt: string | null; since: string | null; foundation: boolean } | null
+export async function lookupEin(ein: string): Promise<EinLookup> {
+  await requireUser()
+  const irs = await lookupIrsOrg(ein)
+  if (!irs) return null
+  return {
+    name: displayName(irs.name), city: irs.city ? displayName(irs.city) : null, state: irs.state,
+    taxExempt: irs.subsection ? `501(c)(${Number(irs.subsection)})` : null, since: irs.ruling, foundation: isFoundationRecord(irs),
+  }
 }
