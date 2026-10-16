@@ -1,4 +1,4 @@
-import { ArrowRight, Bookmark, CalendarDays, HandHelping, MapPin, Megaphone, NotebookPen, Plus, Users, UsersRound } from "lucide-react"
+import { ArrowRight, BadgeCheck, Bookmark, CalendarDays, HandHelping, MapPin, Megaphone, NotebookPen, Plus, Users, UsersRound } from "lucide-react"
 import { personCoverSrc } from "@/lib/cover"
 import { formatUsd } from "@/lib/grants"
 import { hoursLabel } from "@/lib/volunteer"
@@ -80,6 +80,7 @@ export function ViewerCard({ viewer, extras }: { viewer: Viewer; extras: ViewerE
           { href: "/saved", label: "Saved posts", Icon: Bookmark },
           { href: "/following", label: "Following", Icon: Users },
           { href: "/communities", label: "Communities", Icon: UsersRound },
+          { href: "/givers", label: "Notable givers", Icon: BadgeCheck },
           { href: "/events", label: "Events", Icon: CalendarDays },
           { href: "/needs", label: "Ways to help", Icon: HandHelping },
           { href: "/giving", label: "Giving journal", Icon: NotebookPen },

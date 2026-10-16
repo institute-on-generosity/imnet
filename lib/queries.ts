@@ -1143,3 +1143,68 @@ export async function getThisWeekNear(at: { lat: number; lng: number }, radius =
     .sort((a, b) => (a.when ?? "9999").localeCompare(b.when ?? "9999") || a.miles - b.miles)
     .slice(0, limit)
 }
+
+// ---------------------------------------------------------------------------
+// F-111 Experiences (shared with your followers) and F-112 the involvement path
+// ---------------------------------------------------------------------------
+export type ExperienceKind = "volunteered" | "gave" | "attended"
+export type Experience = { id: string; kind: ExperienceKind; note: string | null; created_at: string; person: ChatAuthor & { public_figure: boolean } }
+
+// Experiences at an org that you're allowed to see (yours and people you follow; RLS decides).
+export async function getOrgExperiences(orgId: string): Promise<Experience[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("experiences").select("id, kind, note, created_at, person:profiles!inner(id, handle, display_name, avatar_url, public_figure)").eq("org_id", orgId).order("created_at", { ascending: false }).limit(30)
+  return (data ?? []) as unknown as Experience[]
+}
+
+export type PersonExperience = { id: string; kind: ExperienceKind; note: string | null; created_at: string; org: OrgSummary }
+export async function getPersonExperiences(userId: string): Promise<PersonExperience[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("experiences").select("id, kind, note, created_at, org:orgs!inner(id, slug, name, logo_url, org_type)").eq("user_id", userId).order("created_at", { ascending: false }).limit(20)
+  return (data ?? []) as unknown as PersonExperience[]
+}
+
+export type Involvement = {
+  following: boolean
+  event: { id: string; title: string; starts_at: string; going: boolean } | null
+  volunteer: { href: string; title: string; logged: boolean } | null
+  gave: boolean
+  shared: ExperienceKind[]
+}
+export async function getInvolvement(org: { id: string; slug: string }, userId: string | null): Promise<Involvement> {
+  const supabase = await createClient()
+  const now = new Date().toISOString()
+  const [follow, { data: ev }, { data: call }, { data: need }] = await Promise.all([
+    getFollow(userId, org.id),
+    supabase.from("org_events").select("id, title, starts_at").eq("org_id", org.id).gt("starts_at", now).order("starts_at").limit(1).maybeSingle(),
+    supabase.from("posts").select("id, body").eq("org_id", org.id).eq("kind", "call_volunteers").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("org_needs").select("id, title").eq("org_id", org.id).eq("kind", "volunteer").is("met_at", null).limit(1).maybeSingle(),
+  ])
+  const [rsvp, hours, gifts, mine] = userId
+    ? await Promise.all([
+        ev ? supabase.from("event_rsvps").select("event_id").match({ event_id: ev.id, user_id: userId }).maybeSingle() : Promise.resolve({ data: null }),
+        supabase.from("volunteer_hours").select("id").match({ org_id: org.id, user_id: userId }).limit(1),
+        supabase.from("gifts").select("id").match({ org_id: org.id, user_id: userId }).limit(1),
+        supabase.from("experiences").select("kind").match({ org_id: org.id, user_id: userId }),
+      ])
+    : [{ data: null }, { data: [] }, { data: [] }, { data: [] }]
+  return {
+    following: follow.following,
+    event: ev ? { id: ev.id, title: ev.title, starts_at: ev.starts_at, going: !!rsvp.data } : null,
+    volunteer: call ? { href: `/p/${call.id}`, title: call.body.split(/(?<=[.!?])\s/)[0].slice(0, 80), logged: !!hours.data?.length } : need ? { href: `/o/${org.slug}#needs`, title: need.title, logged: !!hours.data?.length } : null,
+    gave: !!gifts.data?.length,
+    shared: ((mine.data ?? []) as { kind: ExperienceKind }[]).map((m) => m.kind),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// F-113 Notable givers: admin-verified public figures, with who they give to (if they share it).
+// ---------------------------------------------------------------------------
+export type NotableGiver = { id: string; handle: string; display_name: string | null; avatar_url: string | null; bio: string | null; public_figure_note: string | null; givesTo: OrgSummary[] }
+export async function getNotableGivers(limit = 24): Promise<NotableGiver[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("profiles").select("id, handle, display_name, avatar_url, bio, public_figure_note").eq("public_figure", true).order("display_name").limit(limit)
+  const people = (data ?? []) as Omit<NotableGiver, "givesTo">[]
+  const giving = await Promise.all(people.map(async (p) => ((await supabase.rpc("giving_by_org", { target: p.id })).data ?? []) as (OrgSummary & { amount: number })[]))
+  return people.map((p, i) => ({ ...p, givesTo: giving[i].sort((a, b) => b.amount - a.amount).slice(0, 4) }))
+}

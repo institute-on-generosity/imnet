@@ -1,3 +1,4 @@
+import { ClaimIrsCheck } from "@/components/irs-panels"
 import { Check, X } from "lucide-react"
 import { notFound, redirect } from "next/navigation"
 import { approveClaim, rejectClaim } from "@/app/actions"
@@ -34,9 +35,7 @@ export default async function AdminPage() {
               <p>
                 EIN {c.ein} · <a href={c.website} className="underline" target="_blank" rel="noopener noreferrer">{c.website}</a> · {c.work_email}
               </p>
-              <p className="text-muted-foreground">
-                Check EIN at <a className="underline" href={`https://apps.irs.gov/app/eos/`} target="_blank" rel="noopener noreferrer">IRS Tax Exempt Organization Search</a>.
-              </p>
+              <ClaimIrsCheck claim={c} />
               {c.note && <p>{c.note}</p>}
               <div className="flex gap-2">
                 <form action={approveClaim.bind(null, c.id)} className="flex gap-2">

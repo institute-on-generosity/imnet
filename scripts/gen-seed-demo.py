@@ -20,6 +20,7 @@ import demo_donor_photos as dphotos  # noqa: E402
 import demo_calls as calls  # noqa: E402
 import demo_groups as groups  # noqa: E402
 import demo_southbay as southbay  # noqa: E402
+import demo_notable as notable  # noqa: E402
 
 # F-102: the South Bay orgs ride along with the other demo orgs, calls and communities.
 more.ORGS += southbay.ORGS
@@ -758,6 +759,34 @@ select (array['view','view','view','view','view','view','share','donate_click'])
 # F-102 South Bay org details (city, founded, team, about); no cover photo.
 for n, (loc, founded, team, about) in southbay.DETAILS.items():
     out.append(f"update orgs set location = {q(loc)}, founded_year = {founded}, team_size = {q(team)}, about = {q(about)} where id = '{oid(n)}';")
+out.append("")
+
+
+# F-113 Fictional public figures, with public giving; F-111 experiences from demo people.
+def fig(n): return f"00000000-0000-4000-c100-{n:012d}"
+out.append("-- Public figures (F-113): verified by imnet, giving shown by their own opt-in.")
+for n, handle, name, note, bio, gifts, exps in notable.PUBLIC_FIGURES:
+    out.append(f"insert into auth.users (id, email, aud, role) values ('{fig(n)}', '{handle}@example.com', 'authenticated', 'authenticated');")
+    out.append(f"update profiles set handle = '{handle}', display_name = {q(name)}, bio = {q(bio)}, avatar_url = '/avatars/{handle}', public_figure = true, "
+               f"public_figure_note = {q(note)}, show_giving_totals = {str(bool(gifts)).lower()} where id = '{fig(n)}';")
+    for slug, amount, days in gifts:
+        out.append(f"insert into gifts (user_id, org_id, amount_usd, given_on) select '{fig(n)}', id, {amount}, current_date - {days} from orgs where slug = '{slug}';")
+    for slug, kind, text in exps:
+        out.append(f"insert into experiences (user_id, org_id, kind, note) select '{fig(n)}', id, '{kind}', {q(text)} from orgs where slug = '{slug}';")
+# Demo people share experiences where they volunteered (confirmed) or gave: about one in three.
+out.append("insert into experiences (user_id, org_id, kind, note, created_at)")
+vol = notable.NOTES["volunteered"]; gave = notable.NOTES["gave"]
+out.append(f"""select distinct on (h.user_id, h.org_id) h.user_id, h.org_id, 'volunteered',
+       (array[{", ".join(q(x) for x in vol)}])[1 + abs(hashtext(h.user_id::text || h.org_id::text)) % {len(vol)}],
+       now() - make_interval(days => abs(hashtext(h.org_id::text || h.user_id::text)) % 40)
+  from volunteer_hours h where h.confirmed_at is not null and h.user_id::text like '00000000-0000-4000-c000-%' and abs(hashtext(h.user_id::text || 'exp')) % 3 = 0
+on conflict do nothing;""")
+out.append("insert into experiences (user_id, org_id, kind, note, created_at)")
+out.append(f"""select distinct on (g.user_id, g.org_id) g.user_id, g.org_id, 'gave',
+       (array[{", ".join(q(x) for x in gave)}])[1 + abs(hashtext(g.user_id::text || g.org_id::text)) % {len(gave)}],
+       now() - make_interval(days => abs(hashtext(g.org_id::text || g.user_id::text)) % 60)
+  from gifts g where g.user_id::text like '00000000-0000-4000-c000-%' and abs(hashtext(g.user_id::text || 'gexp')) % 5 = 0
+on conflict do nothing;""")
 out.append("")
 
 # F-100 Groups and their chats.
