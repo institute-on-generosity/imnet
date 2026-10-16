@@ -3,7 +3,7 @@
 import { Dialog } from "@base-ui/react/dialog"
 import { Check, CreditCard, Gift, Lock, X } from "lucide-react"
 import { useState, useTransition } from "react"
-import { donate, logEvent, type DonationReceipt } from "@/app/actions"
+import { donate, logEvent, shareGift, type DonationReceipt } from "@/app/actions"
 import Link from "@/components/intent-link"
 import { buttonVariants } from "@/components/ui/button"
 import { formatUsd } from "@/lib/grants"
@@ -191,7 +191,8 @@ function Flow({ org, giftFunds }: { org: Org; giftFunds?: string | null }) {
             {receipt.monthly && <Row label="Next gift">{nextMonth(receipt.createdAt)}</Row>}
             <Row label="Reference"><span className="font-mono text-xs">{receipt.ref}</span></Row>
           </dl>
-          <p className="mt-4 text-sm text-muted-foreground">Added to your <Link href="/giving" className="font-semibold text-leaf hover:underline">giving journal</Link>.</p>
+          <p className="mt-4 text-sm text-muted-foreground">Added to your <Link href="/giving" className="font-semibold text-leaf hover:underline">giving journal</Link> (private)</p>
+          <ShareGift orgId={org.id} slug={org.slug} />
           <Dialog.Close className={buttonVariants({ variant: "outline", size: "lg", className: "mt-4 h-11 w-full" })}>Done</Dialog.Close>
         </div>
       )}
@@ -212,4 +213,16 @@ const nextMonth = (iso: string) => {
   const d = new Date(iso)
   d.setMonth(d.getMonth() + 1)
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
+
+// F-117: one tap to tell your followers you gave (an experience; the amount stays private).
+function ShareGift({ orgId, slug }: { orgId: string; slug: string }) {
+  const [state, setState] = useState<"idle" | "sharing" | "shared" | "error">("idle")
+  if (state === "shared") return <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-leaf"><Check className="size-4" aria-hidden />Shared with your followers</p>
+  return (
+    <button type="button" disabled={state === "sharing"} onClick={async () => { setState("sharing"); setState((await shareGift(orgId, slug)) ? "shared" : "error") }}
+      className={buttonVariants({ size: "lg", className: "mt-3 h-11 w-full" })}>
+      {state === "sharing" ? "Sharing..." : state === "error" ? "Try again" : "Tell your followers you gave"}
+    </button>
+  )
 }

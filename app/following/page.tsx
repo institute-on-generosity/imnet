@@ -66,6 +66,9 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
         <SuggestionWall items={mixWall(wallOrgs, friends.slice(0, 6), notable.map((g) => ({ g, following: people.some((p) => p.id === g.id) })).filter((n) => !n.following))} />
       </Panel>
 
+      {/* F-117: what friends just did, row by row, above everything else you follow. */}
+      <Suspense fallback={null}><PeopleActivity userId={userId} /></Suspense>
+
       <Panel className="overflow-hidden">
         <nav aria-label="Following sections" className="flex border-b px-2 sm:px-4">
           {([["feed", "Feed"], ["orgs", `Organizations · ${orgs.length}`], ["people", `People · ${people.length}`]] as const).map(([t, label]) => (
@@ -117,7 +120,6 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
         </Panel>
       )}
 
-      {tab === "people" && <Suspense fallback={null}><PeopleActivity userId={userId} /></Suspense>}
       {tab === "people" && (
         <Panel aria-labelledby="people-you-follow">
           <h2 id="people-you-follow" className="h-section border-b px-4 py-3">People you follow</h2>
@@ -174,5 +176,5 @@ async function FollowingFeed({ userId, orgIds, personIds, cause, before, href }:
 }
 
 async function PeopleActivity({ userId }: { userId: string }) {
-  return <FriendsActivity items={await getFriendsExperiences(userId)} />
+  return <FriendsActivity items={await getFriendsExperiences(userId, 8)} />
 }

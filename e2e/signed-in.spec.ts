@@ -757,6 +757,11 @@ test("F-099: donate to an organization in test mode; declined cards say so; the 
   await dialog.getByRole("button", { name: "Give $100" }).click()
   await expect(dialog.getByText("Thank you")).toBeVisible()
   await expect(dialog.getByText("Visa ending 4242")).toBeVisible()
+  // F-117: one tap shares "gave" with followers (no amount).
+  await dialog.getByRole("button", { name: "Tell your followers you gave" }).click()
+  await expect(dialog.getByText("Shared with your followers")).toBeVisible()
+  const [shared] = await sql`select kind, note from experiences where user_id = ${userId} and org_id = ${kitchen.id}`
+  expect(shared).toEqual({ kind: "gave", note: null })
   const [row] = await sql`select amount_cents, card_last4 from donations where donor_id = ${userId} and org_id = ${kitchen.id}`
   expect(row).toEqual({ amount_cents: 10000, card_last4: "4242" })
   await dialog.getByRole("button", { name: "Done" }).click()
@@ -844,8 +849,8 @@ test("F-114: Following shows what people you follow did, and notable givers to f
   await sql`insert into person_follows (follower_id, followee_id) values (${userId}, ${FRIEND}) on conflict do nothing`
   await sql`insert into experiences (user_id, org_id, kind, note) values (${FRIEND}, ${harbor.id}, 'volunteered', ${`Great Saturday ${id}`}) on conflict (user_id, org_id, kind) do update set note = excluded.note`
   try {
-    await page.goto("/following?tab=people")
-    const recent = page.getByRole("region", { name: "Recently from people you follow" })
+    await page.goto("/following") // F-117: friends' activity sits above the tabs
+    const recent = page.getByRole("region", { name: "What your friends are up to" })
     await expect(recent.getByText(`Great Saturday ${id}`)).toBeVisible()
     // F-115: card rows to follow friends (here: people in your city) and notable givers.
     await sql`update profiles set location = 'Austin, TX' where id = ${userId}`

@@ -921,3 +921,12 @@ export async function deleteExperience(id: string, slug: string) {
   await supabase.from("experiences").delete().eq("id", id)
   revalidatePath(`/o/${slug}`)
 }
+
+// F-117: share "I gave" with your followers right after donating (no amount).
+export async function shareGift(orgId: string, slug: string): Promise<boolean> {
+  await requireUser()
+  const supabase = await createClient()
+  const { error } = await supabase.from("experiences").upsert({ org_id: orgId, kind: "gave" }, { onConflict: "user_id,org_id,kind", ignoreDuplicates: true })
+  revalidatePath(`/o/${slug}`)
+  return !error
+}
