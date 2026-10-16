@@ -838,6 +838,23 @@ test("F-111 / F-112: an org page lays out ways to get involved; sharing an exper
   await sql`delete from experiences where user_id = ${userId}`
 })
 
+test("F-114: Following shows what people you follow did, and notable givers to follow", async () => {
+  const FRIEND = "00000000-0000-4000-c000-000000000001"
+  const [harbor] = await sql`select id from orgs where slug = 'harbor-table'`
+  await sql`insert into person_follows (follower_id, followee_id) values (${userId}, ${FRIEND}) on conflict do nothing`
+  await sql`insert into experiences (user_id, org_id, kind, note) values (${FRIEND}, ${harbor.id}, 'volunteered', ${`Great Saturday ${id}`}) on conflict (user_id, org_id, kind) do update set note = excluded.note`
+  try {
+    await page.goto("/following?tab=people")
+    const recent = page.getByRole("region", { name: "Recently from people you follow" })
+    await expect(recent.getByText(`Great Saturday ${id}`)).toBeVisible()
+    const notable = page.getByRole("region", { name: "Notable givers to follow" })
+    await expect(notable.getByRole("link", { name: "Dev Ramaswamy" })).toBeVisible()
+  } finally {
+    await sql`delete from experiences where user_id = ${FRIEND} and note = ${`Great Saturday ${id}`}`
+    await sql`delete from person_follows where follower_id = ${userId} and followee_id = ${FRIEND}`
+  }
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

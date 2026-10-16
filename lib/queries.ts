@@ -848,9 +848,9 @@ export async function getFollowedPeople(userId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from("person_follows")
-    .select("person:profiles!person_follows_followee_id_fkey(id, handle, display_name, bio, avatar_url, location)")
+    .select("person:profiles!person_follows_followee_id_fkey(id, handle, display_name, bio, avatar_url, location, public_figure, public_figure_note)")
     .eq("follower_id", userId)
-  return ((data ?? []) as unknown as { person: { id: string; handle: string; display_name: string | null; bio: string | null; avatar_url: string | null; location: string | null } }[])
+  return ((data ?? []) as unknown as { person: { id: string; handle: string; display_name: string | null; bio: string | null; avatar_url: string | null; location: string | null; public_figure: boolean; public_figure_note: string | null } }[])
     .map((r) => r.person)
     .sort((a, b) => (a.display_name ?? a.handle).localeCompare(b.display_name ?? b.handle))
 }
@@ -1207,4 +1207,21 @@ export async function getNotableGivers(limit = 24): Promise<NotableGiver[]> {
   const people = (data ?? []) as Omit<NotableGiver, "givesTo">[]
   const giving = await Promise.all(people.map(async (p) => ((await supabase.rpc("giving_by_org", { target: p.id })).data ?? []) as (OrgSummary & { amount: number })[]))
   return people.map((p, i) => ({ ...p, givesTo: giving[i].sort((a, b) => b.amount - a.amount).slice(0, 4) }))
+}
+
+// F-114 Recent experiences from people you follow (RLS only returns those you may see).
+export type FriendExperience = PersonExperience & { person: ChatAuthor & { public_figure: boolean } }
+export async function getFriendsExperiences(userId: string, limit = 12): Promise<FriendExperience[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("experiences")
+    .select("id, kind, note, created_at, org:orgs!inner(id, slug, name, logo_url, org_type), person:profiles!inner(id, handle, display_name, avatar_url, public_figure)")
+    .neq("user_id", userId).order("created_at", { ascending: false }).limit(limit)
+  return (data ?? []) as unknown as FriendExperience[]
+}
+
+// Who a set of people give to (only those who opted in), for public figures you follow.
+export async function getGivesTo(personIds: string[]): Promise<Map<string, OrgSummary[]>> {
+  const supabase = await createClient()
+  const rows = await Promise.all(personIds.map(async (id) => [id, (((await supabase.rpc("giving_by_org", { target: id })).data ?? []) as (OrgSummary & { amount: number })[]).sort((a, b) => b.amount - a.amount).slice(0, 3)] as const))
+  return new Map(rows)
 }

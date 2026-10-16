@@ -1,3 +1,5 @@
+import { BadgeCheck } from "lucide-react"
+import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import Link from "@/components/intent-link"
 import { FollowButton } from "@/components/follow-button"
@@ -8,15 +10,17 @@ import { PersonAvatar } from "@/components/person-avatar"
 import { Feed } from "@/components/post-card"
 import { Panel, TwoColumn } from "@/components/shell"
 import { SuggestedOrgs } from "@/components/side-cards"
+import { FriendsActivity, NotableToFollow } from "@/components/following-friends"
 import { CAUSE_ICON } from "@/lib/cause-icons"
 import { decodeCursor } from "@/lib/cursor"
 import { portfolioContext } from "@/lib/portfolio"
 import {
-  getCauses, getOrgsByCause, getConfirmedGrantIds, getFeedPage, getFollowedCauseSlugs, getFollowedOrgsDetail, getFollowedPeople,
+  getCauses, getOrgsByCause, getConfirmedGrantIds, getFeedPage, getFollowedCauseSlugs, getFollowedOrgsDetail, getFollowedPeople, getNotableGivers, getGivesTo, getFriendsExperiences,
   getGrantsForPosts, getMovedPostIds, getOrgsInCauses, getSavedPostIds,
 } from "@/lib/queries"
 import { createClient, getUserId } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
+import type { OrgSummary } from "@/lib/types"
 import { CauseGrid } from "./cause-grid"
 
 export const metadata = { title: "Following" }
@@ -31,8 +35,8 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
   if (!userId) redirect("/login?next=/following")
   const { tab: rawTab, cause: rawCause, before } = await searchParams
   const tab: Tab = rawTab === "orgs" || rawTab === "people" ? rawTab : "feed"
-  const [causes, myCauses, orgsByCause, orgs, people] = await Promise.all([
-    getCauses(), getFollowedCauseSlugs(userId), getOrgsByCause(), getFollowedOrgsDetail(userId), getFollowedPeople(userId),
+  const [causes, myCauses, orgsByCause, orgs, people, notable] = await Promise.all([
+    getCauses(), getFollowedCauseSlugs(userId), getOrgsByCause(), getFollowedOrgsDetail(userId), getFollowedPeople(userId), getNotableGivers(),
   ])
   const cause = typeof rawCause === "string" && myCauses.includes(rawCause) ? rawCause : undefined
   const causeName = (slug: string) => causes.find((c) => c.slug === slug)?.name ?? slug
@@ -46,8 +50,13 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
     return q ? `/following?${q}` : "/following"
   }
 
+  const givesTo = tab === "people" ? await getGivesTo(people.filter((p) => p.public_figure).map((p) => p.id)) : new Map<string, OrgSummary[]>()
   return (
-    <TwoColumn right={<SuggestedOrgs title={myCauses.length ? "Suggested in your causes" : "Add to your network"} orgs={suggested} signedIn />}>
+    <TwoColumn right={<>
+      {/* F-114: public figures you don't follow yet. */}
+      <NotableToFollow givers={notable.filter((g) => !people.some((p) => p.id === g.id)).slice(0, 3)} />
+      <SuggestedOrgs title={myCauses.length ? "Suggested in your causes" : "Add to your network"} orgs={suggested} signedIn />
+    </>}>
       <Panel className="p-4 sm:p-6">
         <h1 className="h-page">Following</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
@@ -66,7 +75,7 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
             </Link>
           ))}
         </nav>
-        {myCauses.length > 0 && (
+        {myCauses.length > 0 && tab !== "people" && (
           <nav aria-label="Filter by your causes" className="flex gap-1.5 overflow-x-auto p-3 [scrollbar-width:none]">
             <Link href={href(tab)} className={cn("shrink-0 rounded-full border px-3 py-1 text-sm", !cause ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}>All my causes</Link>
             {myCauses.map((c) => {
@@ -108,8 +117,10 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
         </Panel>
       )}
 
+      {tab === "people" && <Suspense fallback={null}><PeopleActivity userId={userId} /></Suspense>}
       {tab === "people" && (
-        <Panel>
+        <Panel aria-labelledby="people-you-follow">
+          <h2 id="people-you-follow" className="h-section border-b px-4 py-3">People you follow</h2>
           {people.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">You don&apos;t follow anyone yet. Follow people from their profiles or posts.</p>
           ) : (
@@ -120,8 +131,14 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
                   <li key={p.id} className="flex items-center gap-3 p-4">
                     <PersonAvatar name={name} avatarUrl={p.avatar_url} size="lg" />
                     <div className="min-w-0 flex-1">
-                      <Link href={`/u/${p.handle}`} className="font-semibold hover:underline">{name}</Link>
+                      <p className="flex flex-wrap items-center gap-x-2">
+                        <Link href={`/u/${p.handle}`} className="font-semibold hover:underline">{name}</Link>
+                        {p.public_figure && <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-800"><BadgeCheck className="size-3.5" aria-hidden />{p.public_figure_note ?? "Public figure"}</span>}
+                      </p>
                       {p.bio && <p className="truncate text-sm text-muted-foreground">{p.bio}</p>}
+                      {p.public_figure && (givesTo.get(p.id)?.length ?? 0) > 0 && (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">Gives to {givesTo.get(p.id)!.map((o) => o.name).join(", ")}</p>
+                      )}
                       {p.location && <p className="text-xs text-muted-foreground">{p.location}</p>}
                     </div>
                     <FollowButton orgId={p.id} orgName={name} following variant="icon" person />
@@ -154,4 +171,8 @@ async function FollowingFeed({ userId, orgIds, personIds, cause, before, href }:
       <OlderPosts olderHref={page.next ? `${base}${base.includes("?") ? "&" : "?"}before=${page.next}` : null} newestHref={base} isFirstPage={!cursor} />
     </>
   )
+}
+
+async function PeopleActivity({ userId }: { userId: string }) {
+  return <FriendsActivity items={await getFriendsExperiences(userId)} />
 }
