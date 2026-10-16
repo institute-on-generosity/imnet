@@ -1225,3 +1225,36 @@ export async function getGivesTo(personIds: string[]): Promise<Map<string, OrgSu
   const rows = await Promise.all(personIds.map(async (id) => [id, (((await supabase.rpc("giving_by_org", { target: id })).data ?? []) as (OrgSummary & { amount: number })[]).sort((a, b) => b.amount - a.amount).slice(0, 3)] as const))
   return new Map(rows)
 }
+
+// F-115 People to follow: who shares communities with you (most first), then people in your city.
+// Excludes you, people you follow and public figures (they have their own row).
+export type FriendSuggestion = { id: string; handle: string; display_name: string | null; avatar_url: string | null; bio: string | null; reason: string }
+export async function getFriendSuggestions(userId: string, limit = 10): Promise<FriendSuggestion[]> {
+  const supabase = await createClient()
+  const [{ data: myGroups }, { data: follows }, { data: me }] = await Promise.all([
+    supabase.from("group_members").select("group_id").eq("user_id", userId),
+    supabase.from("person_follows").select("followee_id").eq("follower_id", userId),
+    supabase.from("profiles").select("location").eq("id", userId).maybeSingle(),
+  ])
+  const skip = new Set([userId, ...(follows ?? []).map((f) => f.followee_id)])
+  const shared = new Map<string, number>()
+  const groupIds = (myGroups ?? []).map((g) => g.group_id)
+  if (groupIds.length) {
+    const { data: co } = await supabase.from("group_members").select("user_id").in("group_id", groupIds).limit(2000)
+    for (const r of co ?? []) if (!skip.has(r.user_id)) shared.set(r.user_id, (shared.get(r.user_id) ?? 0) + 1)
+  }
+  const top = [...shared.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit * 2)
+  const PROFILE = "id, handle, display_name, avatar_url, bio, public_figure"
+  type P = Omit<FriendSuggestion, "reason"> & { public_figure: boolean }
+  const fromGroups = top.length ? (((await supabase.from("profiles").select(PROFILE).in("id", top.map(([id]) => id))).data ?? []) as P[]) : []
+  const out: FriendSuggestion[] = top
+    .map(([id, n]) => ({ p: fromGroups.find((x) => x.id === id), n }))
+    .filter((x): x is { p: P; n: number } => !!x.p && !x.p.public_figure)
+    .map(({ p, n }) => ({ id: p.id, handle: p.handle, display_name: p.display_name, avatar_url: p.avatar_url, bio: p.bio, reason: `In ${n} of your communities` }))
+  if (out.length < limit && me?.location) {
+    const { data: near } = await supabase.from("profiles").select(PROFILE).eq("location", me.location).eq("public_figure", false).limit(limit * 2)
+    const city = me.location.replace(/, [A-Z]{2}$/, "")
+    for (const p of (near ?? []) as P[]) if (!skip.has(p.id) && !out.some((o) => o.id === p.id)) out.push({ id: p.id, handle: p.handle, display_name: p.display_name, avatar_url: p.avatar_url, bio: p.bio, reason: `Near you · ${city}` })
+  }
+  return out.slice(0, limit)
+}

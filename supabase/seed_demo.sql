@@ -14011,5 +14011,8 @@ insert into messages (group_id, author_id, body, created_at) values ('00000000-0
 insert into messages (group_id, author_id, body, created_at) values ('00000000-0000-4000-e000-000000000012', (select user_id from group_members where group_id = '00000000-0000-4000-e000-000000000012' and role = 'member' order by md5('sunnyvale-foster-pets' || user_id::text) offset 3 limit 1), 'Our foster pup got adopted at the farmers market. Happy tears.', now() - interval '8 hours');
 update group_members set last_read_at = now() where group_id = '00000000-0000-4000-e000-000000000012';
 update groups set icon_path = 'communities/00000000-0000-4000-e000-000000000012/icon.png' where id = '00000000-0000-4000-e000-000000000012';  -- F-103 (scripts/gen-community-icons.mjs)
+update profiles p set location = (array['Mountain View, CA','Sunnyvale, CA','Palo Alto, CA','Los Altos, CA','Santa Clara, CA'])[1 + abs(hashtext(p.id::text)) % 5]
+  where p.id in (select gm.user_id from group_members gm where gm.group_id in ('00000000-0000-4000-e000-000000000009','00000000-0000-4000-e000-000000000010','00000000-0000-4000-e000-000000000011','00000000-0000-4000-e000-000000000012'))
+    and p.id::text like '00000000-0000-4000-c000-%';
 update org_events set lat = lat + ((abs(hashtext(id::text)) % 100) - 50) * 0.0005, lng = lng + ((abs(hashtext(id::text || 'x')) % 100) - 50) * 0.0006 where lat is not null;
 

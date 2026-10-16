@@ -847,11 +847,17 @@ test("F-114: Following shows what people you follow did, and notable givers to f
     await page.goto("/following?tab=people")
     const recent = page.getByRole("region", { name: "Recently from people you follow" })
     await expect(recent.getByText(`Great Saturday ${id}`)).toBeVisible()
-    const notable = page.getByRole("region", { name: "Notable givers to follow" })
+    // F-115: card rows to follow friends (here: people in your city) and notable givers.
+    await sql`update profiles set location = 'Austin, TX' where id = ${userId}`
+    await page.goto("/following")
+    await expect(page.getByRole("region", { name: "Friends to follow" })).toContainText("Near you · Austin")
+    await expect(page.getByRole("region", { name: "Friends to follow" }).getByRole("listitem").first()).toBeVisible()
+    const notable = page.getByRole("region", { name: "Notable givers" })
     await expect(notable.getByRole("link", { name: "Dev Ramaswamy" })).toBeVisible()
   } finally {
     await sql`delete from experiences where user_id = ${FRIEND} and note = ${`Great Saturday ${id}`}`
     await sql`delete from person_follows where follower_id = ${userId} and followee_id = ${FRIEND}`
+    await sql`update profiles set location = null where id = ${userId}`
   }
 })
 

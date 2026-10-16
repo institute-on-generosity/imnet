@@ -804,6 +804,10 @@ for n, slug, name, desc, cause, owner, size, msgs in groups.GROUPS:
         out.append(f"insert into messages (group_id, author_id, body, created_at) values ('{gid(n)}', {who}, {q(text)}, now() - interval '{hours} hours');")
     out.append(f"update group_members set last_read_at = now() where group_id = '{gid(n)}';")
     out.append(f"update groups set icon_path = 'communities/{gid(n)}/icon.png' where id = '{gid(n)}';  -- F-103 (scripts/gen-community-icons.mjs)")
+# F-115: members of the South Bay communities live around there (so "near you" suggestions are real).
+out.append("""update profiles p set location = (array['Mountain View, CA','Sunnyvale, CA','Palo Alto, CA','Los Altos, CA','Santa Clara, CA'])[1 + abs(hashtext(p.id::text)) % 5]
+  where p.id in (select gm.user_id from group_members gm where gm.group_id in ('00000000-0000-4000-e000-000000000009','00000000-0000-4000-e000-000000000010','00000000-0000-4000-e000-000000000011','00000000-0000-4000-e000-000000000012'))
+    and p.id::text like '00000000-0000-4000-c000-%';""")
 # F-101: spread each event a little around its org (within about 3 km) so pins don't stack.
 out.append("update org_events set lat = lat + ((abs(hashtext(id::text)) % 100) - 50) * 0.0005, lng = lng + ((abs(hashtext(id::text || 'x')) % 100) - 50) * 0.0006 where lat is not null;")
 out.append("")

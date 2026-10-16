@@ -1,10 +1,8 @@
 import { BadgeCheck } from "lucide-react"
 import Link from "@/components/intent-link"
-import type { FriendExperience, NotableGiver } from "@/lib/queries"
-import { FollowButton } from "./follow-button"
+import type { FriendExperience } from "@/lib/queries"
 import { OrgMark } from "./org-mark"
 import { PersonAvatar } from "./person-avatar"
-import { RailHeading } from "./rail-cards"
 import { Panel } from "./shell"
 
 const VERB = { volunteered: "volunteered at", gave: "gave to", attended: "went to an event at" } as const
@@ -43,34 +41,6 @@ export function FriendsActivity({ items }: { items: FriendExperience[] }) {
           )
         })}
       </ul>
-    </Panel>
-  )
-}
-
-// F-114: public figures you don't follow yet, with who they give to.
-export function NotableToFollow({ givers }: { givers: NotableGiver[] }) {
-  if (givers.length === 0) return null
-  return (
-    <Panel aria-labelledby="notable-follow" className="p-4">
-      <RailHeading id="notable-follow">Notable givers to follow</RailHeading>
-      <ul className="mt-2 divide-y">
-        {givers.map((g) => {
-          const name = g.display_name ?? `@${g.handle}`
-          return (
-            <li key={g.id} className="flex items-center gap-2.5 py-2.5">
-              <PersonAvatar name={name} avatarUrl={g.avatar_url} size="md" />
-              <div className="min-w-0 flex-1">
-                <Link href={`/u/${g.handle}`} className="block truncate text-sm font-semibold hover:underline">{name}</Link>
-                <p className="truncate text-xs text-muted-foreground">
-                  {g.public_figure_note}{g.givesTo[0] ? ` · gives to ${g.givesTo[0].name}` : ""}
-                </p>
-              </div>
-              <FollowButton orgId={g.id} orgName={name} following={false} person variant="icon" />
-            </li>
-          )
-        })}
-      </ul>
-      <Link href="/givers" className="mt-1 block border-t pt-2.5 text-sm font-semibold text-leaf hover:underline">See all notable givers</Link>
     </Panel>
   )
 }

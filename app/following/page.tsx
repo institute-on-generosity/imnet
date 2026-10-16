@@ -10,12 +10,13 @@ import { PersonAvatar } from "@/components/person-avatar"
 import { Feed } from "@/components/post-card"
 import { Panel, TwoColumn } from "@/components/shell"
 import { SuggestedOrgs } from "@/components/side-cards"
-import { FriendsActivity, NotableToFollow } from "@/components/following-friends"
+import { FriendsActivity } from "@/components/following-friends"
+import { FollowRow, FriendCard, NotableCard } from "@/components/follow-cards"
 import { CAUSE_ICON } from "@/lib/cause-icons"
 import { decodeCursor } from "@/lib/cursor"
 import { portfolioContext } from "@/lib/portfolio"
 import {
-  getCauses, getOrgsByCause, getConfirmedGrantIds, getFeedPage, getFollowedCauseSlugs, getFollowedOrgsDetail, getFollowedPeople, getNotableGivers, getGivesTo, getFriendsExperiences,
+  getCauses, getOrgsByCause, getConfirmedGrantIds, getFeedPage, getFollowedCauseSlugs, getFollowedOrgsDetail, getFollowedPeople, getNotableGivers, getGivesTo, getFriendsExperiences, getFriendSuggestions,
   getGrantsForPosts, getMovedPostIds, getOrgsInCauses, getSavedPostIds,
 } from "@/lib/queries"
 import { createClient, getUserId } from "@/lib/supabase/server"
@@ -35,8 +36,8 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
   if (!userId) redirect("/login?next=/following")
   const { tab: rawTab, cause: rawCause, before } = await searchParams
   const tab: Tab = rawTab === "orgs" || rawTab === "people" ? rawTab : "feed"
-  const [causes, myCauses, orgsByCause, orgs, people, notable] = await Promise.all([
-    getCauses(), getFollowedCauseSlugs(userId), getOrgsByCause(), getFollowedOrgsDetail(userId), getFollowedPeople(userId), getNotableGivers(),
+  const [causes, myCauses, orgsByCause, orgs, people, notable, friends] = await Promise.all([
+    getCauses(), getFollowedCauseSlugs(userId), getOrgsByCause(), getFollowedOrgsDetail(userId), getFollowedPeople(userId), getNotableGivers(), getFriendSuggestions(userId),
   ])
   const cause = typeof rawCause === "string" && myCauses.includes(rawCause) ? rawCause : undefined
   const causeName = (slug: string) => causes.find((c) => c.slug === slug)?.name ?? slug
@@ -53,8 +54,6 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
   const givesTo = tab === "people" ? await getGivesTo(people.filter((p) => p.public_figure).map((p) => p.id)) : new Map<string, OrgSummary[]>()
   return (
     <TwoColumn right={<>
-      {/* F-114: public figures you don't follow yet. */}
-      <NotableToFollow givers={notable.filter((g) => !people.some((p) => p.id === g.id)).slice(0, 3)} />
       <SuggestedOrgs title={myCauses.length ? "Suggested in your causes" : "Add to your network"} orgs={suggested} signedIn />
     </>}>
       <Panel className="p-4 sm:p-6">
@@ -64,6 +63,17 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
         </p>
         <h2 className="h-sub mt-5 mb-2">Your causes</h2>
         <CauseGrid causes={causes} followed={myCauses} orgsByCause={orgsByCause} followingOrgIds={orgs.map((o) => o.id)} />
+        {/* F-115: who to follow, as card rows. */}
+        {friends.length > 0 && (
+          <FollowRow id="friends-to-follow" title="Friends to follow" subtitle="People in your communities and near you">
+            {friends.map((s) => <FriendCard key={s.id} s={s} />)}
+          </FollowRow>
+        )}
+        {notable.length > 0 && (
+          <FollowRow id="notable-givers" title="Notable givers" subtitle="Public figures and who they give to" more={{ href: "/givers", label: "See all" }}>
+            {notable.map((g) => <NotableCard key={g.id} g={g} following={people.some((p) => p.id === g.id)} />)}
+          </FollowRow>
+        )}
       </Panel>
 
       <Panel className="overflow-hidden">
