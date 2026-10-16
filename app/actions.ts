@@ -898,3 +898,26 @@ export async function lookupEin(ein: string): Promise<EinLookup> {
     taxExempt: irs.subsection ? `501(c)(${Number(irs.subsection)})` : null, since: irs.ruling, foundation: isFoundationRecord(irs),
   }
 }
+
+// ---------------------------------------------------------------------------
+// F-111 Share an experience with your followers
+// ---------------------------------------------------------------------------
+export async function saveExperience(orgId: string, slug: string, _: { error?: string; ok?: boolean } | null, form: FormData): Promise<{ error?: string; ok?: boolean }> {
+  await requireUser()
+  const kind = String(form.get("kind") ?? "")
+  const note = String(form.get("note") ?? "").trim()
+  if (!["volunteered", "gave", "attended"].includes(kind)) return { error: "Pick what you did." }
+  if (note.length > 280) return { error: "Keep it under 280 characters." }
+  const supabase = await createClient()
+  const { error } = await supabase.from("experiences").upsert({ org_id: orgId, kind, note: note || null }, { onConflict: "user_id,org_id,kind" })
+  if (error) return { error: "Couldn't share that. Try again." }
+  revalidatePath(`/o/${slug}`)
+  return { ok: true }
+}
+
+export async function deleteExperience(id: string, slug: string) {
+  await requireUser()
+  const supabase = await createClient()
+  await supabase.from("experiences").delete().eq("id", id)
+  revalidatePath(`/o/${slug}`)
+}

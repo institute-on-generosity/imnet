@@ -5,7 +5,7 @@ import { OrgMark } from "@/components/org-mark"
 import { PersonAvatar } from "@/components/person-avatar"
 import { FoundationMark } from "@/components/org-type-badge"
 import { GivingBecame } from "@/components/giving-became"
-import { getActivity, getDonorOrgs, getFollowedPersonIds, getGivingSummary, getMovedPostIds, getVolunteerSummary, getOrgGrants, getPersonPosts, getSavedPostIds } from "@/lib/queries"
+import { getActivity, getDonorOrgs, getFollowedPersonIds, getGivingSummary, getMovedPostIds, getVolunteerSummary, getOrgGrants, getPersonPosts, getSavedPostIds, getPersonExperiences } from "@/lib/queries"
 import { Feed } from "@/components/post-card"
 import { GivingSummaryPanel } from "@/components/giving-summary"
 import { VolunteerSummaryPanel } from "@/components/volunteer-summary"
@@ -18,13 +18,14 @@ import { ago } from "@/lib/comments"
 import { cn } from "@/lib/utils"
 import type { OrgSummary } from "@/lib/types"
 import { Panel, TwoColumn } from "@/components/shell"
+import { PersonExperiences, PublicFigureBadge } from "@/components/notable"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
 async function getProfile(handle: string) {
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, handle, display_name, bio, created_at, avatar_url, location, about, cover_url")
+    .select("id, handle, display_name, bio, created_at, avatar_url, location, about, cover_url, public_figure, public_figure_note")
     .eq("handle", handle)
     .maybeSingle()
   if (!profile) return null
@@ -54,13 +55,14 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   const followsThem = viewerId && !isOwn ? (await getFollowedPersonIds(viewerId)).includes(profile.id) : false
   // F-100: Message shows only when you may message them (a shared group, or they follow you).
   const canMessage = viewerId && !isOwn ? !!(await (await createClient()).rpc("can_message", { other: profile.id })).data : false
-  const [funds, gaveTo, activity, totals, posts, volunteering] = await Promise.all([
+  const [funds, gaveTo, activity, totals, posts, volunteering, experiences] = await Promise.all([
     Promise.all(supports.filter((o) => o.org_type === "foundation").map(async (foundation) => ({ foundation, grants: await getOrgGrants(foundation) }))),
     getDonorOrgs(profile.id),
     getActivity(profile.id),
     getGivingSummary(profile.id),
     getPersonPosts(profile.id),
     getVolunteerSummary(profile.id),
+    viewerId ? getPersonExperiences(profile.id) : Promise.resolve([]), // F-111: RLS shows them to followers only
   ])
   const shownPosts = tab === "activity" ? posts : posts.slice(0, 2)
   const postIds = shownPosts.map((p) => p.id)
@@ -104,7 +106,11 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
             )}
             {!isOwn && !viewerId && <Link href="/login" className={buttonVariants({ size: "sm", className: "mt-3" })}><Plus aria-hidden />Follow</Link>}
           </div>
-          <h1 className="mt-3 font-heading text-3xl font-semibold tracking-tight">{name}</h1>
+          <h1 className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-heading text-3xl font-semibold tracking-tight">
+            {name}
+            {/* F-113: admin-verified public figure. */}
+            {profile.public_figure && <PublicFigureBadge note={profile.public_figure_note} />}
+          </h1>
           {profile.bio && <p className="mt-1 max-w-prose text-lg leading-snug">{profile.bio}</p>}
           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-faint">
             <span>@{profile.handle}</span>
@@ -136,6 +142,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
         </Panel>
       )}
       {tab === "about" && totals && <GivingSummaryPanel summary={totals} isOwn={isOwn} />}
+      {tab === "about" && <PersonExperiences items={experiences} isOwn={isOwn} name={name} />}
       {tab === "about" && volunteering && <VolunteerSummaryPanel summary={volunteering} isOwn={isOwn} />}
       {tab === "about" && <GivingBecame funds={funds} isOwn={isOwn} />}
       {tab === "about" && <div className="space-y-3 lg:hidden">{giving("main")}</div>}

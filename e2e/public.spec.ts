@@ -571,3 +571,14 @@ test("F-102: Communities opens with communities near you (list and map), nearest
   await expect(page.getByText("Foundation", { exact: true }).last()).toBeVisible()
   await ctx.close()
 })
+
+test("F-113: Notable givers lists verified public figures and who they give to", async ({ page }) => {
+  await page.goto("/givers")
+  await expect(page.getByRole("heading", { name: "Notable givers", level: 1 })).toBeVisible()
+  const card = page.getByRole("listitem").filter({ hasText: "Marisol Vega" })
+  await expect(card.getByText("Chef", { exact: true })).toBeVisible()
+  await expect(card.getByRole("link", { name: "Castro Street Community Kitchen" })).toBeVisible()
+  await expect(page.getByRole("listitem").filter({ hasText: "Rosa Lindqvist" }).getByText("Keeps their giving private")).toBeVisible()
+  await card.getByRole("link", { name: "Marisol Vega" }).click()
+  await expect(page.getByText(/Public figure · Chef/)).toBeVisible()
+})

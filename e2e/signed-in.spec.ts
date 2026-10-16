@@ -821,6 +821,23 @@ test("F-107 / F-108: Home shows what your giving became, and what you can do nea
   }
 })
 
+test("F-111 / F-112: an org page lays out ways to get involved; sharing an experience shows it to you and your followers", async () => {
+  await page.goto("/o/harbor-table")
+  const path = page.getByRole("region", { name: "Ways to get involved" })
+  for (const step of ["Follow", "Give", "Share your experience"]) await expect(path.getByText(step, { exact: true })).toBeVisible()
+  await expect(path.getByLabel("Done").first()).toBeVisible() // this user logged a gift to Harbor Table (F-052)
+
+  await path.getByRole("button", { name: "Share" }).click()
+  const dialog = page.getByRole("dialog")
+  await dialog.getByText("I volunteered").click()
+  await dialog.getByPlaceholder(/What was it like/).fill(`Lovely crew ${id}`)
+  await dialog.getByRole("button", { name: "Share with my followers" }).click()
+  await expect(dialog).toHaveCount(0)
+  const mine = page.getByRole("region", { name: "Your experience" })
+  await expect(mine.getByText(`Lovely crew ${id}`)).toBeVisible()
+  await sql`delete from experiences where user_id = ${userId}`
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

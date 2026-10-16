@@ -12,6 +12,8 @@ import { GrantsPanel } from "@/components/grants-panel"
 import { ImpactCard, OrgFacts } from "@/components/rail-cards"
 import { PublicFilings } from "@/components/irs-panels"
 import type { IrsOrg } from "@/lib/irs/check"
+import { FriendsExperiences, InvolvementPath } from "@/components/involvement"
+import type { Experience, Involvement } from "@/lib/queries"
 import { TopSupporters } from "@/components/top-supporters"
 import type { Supporter } from "@/lib/queries"
 import { orgCoverSrc } from "@/lib/cover"
@@ -56,9 +58,12 @@ type Props = {
   rsvpIds: Set<string>
   supporters: Supporter[]
   irs?: IrsOrg | null
+  involvement?: Involvement | null
+  experiences?: Experience[]
+  viewerId?: string | null
 }
 
-export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, savedIds, grants, grantsByPost, tab, needs, interestIds, events, rsvpIds, supporters, irs }: Props) {
+export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, portfolio, similar, signedIn, follow, movedIds, savedIds, grants, grantsByPost, tab, needs, interestIds, events, rsvpIds, supporters, irs, involvement, experiences = [], viewerId = null }: Props) {
   const base = `/o/${org.slug}`
   return (
     <TwoColumn
@@ -129,6 +134,8 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
 
       {tab === "home" && (
         <>
+          {involvement && <InvolvementPath org={org} inv={involvement} signedIn={signedIn} giftFunds={org.what_gifts_fund} />}
+          <FriendsExperiences experiences={experiences} viewerId={viewerId} slug={org.slug} />
           <GiftsFund org={org} />
           <div className="space-y-3 lg:hidden">
             <ImpactCard stats={stats} where="main" />

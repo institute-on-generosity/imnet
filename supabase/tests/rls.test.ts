@@ -917,3 +917,30 @@ describe("places", () => {
     expect(n((await t.as(null, `select count(*)::int n from cities`)).rows)).toBeGreaterThan(50)
   })
 })
+
+describe("experiences and public figures", () => {
+  const AUTHOR = "30000000-0000-4000-8000-000000000001"
+  const FAN = "30000000-0000-4000-8000-000000000002"
+  const STRANGER = "30000000-0000-4000-8000-000000000003"
+  beforeAll(async () => {
+    for (const [id, who] of [[AUTHOR, "author"], [FAN, "fan"], [STRANGER, "stranger"]]) await t.owner(`insert into auth.users (id, email) values ('${id}', '${who}@exp.example.org') on conflict do nothing`)
+    await t.owner(`insert into person_follows (follower_id, followee_id) values ('${FAN}', '${AUTHOR}')`)
+  })
+
+  it("F-111: an experience is seen by its author and their followers only, never strangers or the public", async () => {
+    expect((await t.as(AUTHOR, `insert into experiences (user_id, org_id, kind, note) values ('${AUTHOR}', '${ORG_1}', 'volunteered', 'Great crew')`)).error).toBeUndefined()
+    expect(n((await t.as(AUTHOR, `select count(*)::int n from experiences where user_id = '${AUTHOR}'`)).rows)).toBe(1)
+    expect(n((await t.as(FAN, `select count(*)::int n from experiences where user_id = '${AUTHOR}'`)).rows)).toBe(1)
+    expect(n((await t.as(STRANGER, `select count(*)::int n from experiences where user_id = '${AUTHOR}'`)).rows)).toBe(0)
+    expect(n((await t.as(null, `select count(*)::int n from experiences where user_id = '${AUTHOR}'`)).rows)).toBe(0)
+    // Nobody posts as someone else or about a hidden org.
+    expect((await t.as(STRANGER, `insert into experiences (user_id, org_id, kind) values ('${AUTHOR}', '${ORG_1}', 'gave')`)).error).toBeDefined()
+    expect((await t.as(AUTHOR, `insert into experiences (user_id, org_id, kind) values ('${AUTHOR}', '${ORG_PENDING}', 'gave')`)).error).toBeDefined()
+  })
+
+  it("F-113: nobody can make themselves a public figure", async () => {
+    expect((await t.as(AUTHOR, `update profiles set public_figure = true where id = '${AUTHOR}'`)).error).toBeDefined()
+    const [p] = await t.owner(`select public_figure from profiles where id = '${AUTHOR}'`)
+    expect(p.public_figure).toBe(false)
+  })
+})
