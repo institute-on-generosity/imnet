@@ -42,7 +42,7 @@ test("F-012 / F-002: follow an org; Following shows only its posts", async () =>
   await expect(page.locator("main").getByRole("button", { name: "Following" }).first()).toBeVisible()
   await expect.poll(async () => (await sql`select count(*)::int n from follows where user_id = ${userId}`)[0].n).toBe(1)
 
-  await page.goto("/following")
+  await page.goto("/?type=following") // F-118: posts from who you follow live on Home's Following filter
   await expect(page.getByText("212 households")).toBeVisible()
   await expect(page.getByText("Okafor family")).toHaveCount(0)
 })
@@ -176,7 +176,7 @@ test("F-037: following a foundation brings its grantees' reports into Following,
   // The button updates optimistically; wait for the follow to be saved before navigating.
   await expect.poll(async () => (await sql`select count(*)::int n from follows where user_id = ${userId} and org_id = ${FOUNDATION}`)[0].n).toBe(1)
 
-  await page.goto("/following")
+  await page.goto("/?type=following")
   // This user doesn't follow their own Test Kitchen org, so its report appears via Lakeshore's portfolio.
   const report = page.locator("article").filter({ hasText: `Report ${id}` })
   await expect(report.getByText("From the portfolio of")).toBeVisible()
@@ -684,7 +684,7 @@ test("F-086: follow a person from their profile; their posts reach Following; un
   await page.locator("main").getByRole("button", { name: "Follow", exact: true }).first().click()
   await expect(page.locator("main").getByRole("button", { name: "Following" }).first()).toBeVisible()
   await expect.poll(async () => (await sql`select count(*)::int n from person_follows where follower_id = ${userId} and followee_id = ${author.id}`)[0].n).toBe(1)
-  await page.goto("/following")
+  await page.goto("/?type=following")
   await expect(page.locator("article").filter({ hasText: author.body.slice(0, 40) }).first()).toBeVisible()
   await page.goto(`/u/${author.handle}`)
   await page.locator("main").getByRole("button", { name: "Following" }).first().click()
@@ -706,8 +706,10 @@ test("F-088: Following: follow a cause, open it to see its organizations, switch
   await expect(panel.getByRole("button", { name: /Following cause/ })).toBeVisible()
   await page.reload()
   await expect(page.getByRole("navigation", { name: "Filter by your causes" }).getByRole("link", { name: "Animals" })).toBeVisible()
+  await page.getByRole("navigation", { name: "Following sections" }).getByRole("link", { name: /People/ }).click()
+  await expect(page).toHaveURL(/tab=people/)
   await page.getByRole("navigation", { name: "Following sections" }).getByRole("link", { name: /Organizations/ }).click()
-  await expect(page).toHaveURL(/tab=orgs/)
+  await expect(page).not.toHaveURL(/tab=/) // F-118: Organizations is the default tab (no Feed)
   await expect(page.getByRole("link", { name: "Harbor Table" }).first()).toBeVisible()
 })
 

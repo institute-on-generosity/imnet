@@ -3,38 +3,33 @@ import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import Link from "@/components/intent-link"
 import { FollowButton } from "@/components/follow-button"
-import { OlderPosts } from "@/components/older-posts"
 import { OrgMark } from "@/components/org-mark"
 import { FoundationMark } from "@/components/org-type-badge"
 import { PersonAvatar } from "@/components/person-avatar"
-import { Feed } from "@/components/post-card"
 import { Panel, TwoColumn } from "@/components/shell"
 import { SuggestedOrgs } from "@/components/side-cards"
 import { FriendsActivity } from "@/components/following-friends"
 import { mixWall, SuggestionWall } from "@/components/follow-cards"
 import { CAUSE_ICON } from "@/lib/cause-icons"
-import { decodeCursor } from "@/lib/cursor"
-import { portfolioContext } from "@/lib/portfolio"
 import {
-  getCauses, getOrgsByCause, getConfirmedGrantIds, getFeedPage, getFollowedCauseSlugs, getFollowedOrgsDetail, getFollowedPeople, getNotableGivers, getGivesTo, getFriendsExperiences, getFriendSuggestions,
-  getGrantsForPosts, getMovedPostIds, getOrgsInCauses, getSavedPostIds,
+  getCauses, getOrgsByCause, getFollowedCauseSlugs, getFollowedOrgsDetail, getFollowedPeople, getNotableGivers, getGivesTo, getFriendsExperiences, getFriendSuggestions, getOrgsInCauses,
 } from "@/lib/queries"
-import { createClient, getUserId } from "@/lib/supabase/server"
+import { getUserId } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
 import type { OrgSummary } from "@/lib/types"
 import { CauseGrid } from "./cause-grid"
 
 export const metadata = { title: "Following" }
 
-type Tab = "feed" | "orgs" | "people"
+type Tab = "orgs" | "people"
 
-// Your network (F-088): the causes you follow, then what you follow in them: a feed, the
-// organizations and the people. Suggestions come from your causes, alphabetical.
+// Your network (F-088): the causes you follow, suggestions, what friends are up to, then the
+// organizations and people you follow. Their posts live on Home under the "Following" filter (F-118).
 export default async function FollowingPage({ searchParams }: PageProps<"/following">) {
   const userId = await getUserId()
   if (!userId) redirect("/login?next=/following")
-  const { tab: rawTab, cause: rawCause, before } = await searchParams
-  const tab: Tab = rawTab === "orgs" || rawTab === "people" ? rawTab : "feed"
+  const { tab: rawTab, cause: rawCause } = await searchParams
+  const tab: Tab = rawTab === "people" ? "people" : "orgs"
   const [causes, myCauses, orgsByCause, orgs, people, notable, friends] = await Promise.all([
     getCauses(), getFollowedCauseSlugs(userId), getOrgsByCause(), getFollowedOrgsDetail(userId), getFollowedPeople(userId), getNotableGivers(), getFriendSuggestions(userId),
   ])
@@ -46,7 +41,7 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
   const suggested = pool.slice(6)
   const href = (t: Tab, c?: string) => {
     const p = new URLSearchParams()
-    if (t !== "feed") p.set("tab", t)
+    if (t !== "orgs") p.set("tab", t)
     if (c) p.set("cause", c)
     const q = p.toString()
     return q ? `/following?${q}` : "/following"
@@ -71,7 +66,7 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
 
       <Panel className="overflow-hidden">
         <nav aria-label="Following sections" className="flex border-b px-2 sm:px-4">
-          {([["feed", "Feed"], ["orgs", `Organizations · ${orgs.length}`], ["people", `People · ${people.length}`]] as const).map(([t, label]) => (
+          {([["orgs", `Organizations · ${orgs.length}`], ["people", `People · ${people.length}`]] as const).map(([t, label]) => (
             <Link key={t} href={href(t, cause)} aria-current={tab === t ? "page" : undefined}
               className={cn("border-b-2 px-3 py-3 text-sm font-semibold transition-colors", tab === t ? "border-leaf text-leaf" : "border-transparent text-muted-foreground hover:text-foreground")}>
               {label}
@@ -94,7 +89,6 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
         )}
       </Panel>
 
-      {tab === "feed" && <FollowingFeed userId={userId} orgIds={orgIds} personIds={people.map((p) => p.id)} cause={cause} before={typeof before === "string" ? before : undefined} href={href} />}
 
       {tab === "orgs" && (
         <Panel>
@@ -152,26 +146,6 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
         </Panel>
       )}
     </TwoColumn>
-  )
-}
-
-async function FollowingFeed({ userId, orgIds, personIds, cause, before, href }: { userId: string; orgIds: string[]; personIds: string[]; cause?: string; before?: string; href: (t: Tab, c?: string) => string }) {
-  const cursor = decodeCursor(before)
-  if (orgIds.length === 0 && personIds.length === 0) {
-    return <Panel className="p-6 text-sm text-muted-foreground">Follow organizations and people to see their posts here</Panel>
-  }
-  const db = await createClient()
-  const { data: f } = await db.from("orgs").select("id").in("id", orgIds).eq("org_type", "foundation")
-  const reportGrantIds = f?.length ? await getConfirmedGrantIds(f.map((o) => o.id)) : []
-  const page = await getFeedPage({ cause, orgIds, personIds: cause ? [] : personIds, reportGrantIds, before: cursor ?? undefined })
-  const ids = page.posts.map((p) => p.id)
-  const [movedIds, savedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getSavedPostIds(userId, ids), getGrantsForPosts(ids)])
-  const base = href("feed", cause)
-  return (
-    <>
-      <Feed posts={page.posts} empty="Nothing new in this cause yet" movedIds={movedIds} savedIds={savedIds} signedIn grantsByPost={grantsByPost} context={portfolioContext(page.posts, new Set(orgIds))} />
-      <OlderPosts olderHref={page.next ? `${base}${base.includes("?") ? "&" : "?"}before=${page.next}` : null} newestHref={base} isFirstPage={!cursor} />
-    </>
   )
 }
 

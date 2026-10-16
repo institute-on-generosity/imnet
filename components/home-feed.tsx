@@ -28,7 +28,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
   const reportGrantIds = orgIds?.length ? await getConfirmedGrantIds(await foundationsAmong(orgIds)) : []
   const [causes, page] = await Promise.all([
     getCauses(),
-    orgIds && orgIds.length === 0 && !personIds?.length ? Promise.resolve({ posts: [], next: null }) : getFeedPage({ cause, orgIds, personIds, orgType, reportGrantIds, before: cursor ?? undefined }),
+    orgIds && orgIds.length === 0 && !personIds?.length ? Promise.resolve({ posts: [], next: null }) : getFeedPage({ cause, orgIds, personIds, orgType: orgType === "following" ? undefined : orgType, reportGrantIds, before: cursor ?? undefined }),
   ])
   const { posts, next } = page
   const ids = posts.map((p) => p.id)
@@ -61,13 +61,13 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
       <h1 className="sr-only">{followingOnly ? "From organizations you follow" : "What giving made possible"}</h1>
       {/* F-097: filters are a toolbar on the page, not another card between you and the posts. */}
       <div className="space-y-2 py-1">
-        <OrgTypeFilter active={orgType} cause={cause} basePath={basePath} donors={!followingOnly} />
-        {orgType !== "donor" && <CauseFilter causes={causes} active={cause} type={orgType} basePath={basePath} />}
+        <OrgTypeFilter active={followingOnly ? "following" : orgType} cause={cause} basePath={basePath} following={!!userId} />
+        {orgType !== "donor" && <CauseFilter causes={causes} active={cause} type={followingOnly ? "following" : orgType} basePath={basePath} />}
       </div>
       <Feed posts={posts} empty={empty} movedIds={movedIds} savedIds={savedIds} signedIn={!!userId} grantsByPost={grantsByPost} context={context} />
       <OlderPosts
-        olderHref={next ? feedHref(basePath, { cause, type: orgType, before: next }) : null}
-        newestHref={feedHref(basePath, { cause, type: orgType })}
+        olderHref={next ? feedHref(basePath, { cause, type: followingOnly ? "following" : orgType, before: next }) : null}
+        newestHref={feedHref(basePath, { cause, type: followingOnly ? "following" : orgType })}
         isFirstPage={!cursor}
       />
     </ThreeColumn>
