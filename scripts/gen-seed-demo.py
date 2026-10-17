@@ -758,7 +758,7 @@ select (array['view','view','view','view','view','view','share','donate_click'])
 
 # F-102 South Bay org details (city, founded, team, about); no cover photo.
 for n, (loc, founded, team, about) in southbay.DETAILS.items():
-    out.append(f"update orgs set location = {q(loc)}, founded_year = {founded}, team_size = {q(team)}, about = {q(about)} where id = '{oid(n)}';")
+    out.append(f"update orgs set location = {q(loc)}, founded_year = {founded}, team_size = {q(team)}, about = {q(about)}, cover_url = '{oid(n)}/cover.webp' where id = '{oid(n)}';")
 out.append("")
 
 

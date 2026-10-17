@@ -84,7 +84,7 @@ ORGS = [
      []),
 ]
 
-# (org, city, founded, team, about)
+# (org, city, founded, team, about); covers come from scripts/gen-southbay-covers.mjs (F-120)
 DETAILS = {
     46: ("Mountain View, CA", 2009, "6 staff, 240 volunteers", "We started as a Tuesday soup night in a church basement. Now we cook five nights a week and keep a free grocery shelf stocked."),
     47: ("Mountain View, CA", 2016, "3 staff, 900 volunteers", "Weekend crews restore the marsh edges along the bay trail, one weeding day at a time."),

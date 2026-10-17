@@ -1,6 +1,7 @@
 import { BadgeCheck } from "lucide-react"
 import Link from "@/components/intent-link"
 import { orgCoverSrc } from "@/lib/cover"
+import { logoSrc } from "@/lib/logo"
 import type { FriendSuggestion, NotableGiver, OrgSummaryWithMission } from "@/lib/queries"
 import { FoundationMark } from "./org-type-badge"
 import { OrgMark } from "./org-mark"
@@ -43,12 +44,20 @@ function OrgTile({ org }: { org: WallOrg }) {
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
+        ) : logoSrc(org.logo_url) ? (
+          // F-120: no cover photo yet: the org's own logo, blurred as a backdrop, crisp in the middle.
+          <div className="relative grid aspect-[4/3] place-items-center overflow-hidden bg-muted">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={logoSrc(org.logo_url)!} alt="" loading="lazy" className="absolute inset-0 size-full scale-125 object-cover opacity-70 blur-2xl" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={logoSrc(org.logo_url)!} alt="" loading="lazy" className="relative size-24 rounded-2xl shadow-lg ring-4 ring-white/70" />
+          </div>
         ) : (
           <div className={org.org_type === "foundation" ? "aspect-[4/3] bg-primary" : "aspect-[4/3] bg-leaf-soft"} />
         )}
       </Link>
       <div className="relative px-3 pb-3">
-        <span className="-mt-6 mb-1 block w-fit rounded-xl ring-2 ring-card"><OrgMark org={org} size="md" /></span>
+        {cover ? <span className="-mt-6 mb-1 block w-fit rounded-xl ring-2 ring-card"><OrgMark org={org} size="md" /></span> : <span className="block h-3" />}
         <p className="flex items-center gap-1.5"><Link href={`/o/${org.slug}`} className="font-semibold leading-snug hover:underline">{org.name}</Link>{org.org_type === "foundation" && <FoundationMark />}</p>
         <p className="text-xs text-faint">{org.org_type === "foundation" ? "Foundation" : "Nonprofit"}{org.location ? ` · ${org.location}` : ""}</p>
         {org.mission && <p className="mt-1.5 line-clamp-4 text-sm text-muted-foreground">{org.mission}</p>}
