@@ -99,7 +99,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
             {org.location && <><span>{org.location}</span><span aria-hidden>•</span></>}
             <span>{followers.toLocaleString("en-US")} {followers === 1 ? "follower" : "followers"}</span>
             <span aria-hidden>•</span>
-            <span className="inline-flex items-center gap-1"><BadgeCheck className="size-4 text-leaf" aria-hidden />Verified</span>
+            <Link href="/verified" className="inline-flex items-center gap-1 hover:underline"><BadgeCheck className="size-4 text-leaf" aria-hidden />Verified</Link>
           </p>
           {org.org_type === "nonprofit" && <Backers grants={grants} />}
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -193,7 +193,7 @@ export function OrgProfile({ org, stats, causes, followers, posts, postsPaging, 
                 </>
               )}
               <dt className="font-semibold">Verified</dt>
-              <dd>EIN and staff email checked by imnet</dd>
+              <dd>EIN and staff email checked by imnet · <Link href="/verified" className="underline">What this means</Link></dd>
             </dl>
           </Panel>
           <GiftsFund org={org} />

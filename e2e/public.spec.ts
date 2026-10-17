@@ -582,3 +582,10 @@ test("F-113: Notable givers lists verified public figures and who they give to",
   await card.getByRole("link", { name: "Marisol Vega" }).click()
   await expect(page.getByTitle("Verified public figure")).toContainText("Public figure · Chef")
 })
+
+test("F-126: Verified on an org links to a plain explanation of what it means", async ({ page }) => {
+  await page.goto("/o/harbor-table")
+  await page.getByRole("link", { name: "Verified", exact: true }).click()
+  await expect(page.getByRole("heading", { name: "What Verified means", level: 1 })).toBeVisible()
+  await expect(page.getByText(/isn.t a rating of how well an organization uses money/)).toBeVisible()
+})
