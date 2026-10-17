@@ -1,5 +1,4 @@
 import { BadgeCheck } from "lucide-react"
-import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import Link from "@/components/intent-link"
 import { FollowButton } from "@/components/follow-button"
@@ -8,11 +7,10 @@ import { FoundationMark } from "@/components/org-type-badge"
 import { PersonAvatar } from "@/components/person-avatar"
 import { Panel, TwoColumn } from "@/components/shell"
 import { SuggestedOrgs } from "@/components/side-cards"
-import { FriendsActivity } from "@/components/following-friends"
 import { mixWall, SuggestionWall } from "@/components/follow-cards"
 import { CAUSE_ICON } from "@/lib/cause-icons"
 import {
-  getCauses, getOrgsByCause, getFollowedCauseSlugs, getFollowedOrgsDetail, getFollowedPeople, getNotableGivers, getGivesTo, getFriendsExperiences, getFriendSuggestions, getOrgsInCauses,
+  getCauses, getOrgsByCause, getFollowedCauseSlugs, getFollowedOrgsDetail, getFollowedPeople, getNotableGivers, getGivesTo, getFriendSuggestions, getOrgsInCauses,
 } from "@/lib/queries"
 import { getUserId } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
@@ -64,8 +62,6 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/discove
         <SuggestionWall items={mixWall(wallOrgs, friends.slice(0, 6), notable.map((g) => ({ g, following: people.some((p) => p.id === g.id) })).filter((n) => !n.following))} />
       </Panel>
 
-      {/* F-117: what friends just did, row by row, above everything else you follow. */}
-      <Suspense fallback={null}><PeopleActivity userId={userId} /></Suspense>
 
       <Panel className="overflow-hidden">
         <nav aria-label="Discover sections" className="flex border-b px-2 sm:px-4">
@@ -150,8 +146,4 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/discove
       )}
     </TwoColumn>
   )
-}
-
-async function PeopleActivity({ userId }: { userId: string }) {
-  return <FriendsActivity items={await getFriendsExperiences(userId, 8)} />
 }

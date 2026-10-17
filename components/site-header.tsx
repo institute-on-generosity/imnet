@@ -28,7 +28,7 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-20 border-b bg-card">
-      <div className={`${CONTAINER} flex items-center gap-2 sm:gap-3`}>
+      <div className={`${CONTAINER} flex items-center gap-1.5 min-[360px]:gap-2 sm:gap-3`}>
         <Link href="/" className="font-heading text-xl font-semibold tracking-tight sm:text-2xl" aria-label="imnet home">imnet</Link>
 
         <HeaderSearch />
@@ -40,6 +40,7 @@ export async function SiteHeader() {
                 items={[
                   { href: "/", label: "Home", icon: "home", exact: true },
                   { href: "/discover", label: "Discover", icon: "following" },
+                  { href: "/friends", label: "Friends", icon: "friends" },
                   { href: "/communities", label: "Communities", icon: "groups" },
                   { href: "/messages", label: "Messages", icon: "messages", dot: unreadMessages },
                   { href: "/notifications", label: "Notifications", icon: "notifications", dot: unread },

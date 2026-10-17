@@ -730,7 +730,7 @@ test("F-090: a volunteer call says who has volunteered there (confirmed hours, o
 })
 
 test("B-031: no page scrolls sideways, from small phones to narrow desktop windows", async () => {
-  for (const path of ["/", "/discover", "/notifications", "/communities", "/messages"]) {
+  for (const path of ["/", "/discover", "/friends", "/notifications", "/communities", "/messages"]) {
     await page.goto(path)
     for (const width of [320, 360, 660, 700, 1024]) {
       await page.setViewportSize({ width, height: 900 })
@@ -854,7 +854,8 @@ test("F-114: Following shows what people you follow did, and notable givers to f
   await sql`insert into person_follows (follower_id, followee_id) values (${userId}, ${FRIEND}) on conflict do nothing`
   await sql`insert into experiences (user_id, org_id, kind, note) values (${FRIEND}, ${harbor.id}, 'volunteered', ${`Great Saturday ${id}`}) on conflict (user_id, org_id, kind) do update set note = excluded.note`
   try {
-    await page.goto("/discover") // F-117: friends' activity sits above the tabs
+    await page.goto("/friends") // F-122: friends' activity has its own tab
+    await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Friends" })).toHaveAttribute("aria-current", "page")
     const recent = page.getByRole("region", { name: "What your friends are up to" })
     await expect(recent.getByText(`Great Saturday ${id}`)).toBeVisible()
     // F-115: card rows to follow friends (here: people in your city) and notable givers.
