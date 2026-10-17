@@ -895,6 +895,33 @@ test("F-124: a new account gets a three-step welcome; finishing it clears the Ho
   }
 })
 
+test("F-125: report a person from their profile; the report reaches review", async () => {
+  const FRIEND = "00000000-0000-4000-c000-000000000001"
+  const [{ handle }] = await sql`select handle from profiles where id = ${FRIEND}`
+  try {
+    await page.goto(`/u/${handle}`)
+    await page.getByRole("button", { name: /^Report / }).click()
+    const dialog = page.getByRole("dialog")
+    await dialog.getByText("Spam or scam").click()
+    await dialog.getByRole("button", { name: "Send report" }).click()
+    await expect(dialog.getByRole("status")).toHaveText("Thanks. We'll review it.")
+    await expect.poll(async () => (await sql`select reason from reports where reporter_id = ${userId} and profile_id = ${FRIEND}`)[0]?.reason).toBe("Spam or scam")
+  } finally {
+    await sql`delete from reports where reporter_id = ${userId}`
+  }
+})
+
+test("F-127: media marked as made with AI shows an AI-assisted label", async () => {
+  const [post] = await sql`select id from posts where cardinality(image_paths) > 0 order by created_at desc limit 1`
+  await sql`update posts set ai_assisted = true where id = ${post.id}`
+  try {
+    await page.goto(`/p/${post.id}`)
+    await expect(page.getByText("AI-assisted", { exact: true }).first()).toBeVisible()
+  } finally {
+    await sql`update posts set ai_assisted = false where id = ${post.id}`
+  }
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)
