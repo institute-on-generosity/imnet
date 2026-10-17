@@ -19,15 +19,15 @@ import { cn } from "@/lib/utils"
 import type { OrgSummary } from "@/lib/types"
 import { CauseGrid } from "./cause-grid"
 
-export const metadata = { title: "Following" }
+export const metadata = { title: "Discover" }
 
 type Tab = "orgs" | "people"
 
 // Your network (F-088): the causes you follow, suggestions, what friends are up to, then the
 // organizations and people you follow. Their posts live on Home under the "Following" filter (F-118).
-export default async function FollowingPage({ searchParams }: PageProps<"/following">) {
+export default async function DiscoverPage({ searchParams }: PageProps<"/discover">) {
   const userId = await getUserId()
-  if (!userId) redirect("/login?next=/following")
+  if (!userId) redirect("/login?next=/discover")
   const { tab: rawTab, cause: rawCause } = await searchParams
   const tab: Tab = rawTab === "people" ? "people" : "orgs"
   const [causes, myCauses, orgsByCause, orgs, people, notable, friends] = await Promise.all([
@@ -44,19 +44,22 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
     if (t !== "orgs") p.set("tab", t)
     if (c) p.set("cause", c)
     const q = p.toString()
-    return q ? `/following?${q}` : "/following"
+    return q ? `/discover?${q}` : "/discover"
   }
 
   const givesTo = tab === "people" ? await getGivesTo(people.filter((p) => p.public_figure).map((p) => p.id)) : new Map<string, OrgSummary[]>()
   return (
     <TwoColumn right={<>
+      {/* Your causes live beside the page (compact list; open one to see its organizations). */}
+      <Panel aria-labelledby="your-causes" className="p-3">
+        <h2 id="your-causes" className="h-rail px-1 pb-2">Your causes</h2>
+        <CauseGrid causes={causes} followed={myCauses} orgsByCause={orgsByCause} followingOrgIds={orgs.map((o) => o.id)} rail />
+      </Panel>
       <SuggestedOrgs title={myCauses.length ? "Suggested in your causes" : "Add to your network"} orgs={suggested} signedIn />
     </>}>
       <Panel className="p-4 sm:p-6">
-        <h1 className="h-page">Following</h1>
+        <h1 className="h-page">Discover</h1>
         {myCauses.length === 0 && <p className="mt-1.5 text-sm text-muted-foreground">Pick the causes you care about to shape this page</p>}
-        <h2 className="h-sub mt-5 mb-2">Your causes</h2>
-        <CauseGrid causes={causes} followed={myCauses} orgsByCause={orgsByCause} followingOrgIds={orgs.map((o) => o.id)} />
         {/* F-116: organizations, friends and notable givers to follow, mixed like a pin board. */}
         <SuggestionWall items={mixWall(wallOrgs, friends.slice(0, 6), notable.map((g) => ({ g, following: people.some((p) => p.id === g.id) })).filter((n) => !n.following))} />
       </Panel>
@@ -65,7 +68,7 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
       <Suspense fallback={null}><PeopleActivity userId={userId} /></Suspense>
 
       <Panel className="overflow-hidden">
-        <nav aria-label="Following sections" className="flex border-b px-2 sm:px-4">
+        <nav aria-label="Discover sections" className="flex border-b px-2 sm:px-4">
           {([["orgs", `Organizations · ${orgs.length}`], ["people", `People · ${people.length}`]] as const).map(([t, label]) => (
             <Link key={t} href={href(t, cause)} aria-current={tab === t ? "page" : undefined}
               className={cn("border-b-2 px-3 py-3 text-sm font-semibold transition-colors", tab === t ? "border-leaf text-leaf" : "border-transparent text-muted-foreground hover:text-foreground")}>

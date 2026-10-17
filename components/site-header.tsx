@@ -39,7 +39,7 @@ export async function SiteHeader() {
               <NavLinks
                 items={[
                   { href: "/", label: "Home", icon: "home", exact: true },
-                  { href: "/following", label: "Following", icon: "following" },
+                  { href: "/discover", label: "Discover", icon: "following" },
                   { href: "/communities", label: "Communities", icon: "groups" },
                   { href: "/messages", label: "Messages", icon: "messages", dot: unreadMessages },
                   { href: "/notifications", label: "Notifications", icon: "notifications", dot: unread },

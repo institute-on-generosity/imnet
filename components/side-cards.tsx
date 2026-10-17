@@ -52,7 +52,7 @@ export function ViewerCard({ viewer, extras }: { viewer: Viewer; extras: ViewerE
           </div>
           <div className="flex items-baseline justify-between gap-2">
             <dt className="text-muted-foreground">Following</dt>
-            <dd><Link href="/following" className="font-semibold text-leaf hover:underline">{viewer.following}</Link></dd>
+            <dd><Link href="/discover?tab=people" className="font-semibold text-leaf hover:underline">{viewer.following}</Link></dd>
           </div>
         </dl>
         <p className="border-t px-4 py-2 text-xs text-faint">Only you see these</p>
