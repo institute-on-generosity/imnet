@@ -78,6 +78,19 @@ export async function reportPost(postId: string, reason: string) {
   await supabase.from("reports").insert({ post_id: postId, reporter_id: userId, reason: reason.slice(0, 1000) })
 }
 
+// F-125: report a person; from a conversation the report carries their last few messages.
+const REPORT_REASONS = ["Spam or scam", "Harassment or hate", "Pretending to be someone else", "Something else"]
+export async function reportPerson(profileId: string, conversationId: string | null, _prev: unknown, form: FormData): Promise<{ error?: string; ok?: boolean }> {
+  await requireUser()
+  const reason = String(form.get("reason") ?? "")
+  if (!REPORT_REASONS.includes(reason)) return { error: "Pick a reason" }
+  const details = String(form.get("details") ?? "").trim().slice(0, 800)
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("report_person", { target: profileId, why: details ? `${reason}: ${details}` : reason, convo: conversationId ?? undefined })
+  if (error) return { error: error.message }
+  return { ok: true }
+}
+
 // ---------------------------------------------------------------------------
 // Nonprofit staff
 // ---------------------------------------------------------------------------
@@ -244,6 +257,7 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
       image_paths: images.paths,
       image_alts: images.alts,
       beneficiary_consent: consent,
+      ai_assisted: form.get("ai_assisted") === "on" && (images.paths.length > 0 || !!embed_url),
       reports_grant_id: reportsGrant || null,
       ...call,
       ...actionFields,
@@ -669,7 +683,7 @@ export async function createDonorPost(_: ActionState, form: FormData): Promise<A
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("posts")
-    .insert({ author_id: userId, body: body.data, about_org_id: about || null, image_paths: images.paths, image_alts: images.alts, beneficiary_consent: consent })
+    .insert({ author_id: userId, body: body.data, about_org_id: about || null, image_paths: images.paths, image_alts: images.alts, beneficiary_consent: consent, ai_assisted: form.get("ai_assisted") === "on" && images.paths.length > 0 })
     .select("id")
     .single()
   if (error) return fail(form, error.message.includes("row-level security") ? "You can't spotlight that organization." : error.message)
