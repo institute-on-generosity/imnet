@@ -28,7 +28,7 @@ export function NavLinks({ items }: { items: Item[] }) {
               prefetch
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex h-14 min-w-[30px] flex-col items-center justify-center gap-0.5 border-b-2 px-0 text-xs min-[360px]:min-w-8 min-[360px]:px-0.5 min-[380px]:min-w-9 sm:min-w-11 sm:px-1.5 whitespace-nowrap transition-colors lg:min-w-20 lg:px-2",
+                "flex h-14 min-w-7 flex-col items-center justify-center gap-0.5 border-b-2 px-0 text-xs min-[360px]:min-w-8 min-[360px]:px-0.5 min-[380px]:min-w-9 sm:min-w-11 sm:px-1.5 whitespace-nowrap transition-colors lg:min-w-20 lg:px-2",
                 active ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
