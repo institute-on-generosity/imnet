@@ -1211,11 +1211,13 @@ export async function getNotableGivers(limit = 24): Promise<NotableGiver[]> {
 
 // F-114 Recent experiences from people you follow (RLS only returns those you may see).
 export type FriendExperience = PersonExperience & { person: ChatAuthor & { public_figure: boolean } }
-export async function getFriendsExperiences(userId: string, limit = 12): Promise<FriendExperience[]> {
+export async function getFriendsExperiences(userId: string, limit = 12, before?: string): Promise<FriendExperience[]> {
   const supabase = await createClient()
-  const { data } = await supabase.from("experiences")
+  let q = supabase.from("experiences")
     .select("id, kind, note, hours, amount_usd, created_at, org:orgs!inner(id, slug, name, logo_url, org_type), person:profiles!inner(id, handle, display_name, avatar_url, public_figure)")
     .neq("user_id", userId).order("created_at", { ascending: false }).limit(limit)
+  if (before) q = q.lt("created_at", before)
+  const { data } = await q
   return (data ?? []) as unknown as FriendExperience[]
 }
 
