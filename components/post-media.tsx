@@ -1,3 +1,4 @@
+import { Sparkles } from "lucide-react"
 import { postImageUrl, postVideoUrl } from "@/lib/queries"
 import type { Post } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -12,14 +13,24 @@ const GRID: Record<number, string> = {
   4: "grid-cols-2 grid-rows-2",
 }
 
-export function PostMedia({ post }: { post: Pick<Post, "org" | "embed_url" | "embed_credit" | "video_path" | "video_poster_path" | "video_alt" | "video_credit" | "image_paths" | "image_alts" | "image_credits"> }) {
+// F-127: says plainly when the poster marked media as made or changed with AI.
+function AiLabel() {
+  return (
+    <span title="The poster says AI made or changed this media" className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
+      <Sparkles className="size-3" aria-hidden />AI-assisted
+    </span>
+  )
+}
+
+export function PostMedia({ post }: { post: Pick<Post, "org" | "embed_url" | "embed_credit" | "video_path" | "video_poster_path" | "video_alt" | "video_credit" | "image_paths" | "image_alts" | "image_credits"> & { ai_assisted?: boolean } }) {
   const images = post.image_paths.slice(0, 4)
   const credits = [...new Set(post.image_credits.filter(Boolean))]
 
   return (
     <>
       {images.length > 0 && (
-        <figure className="mt-3">
+        <figure className="relative mt-3">
+          {post.ai_assisted && <AiLabel />}
           {/* Fixed 4:3 frame so lazy-loaded photos don't shift the feed as they arrive */}
           <div className={cn("grid aspect-[4/3] gap-0.5 overflow-hidden bg-muted", GRID[images.length])}>
             {images.map((path, i) => (
@@ -42,7 +53,8 @@ export function PostMedia({ post }: { post: Pick<Post, "org" | "embed_url" | "em
         </figure>
       )}
       {post.video_path && (
-        <figure className="mt-3">
+        <figure className="relative mt-3">
+          {post.ai_assisted && <AiLabel />}
           <div className="aspect-video bg-black">
             <AutoplayVideo
               src={postVideoUrl(post.video_path)}
@@ -56,7 +68,8 @@ export function PostMedia({ post }: { post: Pick<Post, "org" | "embed_url" | "em
         </figure>
       )}
       {post.embed_url && (
-        <figure className="mt-3">
+        <figure className="relative mt-3">
+          {post.ai_assisted && <AiLabel />}
           <div className="aspect-video bg-muted">
             <AutoplayEmbed src={post.embed_url} title={`Video shared by ${post.org?.name ?? "imnet"}`} />
           </div>

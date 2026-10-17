@@ -5,7 +5,9 @@ import { OlderPosts } from "@/components/older-posts"
 import { decodeCursor } from "@/lib/cursor"
 import { feedHref } from "@/lib/feed-href"
 import { Feed } from "@/components/post-card"
-import { ThreeColumn } from "@/components/shell"
+import { Panel, ThreeColumn } from "@/components/shell"
+import Link from "@/components/intent-link"
+import { buttonVariants } from "@/components/ui/button"
 import { UpcomingEvents } from "@/components/events-panel"
 import { GivingAtWork, ThisWeekNearYou } from "@/components/engagement-cards"
 import { CallsCard } from "@/components/calls-card"
@@ -56,6 +58,7 @@ export async function HomeFeed({ cause, orgType, followingOnly, basePath, before
         </div>
       }
     >
+      {userId && !followingOnly && <Suspense fallback={null}><WelcomeCard userId={userId} /></Suspense>}
       {userId && !followingOnly && <Suspense fallback={null}><GivingAtWorkCard userId={userId} skip={posts[0]?.id} /></Suspense>}
       {userId && !followingOnly && <Suspense fallback={null}><Composer userId={userId} /></Suspense>}
       <h1 className="sr-only">{followingOnly ? "From organizations you follow" : "What giving made possible"}</h1>
@@ -117,4 +120,22 @@ async function foundationsAmong(orgIds: string[]) {
 async function GivingAtWorkCard({ userId, skip }: { userId: string; skip?: string }) {
   const updates = (await getGivingAtWork(userId, 14)).filter((u) => u.id !== skip)
   return updates[0] ? <GivingAtWork update={updates[0]} more={updates.length - 1} /> : null
+}
+
+// F-124: until someone finishes (or skips) the welcome steps, Home invites them to.
+async function WelcomeCard({ userId }: { userId: string }) {
+  const supabase = await createClient()
+  const { data } = await supabase.from("profiles").select("onboarded_at").eq("id", userId).single()
+  if (data?.onboarded_at) return null
+  return (
+    <Panel aria-labelledby="get-started" className="overflow-hidden border-leaf/30">
+      <div className="flex flex-wrap items-center gap-4 bg-gradient-to-r from-leaf-soft to-marigold-soft/60 p-4 sm:p-5">
+        <div className="min-w-0 flex-1">
+          <h2 id="get-started" className="h-section">Get started in three steps</h2>
+          <p className="text-sm text-muted-foreground">Pick your causes, tell us your city, and follow a few people and organizations</p>
+        </div>
+        <Link href="/welcome" className={buttonVariants()}>Get started</Link>
+      </div>
+    </Panel>
+  )
 }

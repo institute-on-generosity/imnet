@@ -78,6 +78,19 @@ export async function reportPost(postId: string, reason: string) {
   await supabase.from("reports").insert({ post_id: postId, reporter_id: userId, reason: reason.slice(0, 1000) })
 }
 
+// F-125: report a person; from a conversation the report carries their last few messages.
+const REPORT_REASONS = ["Spam or scam", "Harassment or hate", "Pretending to be someone else", "Something else"]
+export async function reportPerson(profileId: string, conversationId: string | null, _prev: unknown, form: FormData): Promise<{ error?: string; ok?: boolean }> {
+  await requireUser()
+  const reason = String(form.get("reason") ?? "")
+  if (!REPORT_REASONS.includes(reason)) return { error: "Pick a reason" }
+  const details = String(form.get("details") ?? "").trim().slice(0, 800)
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("report_person", { target: profileId, why: details ? `${reason}: ${details}` : reason, convo: conversationId ?? undefined })
+  if (error) return { error: error.message }
+  return { ok: true }
+}
+
 // ---------------------------------------------------------------------------
 // Nonprofit staff
 // ---------------------------------------------------------------------------
@@ -244,6 +257,7 @@ export async function createPost(orgId: string, _: ActionState, form: FormData):
       image_paths: images.paths,
       image_alts: images.alts,
       beneficiary_consent: consent,
+      ai_assisted: form.get("ai_assisted") === "on" && (images.paths.length > 0 || !!embed_url),
       reports_grant_id: reportsGrant || null,
       ...call,
       ...actionFields,
@@ -669,7 +683,7 @@ export async function createDonorPost(_: ActionState, form: FormData): Promise<A
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("posts")
-    .insert({ author_id: userId, body: body.data, about_org_id: about || null, image_paths: images.paths, image_alts: images.alts, beneficiary_consent: consent })
+    .insert({ author_id: userId, body: body.data, about_org_id: about || null, image_paths: images.paths, image_alts: images.alts, beneficiary_consent: consent, ai_assisted: form.get("ai_assisted") === "on" && images.paths.length > 0 })
     .select("id")
     .single()
   if (error) return fail(form, error.message.includes("row-level security") ? "You can't spotlight that organization." : error.message)
@@ -822,6 +836,7 @@ export async function joinGroup(groupId: string, slug: string) {
   await supabase.from("group_members").insert({ group_id: groupId })
   revalidatePath(`/communities/${slug}`)
   revalidatePath("/communities")
+  revalidatePath("/welcome")
 }
 
 export async function leaveGroup(groupId: string, slug: string) {
@@ -942,4 +957,41 @@ export async function shareGift(orgId: string, slug: string, donationId: string,
   const { error } = await supabase.from("experiences").upsert({ org_id: orgId, kind: "gave", amount_usd }, { onConflict: "user_id,org_id,kind" })
   revalidatePath(`/o/${slug}`)
   return !error
+}
+
+// F-123 Who can start a direct message with you.
+export async function setMessagePolicy(policy: "everyone" | "connected" | "nobody") {
+  const userId = await requireUser()
+  if (!["everyone", "connected", "nobody"].includes(policy)) return
+  const supabase = await createClient()
+  await supabase.from("profiles").update({ message_policy: policy }).eq("id", userId)
+  revalidatePath("/settings/profile")
+}
+
+// ---------------------------------------------------------------------------
+// F-124 Welcome steps: causes, city, then follow a few
+// ---------------------------------------------------------------------------
+export async function saveWelcomeCauses(form: FormData) {
+  const userId = await requireUser()
+  const picked = form.getAll("causes").map(String).filter((s) => /^[a-z-]{2,40}$/.test(s)).slice(0, 10)
+  const supabase = await createClient()
+  await supabase.from("profile_causes").delete().eq("user_id", userId)
+  if (picked.length) await supabase.from("profile_causes").insert(picked.map((cause_slug) => ({ user_id: userId, cause_slug })))
+  redirect("/welcome?step=2")
+}
+
+export async function saveWelcomeCity(form: FormData) {
+  const userId = await requireUser()
+  const location = String(form.get("location") ?? "").trim().slice(0, 80)
+  const supabase = await createClient()
+  if (location) await supabase.from("profiles").update({ location }).eq("id", userId)
+  redirect("/welcome?step=3")
+}
+
+export async function finishWelcome() {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("profiles").update({ onboarded_at: new Date().toISOString() }).eq("id", userId)
+  revalidatePath("/", "layout")
+  redirect("/")
 }

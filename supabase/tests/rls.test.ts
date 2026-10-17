@@ -886,6 +886,19 @@ describe("groups and messages", () => {
     expect((await t.as(CAL, `insert into conversations default values`)).error).toBeDefined() // only via the function
   })
 
+  it("F-123: people choose who can message them: everyone, connected (default) or nobody", async () => {
+    const DORA = "20000000-0000-4000-8000-000000000004" // shares nothing with ALEX
+    await t.owner(`insert into auth.users (id, email) values ('${DORA}', 'dora@groups.example.org') on conflict do nothing`)
+    expect((await t.as(DORA, `select can_message('${ALEX}') ok`)).rows![0]).toEqual({ ok: false })
+    await t.as(ALEX, `update profiles set message_policy = 'everyone' where id = '${ALEX}'`)
+    expect((await t.as(DORA, `select can_message('${ALEX}') ok`)).rows![0]).toEqual({ ok: true })
+    await t.as(ALEX, `update profiles set message_policy = 'nobody' where id = '${ALEX}'`)
+    expect((await t.as(BEA, `select can_message('${ALEX}') ok`)).rows![0]).toEqual({ ok: false }) // even a community co-member
+    await t.as(DORA, `update profiles set message_policy = 'everyone' where id = '${ALEX}'`) // only your own row is updatable
+    expect((await t.owner(`select message_policy from profiles where id = '${ALEX}'`))[0].message_policy).toBe("nobody")
+    await t.as(ALEX, `update profiles set message_policy = 'connected' where id = '${ALEX}'`)
+  })
+
   it("F-100: a DM is readable and writable only by its two people", async () => {
     const convo = ((await t.as(BEA, `select start_conversation('${ALEX}') id`)).rows![0] as { id: string }).id
     expect((await t.as(BEA, `insert into messages (conversation_id, author_id, body) values ('${convo}', '${BEA}', 'Hi Alex')`)).error).toBeUndefined()
@@ -899,6 +912,22 @@ describe("groups and messages", () => {
     expect((await t.as(ALEX, `select has_unread_messages() u`)).rows![0]).toEqual({ u: true })
     await t.as(ALEX, `update conversation_members set last_read_at = now() + interval '1 minute' where conversation_id = '${convo}' and user_id = '${ALEX}'`)
     expect((await t.as(ALEX, `select has_unread_messages() u`)).rows![0]).toEqual({ u: false })
+  })
+
+  it("F-125: reporting a person attaches only their own messages, only from your own conversation", async () => {
+    const convo = ((await t.as(BEA, `select start_conversation('${ALEX}') id`)).rows![0] as { id: string }).id
+    await t.as(BEA, `insert into messages (conversation_id, author_id, body) values ('${convo}', '${BEA}', 'Buy my coin')`)
+    await t.as(ALEX, `insert into messages (conversation_id, author_id, body) values ('${convo}', '${ALEX}', 'No thanks')`)
+    expect((await t.as(ALEX, `select report_person('${BEA}', 'Spam or scam', '${convo}')`)).error).toBeUndefined()
+    const [r] = await t.owner(`select excerpt from reports where profile_id = '${BEA}' and conversation_id = '${convo}'`)
+    expect(r.excerpt).toContain("Buy my coin")
+    expect(r.excerpt).not.toContain("No thanks")
+    expect((await t.as(CAL, `select report_person('${BEA}', 'x', '${convo}')`)).error).toBeDefined() // not CAL's conversation
+    expect((await t.as(ALEX, `select report_person('${ALEX}', 'x')`)).error).toBeDefined() // not yourself
+    // No made-up excerpts through a direct insert; reporters can't read reports back.
+    expect((await t.as(CAL, `insert into reports (profile_id, reporter_id, reason, excerpt) values ('${BEA}', '${CAL}', 'x', 'fake')`)).error).toBeDefined()
+    expect(n((await t.as(ALEX, `select count(*)::int n from reports`)).rows)).toBe(0)
+    await t.owner(`delete from reports where profile_id = '${BEA}'`)
   })
 })
 

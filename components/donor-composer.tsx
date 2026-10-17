@@ -46,6 +46,10 @@ export function DonorComposer({ viewer, orgs }: { viewer: Viewer; orgs: { id: st
             <input type="checkbox" name="beneficiary_consent" className="mt-1" defaultChecked={state?.values?.beneficiary_consent === "on"} />
             <span>Anyone identifiable in my photos has agreed to be shown, and no one is shown while receiving help</span>
           </label>
+          <label className="flex items-start gap-2 text-sm text-muted-foreground">
+            <input type="checkbox" name="ai_assisted" className="mt-1" defaultChecked={state?.values?.ai_assisted === "on"} />
+            <span>My photos were made or changed with AI (shows an &ldquo;AI-assisted&rdquo; label)</span>
+          </label>
           <div className="flex flex-wrap items-center gap-3 border-t pt-3">
             <label className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
               <Megaphone className="size-4 shrink-0" aria-hidden />

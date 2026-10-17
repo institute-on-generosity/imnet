@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/server"
 import type { Cause, Grant, ImpactStat, Org, OrgSummary, OrgType, Post, PostAuthor } from "@/lib/types"
 
 const PAGE_SIZE = 20
-const POST_FIELDS = `id, org_id, author_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, created_at, edited_at, call_deadline, call_apply_url, call_max_award, call_causes, action_url, action_date, goal_usd,
+const POST_FIELDS = `id, org_id, author_id, kind, body, embed_url, embed_credit, video_path, video_poster_path, video_alt, video_credit, image_paths, image_alts, image_credits, ai_assisted, created_at, edited_at, call_deadline, call_apply_url, call_max_award, call_causes, action_url, action_date, goal_usd,
   report_grant:grants!posts_reports_grant_id_fkey(id, amount_usd, purpose, foundation:orgs!grants_foundation_id_fkey(id, slug, name, logo_url, org_type)),
   author:profiles!posts_author_id_fkey(handle, display_name, bio, avatar_url),
   about_org:orgs!posts_about_org_id_fkey(id, slug, name, logo_url, org_type, mission)`

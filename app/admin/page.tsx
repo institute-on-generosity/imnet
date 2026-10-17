@@ -10,6 +10,10 @@ import { createClient, getUserId } from "@/lib/supabase/server"
 
 export const metadata = { title: "Admin" }
 
+type Person = { handle: string; display_name: string | null }
+// F-125: a report names a post or a person.
+const personOf = (r: { person: unknown }) => (Array.isArray(r.person) ? r.person[0] : r.person) as Person | null
+
 export default async function AdminPage() {
   const userId = await getUserId()
   if (!userId) redirect("/login")
@@ -19,7 +23,7 @@ export default async function AdminPage() {
 
   const [{ data: claims }, { data: reports }] = await Promise.all([
     supabase.from("org_claims").select("id, org_name, org_type, ein, website, work_email, note, created_at").eq("status", "pending").order("created_at"),
-    supabase.from("reports").select("id, reason, post_id, created_at").eq("status", "open").order("created_at"),
+    supabase.from("reports").select("id, reason, post_id, excerpt, conversation_id, created_at, person:profiles!reports_profile_id_fkey(handle, display_name)").eq("status", "open").order("created_at"),
   ])
 
   return (
@@ -55,7 +59,11 @@ export default async function AdminPage() {
         <h2 className="h-section">Open reports ({reports?.length ?? 0})</h2>
         <ul className="space-y-1 text-sm">
           {(reports ?? []).map((r) => (
-            <li key={r.id}><a href={`/p/${r.post_id}`} className="underline">Post</a>: {r.reason}</li>
+            <li key={r.id}>
+              {r.post_id ? <a href={`/p/${r.post_id}`} className="underline">Post</a> : <a href={`/u/${personOf(r)?.handle}`} className="underline">{personOf(r)?.display_name ?? `@${personOf(r)?.handle}`}</a>}
+              {r.conversation_id && " (from messages)"}: {r.reason}
+              {r.excerpt && <pre className="mt-1 rounded-md bg-muted p-2 text-xs whitespace-pre-wrap">{r.excerpt}</pre>}
+            </li>
           ))}
         </ul>
       </section>

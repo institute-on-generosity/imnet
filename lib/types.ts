@@ -44,6 +44,8 @@ export type Post = {
   image_paths: string[]
   image_alts: string[]
   image_credits: string[]
+  // F-127: the poster says the photos or video were made or changed with AI.
+  ai_assisted: boolean
   created_at: string
   edited_at: string | null
   org: OrgSummary | null

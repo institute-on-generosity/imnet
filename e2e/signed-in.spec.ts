@@ -873,6 +873,55 @@ test("F-114: Following shows what people you follow did, and notable givers to f
   }
 })
 
+test("F-124: a new account gets a three-step welcome; finishing it clears the Home card", async () => {
+  await sql`update profiles set onboarded_at = null where id = ${userId}`
+  try {
+    await page.goto("/")
+    const card = page.getByRole("region", { name: "Get started in three steps" })
+    await card.getByRole("link", { name: "Get started" }).click()
+    await expect(page.getByRole("heading", { name: "What do you care about?" })).toBeVisible()
+    await page.getByRole("checkbox").first().check({ force: true })
+    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByLabel("City").fill("Austin, TX")
+    await page.getByRole("button", { name: "Continue" }).click()
+    await expect(page.getByRole("heading", { name: /^Communities/ })).toBeVisible()
+    await page.getByRole("button", { name: "Finish and go to Home" }).click()
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByRole("region", { name: "Get started in three steps" })).toHaveCount(0)
+    expect((await sql`select location from profiles where id = ${userId}`)[0].location).toBe("Austin, TX")
+  } finally {
+    await sql`delete from profile_causes where user_id = ${userId}`
+    await sql`update profiles set location = null, onboarded_at = now() where id = ${userId}`
+  }
+})
+
+test("F-125: report a person from their profile; the report reaches review", async () => {
+  const FRIEND = "00000000-0000-4000-c000-000000000001"
+  const [{ handle }] = await sql`select handle from profiles where id = ${FRIEND}`
+  try {
+    await page.goto(`/u/${handle}`)
+    await page.getByRole("button", { name: /^Report / }).click()
+    const dialog = page.getByRole("dialog")
+    await dialog.getByText("Spam or scam").click()
+    await dialog.getByRole("button", { name: "Send report" }).click()
+    await expect(dialog.getByRole("status")).toHaveText("Thanks. We'll review it.")
+    await expect.poll(async () => (await sql`select reason from reports where reporter_id = ${userId} and profile_id = ${FRIEND}`)[0]?.reason).toBe("Spam or scam")
+  } finally {
+    await sql`delete from reports where reporter_id = ${userId}`
+  }
+})
+
+test("F-127: media marked as made with AI shows an AI-assisted label", async () => {
+  const [post] = await sql`select id from posts where cardinality(image_paths) > 0 order by created_at desc limit 1`
+  await sql`update posts set ai_assisted = true where id = ${post.id}`
+  try {
+    await page.goto(`/p/${post.id}`)
+    await expect(page.getByText("AI-assisted", { exact: true }).first()).toBeVisible()
+  } finally {
+    await sql`update posts set ai_assisted = false where id = ${post.id}`
+  }
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)

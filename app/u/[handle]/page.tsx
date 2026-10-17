@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 import type { OrgSummary } from "@/lib/types"
 import { Panel, TwoColumn } from "@/components/shell"
 import { PersonExperiences, PublicFigureBadge } from "@/components/notable"
+import { ReportDialog } from "@/components/report-dialog"
 import { createClient, getUserId } from "@/lib/supabase/server"
 
 async function getProfile(handle: string) {
@@ -102,6 +103,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
                     <Button type="submit" variant="outline"><MessageSquare aria-hidden />Message</Button>
                   </form>
                 )}
+                <ReportDialog profileId={profile.id} name={name} />
               </div>
             )}
             {!isOwn && !viewerId && <Link href="/login" className={buttonVariants({ size: "sm", className: "mt-3" })}><Plus aria-hidden />Follow</Link>}
@@ -109,7 +111,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
           <h1 className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-heading text-3xl font-semibold tracking-tight">
             {name}
             {/* F-113: admin-verified public figure. */}
-            {profile.public_figure && <PublicFigureBadge note={profile.public_figure_note} />}
+            {profile.public_figure && <Link href="/verified"><PublicFigureBadge note={profile.public_figure_note} /></Link>}
           </h1>
           {profile.bio && <p className="mt-1 max-w-prose text-lg leading-snug">{profile.bio}</p>}
           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-faint">
