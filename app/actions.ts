@@ -943,3 +943,12 @@ export async function shareGift(orgId: string, slug: string, donationId: string,
   revalidatePath(`/o/${slug}`)
   return !error
 }
+
+// F-123 Who can start a direct message with you.
+export async function setMessagePolicy(policy: "everyone" | "connected" | "nobody") {
+  const userId = await requireUser()
+  if (!["everyone", "connected", "nobody"].includes(policy)) return
+  const supabase = await createClient()
+  await supabase.from("profiles").update({ message_policy: policy }).eq("id", userId)
+  revalidatePath("/settings/profile")
+}
