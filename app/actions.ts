@@ -822,6 +822,7 @@ export async function joinGroup(groupId: string, slug: string) {
   await supabase.from("group_members").insert({ group_id: groupId })
   revalidatePath(`/communities/${slug}`)
   revalidatePath("/communities")
+  revalidatePath("/welcome")
 }
 
 export async function leaveGroup(groupId: string, slug: string) {
@@ -951,4 +952,32 @@ export async function setMessagePolicy(policy: "everyone" | "connected" | "nobod
   const supabase = await createClient()
   await supabase.from("profiles").update({ message_policy: policy }).eq("id", userId)
   revalidatePath("/settings/profile")
+}
+
+// ---------------------------------------------------------------------------
+// F-124 Welcome steps: causes, city, then follow a few
+// ---------------------------------------------------------------------------
+export async function saveWelcomeCauses(form: FormData) {
+  const userId = await requireUser()
+  const picked = form.getAll("causes").map(String).filter((s) => /^[a-z-]{2,40}$/.test(s)).slice(0, 10)
+  const supabase = await createClient()
+  await supabase.from("profile_causes").delete().eq("user_id", userId)
+  if (picked.length) await supabase.from("profile_causes").insert(picked.map((cause_slug) => ({ user_id: userId, cause_slug })))
+  redirect("/welcome?step=2")
+}
+
+export async function saveWelcomeCity(form: FormData) {
+  const userId = await requireUser()
+  const location = String(form.get("location") ?? "").trim().slice(0, 80)
+  const supabase = await createClient()
+  if (location) await supabase.from("profiles").update({ location }).eq("id", userId)
+  redirect("/welcome?step=3")
+}
+
+export async function finishWelcome() {
+  const userId = await requireUser()
+  const supabase = await createClient()
+  await supabase.from("profiles").update({ onboarded_at: new Date().toISOString() }).eq("id", userId)
+  revalidatePath("/", "layout")
+  redirect("/")
 }

@@ -873,6 +873,28 @@ test("F-114: Following shows what people you follow did, and notable givers to f
   }
 })
 
+test("F-124: a new account gets a three-step welcome; finishing it clears the Home card", async () => {
+  await sql`update profiles set onboarded_at = null where id = ${userId}`
+  try {
+    await page.goto("/")
+    const card = page.getByRole("region", { name: "Get started in three steps" })
+    await card.getByRole("link", { name: "Get started" }).click()
+    await expect(page.getByRole("heading", { name: "What do you care about?" })).toBeVisible()
+    await page.getByRole("checkbox").first().check({ force: true })
+    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByLabel("City").fill("Austin, TX")
+    await page.getByRole("button", { name: "Continue" }).click()
+    await expect(page.getByRole("heading", { name: /^Communities/ })).toBeVisible()
+    await page.getByRole("button", { name: "Finish and go to Home" }).click()
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByRole("region", { name: "Get started in three steps" })).toHaveCount(0)
+    expect((await sql`select location from profiles where id = ${userId}`)[0].location).toBe("Austin, TX")
+  } finally {
+    await sql`delete from profile_causes where user_id = ${userId}`
+    await sql`update profiles set location = null, onboarded_at = now() where id = ${userId}`
+  }
+})
+
 test("F-015: staff can't open another org's dashboard", async () => {
   const res = await page.goto(`/dashboard/${HARBOR}`)
   expect(res?.status()).toBe(404)
