@@ -27,9 +27,10 @@ export function CauseFilter({ causes, active, type, basePath, hrefFor }: { cause
 }
 
 // Segmented control: who's posting.
-export function OrgTypeFilter({ active, cause, basePath, donors = true }: { active?: FeedType; cause?: string; basePath: string; donors?: boolean }) {
+export function OrgTypeFilter({ active, cause, basePath, donors = true, following = false }: { active?: FeedType; cause?: string; basePath: string; donors?: boolean; following?: boolean }) {
   const options: { type?: FeedType; label: string }[] = [
     { label: "All" },
+    ...(following ? [{ type: "following" as const, label: "Following" }] : []),
     { type: "nonprofit", label: "Nonprofits" },
     { type: "foundation", label: "Foundations" },
     ...(donors ? [{ type: "donor" as const, label: "Donors" }] : []),

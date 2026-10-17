@@ -42,7 +42,7 @@ test("F-012 / F-002: follow an org; Following shows only its posts", async () =>
   await expect(page.locator("main").getByRole("button", { name: "Following" }).first()).toBeVisible()
   await expect.poll(async () => (await sql`select count(*)::int n from follows where user_id = ${userId}`)[0].n).toBe(1)
 
-  await page.goto("/following")
+  await page.goto("/?type=following") // F-118: posts from who you follow live on Home's Following filter
   await expect(page.getByText("212 households")).toBeVisible()
   await expect(page.getByText("Okafor family")).toHaveCount(0)
 })
@@ -176,7 +176,7 @@ test("F-037: following a foundation brings its grantees' reports into Following,
   // The button updates optimistically; wait for the follow to be saved before navigating.
   await expect.poll(async () => (await sql`select count(*)::int n from follows where user_id = ${userId} and org_id = ${FOUNDATION}`)[0].n).toBe(1)
 
-  await page.goto("/following")
+  await page.goto("/?type=following")
   // This user doesn't follow their own Test Kitchen org, so its report appears via Lakeshore's portfolio.
   const report = page.locator("article").filter({ hasText: `Report ${id}` })
   await expect(report.getByText("From the portfolio of")).toBeVisible()
@@ -684,7 +684,7 @@ test("F-086: follow a person from their profile; their posts reach Following; un
   await page.locator("main").getByRole("button", { name: "Follow", exact: true }).first().click()
   await expect(page.locator("main").getByRole("button", { name: "Following" }).first()).toBeVisible()
   await expect.poll(async () => (await sql`select count(*)::int n from person_follows where follower_id = ${userId} and followee_id = ${author.id}`)[0].n).toBe(1)
-  await page.goto("/following")
+  await page.goto("/?type=following")
   await expect(page.locator("article").filter({ hasText: author.body.slice(0, 40) }).first()).toBeVisible()
   await page.goto(`/u/${author.handle}`)
   await page.locator("main").getByRole("button", { name: "Following" }).first().click()
@@ -693,7 +693,7 @@ test("F-086: follow a person from their profile; their posts reach Following; un
 
 test("F-088: Following: follow a cause, open it to see its organizations, switch tabs", async () => {
   await sql`delete from profile_causes where user_id = ${userId} and cause_slug = 'animals'`
-  await page.goto("/following")
+  await page.goto("/discover")
   await expect(page.getByRole("heading", { name: "Your causes", exact: true })).toBeVisible()
   const more = page.getByRole("button", { name: /^Explore \d+ more causes?/ })
   if (await more.isVisible()) await more.click() // F-098: causes you don't follow wait behind this
@@ -706,8 +706,10 @@ test("F-088: Following: follow a cause, open it to see its organizations, switch
   await expect(panel.getByRole("button", { name: /Following cause/ })).toBeVisible()
   await page.reload()
   await expect(page.getByRole("navigation", { name: "Filter by your causes" }).getByRole("link", { name: "Animals" })).toBeVisible()
-  await page.getByRole("navigation", { name: "Following sections" }).getByRole("link", { name: /Organizations/ }).click()
-  await expect(page).toHaveURL(/tab=orgs/)
+  await page.getByRole("navigation", { name: "Discover sections" }).getByRole("link", { name: /People/ }).click()
+  await expect(page).toHaveURL(/tab=people/)
+  await page.getByRole("navigation", { name: "Discover sections" }).getByRole("link", { name: /Organizations/ }).click()
+  await expect(page).not.toHaveURL(/tab=/) // F-118: Organizations is the default tab (no Feed)
   await expect(page.getByRole("link", { name: "Harbor Table" }).first()).toBeVisible()
 })
 
@@ -728,7 +730,7 @@ test("F-090: a volunteer call says who has volunteered there (confirmed hours, o
 })
 
 test("B-031: no page scrolls sideways, from small phones to narrow desktop windows", async () => {
-  for (const path of ["/", "/following", "/notifications", "/communities", "/messages"]) {
+  for (const path of ["/", "/discover", "/notifications", "/communities", "/messages"]) {
     await page.goto(path)
     for (const width of [320, 360, 660, 700, 1024]) {
       await page.setViewportSize({ width, height: 900 })
@@ -757,6 +759,12 @@ test("F-099: donate to an organization in test mode; declined cards say so; the 
   await dialog.getByRole("button", { name: "Give $100" }).click()
   await expect(dialog.getByText("Thank you")).toBeVisible()
   await expect(dialog.getByText("Visa ending 4242")).toBeVisible()
+  // F-117: one tap shares "gave" with followers (no amount).
+  await dialog.getByLabel(/Show the amount/).check() // F-119: amount from the donation record
+  await dialog.getByRole("button", { name: "Tell your followers you gave" }).click()
+  await expect(dialog.getByText("Shared with your followers")).toBeVisible()
+  const [shared] = await sql`select kind, note, amount_usd from experiences where user_id = ${userId} and org_id = ${kitchen.id}`
+  expect(shared).toEqual({ kind: "gave", note: null, amount_usd: 100 })
   const [row] = await sql`select amount_cents, card_last4 from donations where donor_id = ${userId} and org_id = ${kitchen.id}`
   expect(row).toEqual({ amount_cents: 10000, card_last4: "4242" })
   await dialog.getByRole("button", { name: "Done" }).click()
@@ -830,12 +838,38 @@ test("F-111 / F-112: an org page lays out ways to get involved; sharing an exper
   await path.getByRole("button", { name: "Share" }).click()
   const dialog = page.getByRole("dialog")
   await dialog.getByText("I volunteered").click()
+  await dialog.getByLabel("Hours").fill("3") // F-119
   await dialog.getByPlaceholder(/What was it like/).fill(`Lovely crew ${id}`)
   await dialog.getByRole("button", { name: "Share with my followers" }).click()
   await expect(dialog).toHaveCount(0)
   const mine = page.getByRole("region", { name: "Your experience" })
   await expect(mine.getByText(`Lovely crew ${id}`)).toBeVisible()
+  await expect(mine.getByText("volunteered 3 hrs here")).toBeVisible()
   await sql`delete from experiences where user_id = ${userId}`
+})
+
+test("F-114: Following shows what people you follow did, and notable givers to follow", async () => {
+  const FRIEND = "00000000-0000-4000-c000-000000000001"
+  const [harbor] = await sql`select id from orgs where slug = 'harbor-table'`
+  await sql`insert into person_follows (follower_id, followee_id) values (${userId}, ${FRIEND}) on conflict do nothing`
+  await sql`insert into experiences (user_id, org_id, kind, note) values (${FRIEND}, ${harbor.id}, 'volunteered', ${`Great Saturday ${id}`}) on conflict (user_id, org_id, kind) do update set note = excluded.note`
+  try {
+    await page.goto("/discover") // F-117: friends' activity sits above the tabs
+    const recent = page.getByRole("region", { name: "What your friends are up to" })
+    await expect(recent.getByText(`Great Saturday ${id}`)).toBeVisible()
+    // F-115: card rows to follow friends (here: people in your city) and notable givers.
+    await sql`update profiles set location = 'Austin, TX' where id = ${userId}`
+    await page.goto("/discover")
+    // F-116: one mixed wall of organizations, friends and notable givers.
+    const wall = page.getByRole("region", { name: "Suggested for you" })
+    await expect(wall).toContainText("Near you · Austin")
+    await expect(wall.getByRole("link", { name: "Dev Ramaswamy", exact: true })).toBeVisible()
+    await expect(wall.getByText(/^(Nonprofit|Foundation)/).first()).toBeVisible()
+  } finally {
+    await sql`delete from experiences where user_id = ${FRIEND} and note = ${`Great Saturday ${id}`}`
+    await sql`delete from person_follows where follower_id = ${userId} and followee_id = ${FRIEND}`
+    await sql`update profiles set location = null where id = ${userId}`
+  }
 })
 
 test("F-015: staff can't open another org's dashboard", async () => {

@@ -1,4 +1,4 @@
-import { ArrowRight, BadgeCheck, Bookmark, CalendarDays, HandHelping, MapPin, Megaphone, NotebookPen, Plus, Users, UsersRound } from "lucide-react"
+import { ArrowRight, Plus } from "lucide-react"
 import { personCoverSrc } from "@/lib/cover"
 import { formatUsd } from "@/lib/grants"
 import { hoursLabel } from "@/lib/volunteer"
@@ -52,7 +52,7 @@ export function ViewerCard({ viewer, extras }: { viewer: Viewer; extras: ViewerE
           </div>
           <div className="flex items-baseline justify-between gap-2">
             <dt className="text-muted-foreground">Following</dt>
-            <dd><Link href="/following" className="font-semibold text-leaf hover:underline">{viewer.following}</Link></dd>
+            <dd><Link href="/discover?tab=people" className="font-semibold text-leaf hover:underline">{viewer.following}</Link></dd>
           </div>
         </dl>
         <p className="border-t px-4 py-2 text-xs text-faint">Only you see these</p>
@@ -74,23 +74,6 @@ export function ViewerCard({ viewer, extras }: { viewer: Viewer; extras: ViewerE
         </Panel>
       )}
 
-      <Panel className="py-1.5">
-        {[
-          { href: "/nearby", label: "Near you", Icon: MapPin },
-          { href: "/saved", label: "Saved posts", Icon: Bookmark },
-          { href: "/following", label: "Following", Icon: Users },
-          { href: "/communities", label: "Communities", Icon: UsersRound },
-          { href: "/givers", label: "Notable givers", Icon: BadgeCheck },
-          { href: "/events", label: "Events", Icon: CalendarDays },
-          { href: "/needs", label: "Ways to help", Icon: HandHelping },
-          { href: "/giving", label: "Giving journal", Icon: NotebookPen },
-          { href: "/calls", label: "Open calls (grants)", Icon: Megaphone },
-        ].map(({ href, label, Icon }) => (
-          <Link key={href} href={href} className="flex items-center gap-3 px-4 py-2 text-sm font-medium hover:bg-muted">
-            <Icon className="size-4 text-muted-foreground" aria-hidden />{label}
-          </Link>
-        ))}
-      </Panel>
     </div>
   )
 }

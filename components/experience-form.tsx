@@ -16,6 +16,7 @@ const KINDS = [
 // F-111: share how it went, with the people who follow you (never public, never counted).
 export function ExperienceForm({ orgId, slug, orgName }: { orgId: string; slug: string; orgName: string }) {
   const [open, setOpen] = useState(false)
+  const [kind, setKind] = useState<string>("volunteered")
   const [state, action, pending] = useActionState(async (prev: { error?: string; ok?: boolean } | null, form: FormData) => {
     const r = await saveExperience(orgId, slug, prev, form)
     if (r.ok) setOpen(false)
@@ -41,11 +42,26 @@ export function ExperienceForm({ orgId, slug, orgName }: { orgId: string; slug: 
               <div className="flex flex-wrap gap-2">
                 {KINDS.map(([value, label], i) => (
                   <label key={value} className="cursor-pointer rounded-full border px-3 py-1 text-sm has-checked:border-leaf has-checked:bg-leaf-soft has-checked:font-semibold has-checked:text-leaf has-focus-visible:ring-2 has-focus-visible:ring-ring/50">
-                    <input type="radio" name="kind" value={value} defaultChecked={i === 0} className="sr-only" />{label}
+                    <input type="radio" name="kind" value={value} defaultChecked={i === 0} onChange={() => setKind(value)} className="sr-only" />{label}
                   </label>
                 ))}
               </div>
             </fieldset>
+            {/* F-119: how much, if you want to say. */}
+            {kind === "volunteered" && (
+              <label className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Hours</span>
+                <input name="hours" inputMode="decimal" placeholder="3" className="h-9 w-24 rounded-lg border border-input bg-card px-3 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" />
+                <span className="text-xs text-faint">optional</span>
+              </label>
+            )}
+            {kind === "gave" && (
+              <label className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Amount $</span>
+                <input name="amount" inputMode="numeric" placeholder="50" className="h-9 w-28 rounded-lg border border-input bg-card px-3 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" />
+                <span className="text-xs text-faint">optional</span>
+              </label>
+            )}
             <label className="block">
               <span className="sr-only">A few words (optional)</span>
               <textarea name="note" rows={3} maxLength={280} placeholder="What was it like? Would you go back?"

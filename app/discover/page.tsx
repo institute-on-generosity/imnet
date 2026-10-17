@@ -1,72 +1,82 @@
+import { BadgeCheck } from "lucide-react"
+import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import Link from "@/components/intent-link"
 import { FollowButton } from "@/components/follow-button"
-import { OlderPosts } from "@/components/older-posts"
 import { OrgMark } from "@/components/org-mark"
 import { FoundationMark } from "@/components/org-type-badge"
 import { PersonAvatar } from "@/components/person-avatar"
-import { Feed } from "@/components/post-card"
 import { Panel, TwoColumn } from "@/components/shell"
 import { SuggestedOrgs } from "@/components/side-cards"
+import { FriendsActivity } from "@/components/following-friends"
+import { mixWall, SuggestionWall } from "@/components/follow-cards"
 import { CAUSE_ICON } from "@/lib/cause-icons"
-import { decodeCursor } from "@/lib/cursor"
-import { portfolioContext } from "@/lib/portfolio"
 import {
-  getCauses, getOrgsByCause, getConfirmedGrantIds, getFeedPage, getFollowedCauseSlugs, getFollowedOrgsDetail, getFollowedPeople,
-  getGrantsForPosts, getMovedPostIds, getOrgsInCauses, getSavedPostIds,
+  getCauses, getOrgsByCause, getFollowedCauseSlugs, getFollowedOrgsDetail, getFollowedPeople, getNotableGivers, getGivesTo, getFriendsExperiences, getFriendSuggestions, getOrgsInCauses,
 } from "@/lib/queries"
-import { createClient, getUserId } from "@/lib/supabase/server"
+import { getUserId } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
+import type { OrgSummary } from "@/lib/types"
 import { CauseGrid } from "./cause-grid"
 
-export const metadata = { title: "Following" }
+export const metadata = { title: "Discover" }
 
-type Tab = "feed" | "orgs" | "people"
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+type Tab = "orgs" | "people"
 
-// Your network (F-088): the causes you follow, then what you follow in them: a feed, the
-// organizations and the people. Suggestions come from your causes, alphabetical.
-export default async function FollowingPage({ searchParams }: PageProps<"/following">) {
+// Your network (F-088): the causes you follow, suggestions, what friends are up to, then the
+// organizations and people you follow. Their posts live on Home under the "Following" filter (F-118).
+export default async function DiscoverPage({ searchParams }: PageProps<"/discover">) {
   const userId = await getUserId()
-  if (!userId) redirect("/login?next=/following")
-  const { tab: rawTab, cause: rawCause, before } = await searchParams
-  const tab: Tab = rawTab === "orgs" || rawTab === "people" ? rawTab : "feed"
-  const [causes, myCauses, orgsByCause, orgs, people] = await Promise.all([
-    getCauses(), getFollowedCauseSlugs(userId), getOrgsByCause(), getFollowedOrgsDetail(userId), getFollowedPeople(userId),
+  if (!userId) redirect("/login?next=/discover")
+  const { tab: rawTab, cause: rawCause } = await searchParams
+  const tab: Tab = rawTab === "people" ? "people" : "orgs"
+  const [causes, myCauses, orgsByCause, orgs, people, notable, friends] = await Promise.all([
+    getCauses(), getFollowedCauseSlugs(userId), getOrgsByCause(), getFollowedOrgsDetail(userId), getFollowedPeople(userId), getNotableGivers(), getFriendSuggestions(userId),
   ])
   const cause = typeof rawCause === "string" && myCauses.includes(rawCause) ? rawCause : undefined
   const causeName = (slug: string) => causes.find((c) => c.slug === slug)?.name ?? slug
   const orgIds = orgs.map((o) => o.id)
-  const suggested = await getOrgsInCauses(myCauses, orgIds, 5)
+  const pool = await getOrgsInCauses(myCauses, orgIds, 11)
+  const wallOrgs = pool.slice(0, 6)
+  const suggested = pool.slice(6)
   const href = (t: Tab, c?: string) => {
     const p = new URLSearchParams()
-    if (t !== "feed") p.set("tab", t)
+    if (t !== "orgs") p.set("tab", t)
     if (c) p.set("cause", c)
     const q = p.toString()
-    return q ? `/following?${q}` : "/following"
+    return q ? `/discover?${q}` : "/discover"
   }
 
+  const givesTo = tab === "people" ? await getGivesTo(people.filter((p) => p.public_figure).map((p) => p.id)) : new Map<string, OrgSummary[]>()
   return (
-    <TwoColumn right={<SuggestedOrgs title={myCauses.length ? "Suggested in your causes" : "Add to your network"} orgs={suggested} signedIn />}>
+    <TwoColumn right={<>
+      {/* Your causes live beside the page (compact list; open one to see its organizations). */}
+      <Panel aria-labelledby="your-causes" className="p-3">
+        <h2 id="your-causes" className="h-rail px-1 pb-2">Your causes</h2>
+        <CauseGrid causes={causes} followed={myCauses} orgsByCause={orgsByCause} followingOrgIds={orgs.map((o) => o.id)} rail />
+      </Panel>
+      <SuggestedOrgs title={myCauses.length ? "Suggested in your causes" : "Add to your network"} orgs={suggested} signedIn />
+    </>}>
       <Panel className="p-4 sm:p-6">
-        <h1 className="h-page">Following</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          {myCauses.length ? `${plural(myCauses.length, "cause")}, ${plural(orgs.length, "organization")} and ${plural(people.length, "person", "people")}.` : "Pick the causes you care about to shape this page"} Only you see this.
-        </p>
-        <h2 className="h-sub mt-5 mb-2">Your causes</h2>
-        <CauseGrid causes={causes} followed={myCauses} orgsByCause={orgsByCause} followingOrgIds={orgs.map((o) => o.id)} />
+        <h1 className="h-page">Discover</h1>
+        {myCauses.length === 0 && <p className="mt-1.5 text-sm text-muted-foreground">Pick the causes you care about to shape this page</p>}
+        {/* F-116: organizations, friends and notable givers to follow, mixed like a pin board. */}
+        <SuggestionWall items={mixWall(wallOrgs, friends.slice(0, 6), notable.map((g) => ({ g, following: people.some((p) => p.id === g.id) })).filter((n) => !n.following))} />
       </Panel>
 
+      {/* F-117: what friends just did, row by row, above everything else you follow. */}
+      <Suspense fallback={null}><PeopleActivity userId={userId} /></Suspense>
+
       <Panel className="overflow-hidden">
-        <nav aria-label="Following sections" className="flex border-b px-2 sm:px-4">
-          {([["feed", "Feed"], ["orgs", `Organizations · ${orgs.length}`], ["people", `People · ${people.length}`]] as const).map(([t, label]) => (
+        <nav aria-label="Discover sections" className="flex border-b px-2 sm:px-4">
+          {([["orgs", `Organizations · ${orgs.length}`], ["people", `People · ${people.length}`]] as const).map(([t, label]) => (
             <Link key={t} href={href(t, cause)} aria-current={tab === t ? "page" : undefined}
               className={cn("border-b-2 px-3 py-3 text-sm font-semibold transition-colors", tab === t ? "border-leaf text-leaf" : "border-transparent text-muted-foreground hover:text-foreground")}>
               {label}
             </Link>
           ))}
         </nav>
-        {myCauses.length > 0 && (
+        {myCauses.length > 0 && tab !== "people" && (
           <nav aria-label="Filter by your causes" className="flex gap-1.5 overflow-x-auto p-3 [scrollbar-width:none]">
             <Link href={href(tab)} className={cn("shrink-0 rounded-full border px-3 py-1 text-sm", !cause ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}>All my causes</Link>
             {myCauses.map((c) => {
@@ -82,7 +92,6 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
         )}
       </Panel>
 
-      {tab === "feed" && <FollowingFeed userId={userId} orgIds={orgIds} personIds={people.map((p) => p.id)} cause={cause} before={typeof before === "string" ? before : undefined} href={href} />}
 
       {tab === "orgs" && (
         <Panel>
@@ -109,7 +118,8 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
       )}
 
       {tab === "people" && (
-        <Panel>
+        <Panel aria-labelledby="people-you-follow">
+          <h2 id="people-you-follow" className="h-section border-b px-4 py-3">People you follow</h2>
           {people.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">You don&apos;t follow anyone yet. Follow people from their profiles or posts.</p>
           ) : (
@@ -120,8 +130,14 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
                   <li key={p.id} className="flex items-center gap-3 p-4">
                     <PersonAvatar name={name} avatarUrl={p.avatar_url} size="lg" />
                     <div className="min-w-0 flex-1">
-                      <Link href={`/u/${p.handle}`} className="font-semibold hover:underline">{name}</Link>
+                      <p className="flex flex-wrap items-center gap-x-2">
+                        <Link href={`/u/${p.handle}`} className="font-semibold hover:underline">{name}</Link>
+                        {p.public_figure && <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-800"><BadgeCheck className="size-3.5" aria-hidden />{p.public_figure_note ?? "Public figure"}</span>}
+                      </p>
                       {p.bio && <p className="truncate text-sm text-muted-foreground">{p.bio}</p>}
+                      {p.public_figure && (givesTo.get(p.id)?.length ?? 0) > 0 && (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">Gives to {givesTo.get(p.id)!.map((o) => o.name).join(", ")}</p>
+                      )}
                       {p.location && <p className="text-xs text-muted-foreground">{p.location}</p>}
                     </div>
                     <FollowButton orgId={p.id} orgName={name} following variant="icon" person />
@@ -136,22 +152,6 @@ export default async function FollowingPage({ searchParams }: PageProps<"/follow
   )
 }
 
-async function FollowingFeed({ userId, orgIds, personIds, cause, before, href }: { userId: string; orgIds: string[]; personIds: string[]; cause?: string; before?: string; href: (t: Tab, c?: string) => string }) {
-  const cursor = decodeCursor(before)
-  if (orgIds.length === 0 && personIds.length === 0) {
-    return <Panel className="p-6 text-sm text-muted-foreground">Follow organizations and people to see their posts here</Panel>
-  }
-  const db = await createClient()
-  const { data: f } = await db.from("orgs").select("id").in("id", orgIds).eq("org_type", "foundation")
-  const reportGrantIds = f?.length ? await getConfirmedGrantIds(f.map((o) => o.id)) : []
-  const page = await getFeedPage({ cause, orgIds, personIds: cause ? [] : personIds, reportGrantIds, before: cursor ?? undefined })
-  const ids = page.posts.map((p) => p.id)
-  const [movedIds, savedIds, grantsByPost] = await Promise.all([getMovedPostIds(userId, ids), getSavedPostIds(userId, ids), getGrantsForPosts(ids)])
-  const base = href("feed", cause)
-  return (
-    <>
-      <Feed posts={page.posts} empty="Nothing new in this cause yet" movedIds={movedIds} savedIds={savedIds} signedIn grantsByPost={grantsByPost} context={portfolioContext(page.posts, new Set(orgIds))} />
-      <OlderPosts olderHref={page.next ? `${base}${base.includes("?") ? "&" : "?"}before=${page.next}` : null} newestHref={base} isFirstPage={!cursor} />
-    </>
-  )
+async function PeopleActivity({ userId }: { userId: string }) {
+  return <FriendsActivity items={await getFriendsExperiences(userId, 8)} />
 }

@@ -13851,17 +13851,17 @@ select (array['view','view','view','view','view','view','share','donate_click'])
   from posts p cross join generate_series(1, 20 + abs(hashtext(p.id::text)) % 120) g
  where p.org_id is not null;
 
-update orgs set location = 'Mountain View, CA', founded_year = 2009, team_size = '6 staff, 240 volunteers', about = 'We started as a Tuesday soup night in a church basement. Now we cook five nights a week and keep a free grocery shelf stocked.' where id = '00000000-0000-4000-a000-000000000046';
-update orgs set location = 'Mountain View, CA', founded_year = 2016, team_size = '3 staff, 900 volunteers', about = 'Weekend crews restore the marsh edges along the bay trail, one weeding day at a time.' where id = '00000000-0000-4000-a000-000000000047';
-update orgs set location = 'Mountain View, CA', founded_year = 2012, team_size = '4 staff, 88 reading buddies', about = 'Volunteer reading buddies meet the same student every week, all year.' where id = '00000000-0000-4000-a000-000000000048';
-update orgs set location = 'Sunnyvale, CA', founded_year = 2011, team_size = '5 staff, 64 foster homes', about = 'Every animal lives in a foster home until it finds its own.' where id = '00000000-0000-4000-a000-000000000049';
-update orgs set location = 'Palo Alto, CA', founded_year = 2007, team_size = '3 staff, 118 drivers', about = 'Older neighbors get where they need to go, with a friendly driver who comes back next week.' where id = '00000000-0000-4000-a000-000000000050';
-update orgs set location = 'Santa Clara, CA', founded_year = 2015, team_size = '2 staff, 52 mentors', about = 'Free robotics teams for any student who wants one, mentored by volunteer engineers.' where id = '00000000-0000-4000-a000-000000000051';
-update orgs set location = 'San Jose, CA', founded_year = 2005, team_size = '11 staff, 60 volunteers', about = 'Rent help, tenant clinics and move-in support so families stay in their homes.' where id = '00000000-0000-4000-a000-000000000052';
-update orgs set location = 'Los Altos, CA', founded_year = 2018, team_size = '2 staff, 74 facilitators', about = 'Peer support groups led by trained volunteers who''ve been there.' where id = '00000000-0000-4000-a000-000000000053';
-update orgs set location = 'Mountain View, CA', founded_year = 2014, team_size = '2 staff, 15-member neighbor committee', about = 'Neighbors pool their gifts and decide together where they go.' where id = '00000000-0000-4000-a000-000000000054';
-update orgs set location = 'Cupertino, CA', founded_year = 2003, team_size = '3 staff', about = 'A family foundation funding youth programs and outdoor learning.' where id = '00000000-0000-4000-a000-000000000055';
-update orgs set location = 'San Jose, CA', founded_year = 2019, team_size = '4 staff, 9 teen committee members', about = 'Teens help decide where our youth wellbeing grants go.' where id = '00000000-0000-4000-a000-000000000056';
+update orgs set location = 'Mountain View, CA', founded_year = 2009, team_size = '6 staff, 240 volunteers', about = 'We started as a Tuesday soup night in a church basement. Now we cook five nights a week and keep a free grocery shelf stocked.', cover_url = '00000000-0000-4000-a000-000000000046/cover.webp' where id = '00000000-0000-4000-a000-000000000046';
+update orgs set location = 'Mountain View, CA', founded_year = 2016, team_size = '3 staff, 900 volunteers', about = 'Weekend crews restore the marsh edges along the bay trail, one weeding day at a time.', cover_url = '00000000-0000-4000-a000-000000000047/cover.webp' where id = '00000000-0000-4000-a000-000000000047';
+update orgs set location = 'Mountain View, CA', founded_year = 2012, team_size = '4 staff, 88 reading buddies', about = 'Volunteer reading buddies meet the same student every week, all year.', cover_url = '00000000-0000-4000-a000-000000000048/cover.webp' where id = '00000000-0000-4000-a000-000000000048';
+update orgs set location = 'Sunnyvale, CA', founded_year = 2011, team_size = '5 staff, 64 foster homes', about = 'Every animal lives in a foster home until it finds its own.', cover_url = '00000000-0000-4000-a000-000000000049/cover.webp' where id = '00000000-0000-4000-a000-000000000049';
+update orgs set location = 'Palo Alto, CA', founded_year = 2007, team_size = '3 staff, 118 drivers', about = 'Older neighbors get where they need to go, with a friendly driver who comes back next week.', cover_url = '00000000-0000-4000-a000-000000000050/cover.webp' where id = '00000000-0000-4000-a000-000000000050';
+update orgs set location = 'Santa Clara, CA', founded_year = 2015, team_size = '2 staff, 52 mentors', about = 'Free robotics teams for any student who wants one, mentored by volunteer engineers.', cover_url = '00000000-0000-4000-a000-000000000051/cover.webp' where id = '00000000-0000-4000-a000-000000000051';
+update orgs set location = 'San Jose, CA', founded_year = 2005, team_size = '11 staff, 60 volunteers', about = 'Rent help, tenant clinics and move-in support so families stay in their homes.', cover_url = '00000000-0000-4000-a000-000000000052/cover.webp' where id = '00000000-0000-4000-a000-000000000052';
+update orgs set location = 'Los Altos, CA', founded_year = 2018, team_size = '2 staff, 74 facilitators', about = 'Peer support groups led by trained volunteers who''ve been there.', cover_url = '00000000-0000-4000-a000-000000000053/cover.webp' where id = '00000000-0000-4000-a000-000000000053';
+update orgs set location = 'Mountain View, CA', founded_year = 2014, team_size = '2 staff, 15-member neighbor committee', about = 'Neighbors pool their gifts and decide together where they go.', cover_url = '00000000-0000-4000-a000-000000000054/cover.webp' where id = '00000000-0000-4000-a000-000000000054';
+update orgs set location = 'Cupertino, CA', founded_year = 2003, team_size = '3 staff', about = 'A family foundation funding youth programs and outdoor learning.', cover_url = '00000000-0000-4000-a000-000000000055/cover.webp' where id = '00000000-0000-4000-a000-000000000055';
+update orgs set location = 'San Jose, CA', founded_year = 2019, team_size = '4 staff, 9 teen committee members', about = 'Teens help decide where our youth wellbeing grants go.', cover_url = '00000000-0000-4000-a000-000000000056/cover.webp' where id = '00000000-0000-4000-a000-000000000056';
 
 -- Public figures (F-113): verified by imnet, giving shown by their own opt-in.
 insert into auth.users (id, email, aud, role) values ('00000000-0000-4000-c100-000000000001', 'marisol_vega@example.com', 'authenticated', 'authenticated');
@@ -13869,36 +13869,38 @@ update profiles set handle = 'marisol_vega', display_name = 'Marisol Vega', bio 
 insert into gifts (user_id, org_id, amount_usd, given_on) select '00000000-0000-4000-c100-000000000001', id, 25000, current_date - 40 from orgs where slug = 'castro-street-community-kitchen';
 insert into gifts (user_id, org_id, amount_usd, given_on) select '00000000-0000-4000-c100-000000000001', id, 15000, current_date - 90 from orgs where slug = 'harbor-table';
 insert into gifts (user_id, org_id, amount_usd, given_on) select '00000000-0000-4000-c100-000000000001', id, 10000, current_date - 120 from orgs where slug = 'seedline-growers';
-insert into experiences (user_id, org_id, kind, note) select '00000000-0000-4000-c100-000000000001', id, 'volunteered', 'Cooked Tuesday dinner with the crew. 160 plates, zero waste, one very happy chef.' from orgs where slug = 'castro-street-community-kitchen';
+insert into experiences (user_id, org_id, kind, note, hours, amount_usd) select '00000000-0000-4000-c100-000000000001', o.id, 'volunteered', 'Cooked Tuesday dinner with the crew. 160 plates, zero waste, one very happy chef.', case when 'volunteered' = 'volunteered' then 4 end, (select sum(amount_usd) from gifts g where g.user_id = '00000000-0000-4000-c100-000000000001' and g.org_id = o.id) from orgs o where slug = 'castro-street-community-kitchen';
 insert into auth.users (id, email, aud, role) values ('00000000-0000-4000-c100-000000000002', 'dev_ramaswamy@example.com', 'authenticated', 'authenticated');
 update profiles set handle = 'dev_ramaswamy', display_name = 'Dev Ramaswamy', bio = 'Founder. Funding the people who teach kids to build.', avatar_url = '/avatars/dev_ramaswamy', public_figure = true, public_figure_note = 'Tech founder', show_giving_totals = true where id = '00000000-0000-4000-c100-000000000002';
 insert into gifts (user_id, org_id, amount_usd, given_on) select '00000000-0000-4000-c100-000000000002', id, 50000, current_date - 30 from orgs where slug = 'san-tomas-youth-robotics';
 insert into gifts (user_id, org_id, amount_usd, given_on) select '00000000-0000-4000-c100-000000000002', id, 40000, current_date - 75 from orgs where slug = 'bright-lines-coding';
 insert into gifts (user_id, org_id, amount_usd, given_on) select '00000000-0000-4000-c100-000000000002', id, 20000, current_date - 50 from orgs where slug = 'rengstorff-reading-club';
-insert into experiences (user_id, org_id, kind, note) select '00000000-0000-4000-c100-000000000002', id, 'attended', 'Saw the build night. The all-girls team out-engineered my first startup.' from orgs where slug = 'san-tomas-youth-robotics';
+insert into experiences (user_id, org_id, kind, note, hours, amount_usd) select '00000000-0000-4000-c100-000000000002', o.id, 'attended', 'Saw the build night. The all-girls team out-engineered my first startup.', case when 'attended' = 'volunteered' then 4 end, (select sum(amount_usd) from gifts g where g.user_id = '00000000-0000-4000-c100-000000000002' and g.org_id = o.id) from orgs o where slug = 'san-tomas-youth-robotics';
 insert into auth.users (id, email, aud, role) values ('00000000-0000-4000-c100-000000000003', 'june_okonkwo@example.com', 'authenticated', 'authenticated');
 update profiles set handle = 'june_okonkwo', display_name = 'June Okonkwo', bio = 'Two-time Olympian. Clean water, open space, strong kids.', avatar_url = '/avatars/june_okonkwo', public_figure = true, public_figure_note = 'Olympic rower', show_giving_totals = true where id = '00000000-0000-4000-c100-000000000003';
 insert into gifts (user_id, org_id, amount_usd, given_on) select '00000000-0000-4000-c100-000000000003', id, 30000, current_date - 20 from orgs where slug = 'bayfront-wetlands-crew';
 insert into gifts (user_id, org_id, amount_usd, given_on) select '00000000-0000-4000-c100-000000000003', id, 25000, current_date - 100 from orgs where slug = 'blue-heron-watershed';
 insert into gifts (user_id, org_id, amount_usd, given_on) select '00000000-0000-4000-c100-000000000003', id, 15000, current_date - 60 from orgs where slug = 'greenway-stewards';
-insert into experiences (user_id, org_id, kind, note) select '00000000-0000-4000-c100-000000000003', id, 'volunteered', 'Pulled ice plant all morning. Harder than a 2k on the erg, and more fun.' from orgs where slug = 'bayfront-wetlands-crew';
+insert into experiences (user_id, org_id, kind, note, hours, amount_usd) select '00000000-0000-4000-c100-000000000003', o.id, 'volunteered', 'Pulled ice plant all morning. Harder than a 2k on the erg, and more fun.', case when 'volunteered' = 'volunteered' then 4 end, (select sum(amount_usd) from gifts g where g.user_id = '00000000-0000-4000-c100-000000000003' and g.org_id = o.id) from orgs o where slug = 'bayfront-wetlands-crew';
 insert into auth.users (id, email, aud, role) values ('00000000-0000-4000-c100-000000000004', 'ellis_park@example.com', 'authenticated', 'authenticated');
 update profiles set handle = 'ellis_park', display_name = 'Ellis Park', bio = 'Songs, and a guitar for every kid who wants one.', avatar_url = '/avatars/ellis_park', public_figure = true, public_figure_note = 'Singer-songwriter', show_giving_totals = true where id = '00000000-0000-4000-c100-000000000004';
 insert into gifts (user_id, org_id, amount_usd, given_on) select '00000000-0000-4000-c100-000000000004', id, 35000, current_date - 45 from orgs where slug = 'southside-music-lab';
 insert into gifts (user_id, org_id, amount_usd, given_on) select '00000000-0000-4000-c100-000000000004', id, 20000, current_date - 25 from orgs where slug = 'quiet-harbor-peer-support';
-insert into experiences (user_id, org_id, kind, note) select '00000000-0000-4000-c100-000000000004', id, 'gave', 'Music kept me going as a teenager. This lab does that for 200 kids.' from orgs where slug = 'southside-music-lab';
+insert into experiences (user_id, org_id, kind, note, hours, amount_usd) select '00000000-0000-4000-c100-000000000004', o.id, 'gave', 'Music kept me going as a teenager. This lab does that for 200 kids.', case when 'gave' = 'volunteered' then 4 end, (select sum(amount_usd) from gifts g where g.user_id = '00000000-0000-4000-c100-000000000004' and g.org_id = o.id) from orgs o where slug = 'southside-music-lab';
 insert into auth.users (id, email, aud, role) values ('00000000-0000-4000-c100-000000000005', 'rosa_lindqvist@example.com', 'authenticated', 'authenticated');
 update profiles set handle = 'rosa_lindqvist', display_name = 'Rosa Lindqvist', bio = 'Novelist. Libraries made me; I''m paying it back. Keeps the amounts private.', avatar_url = '/avatars/rosa_lindqvist', public_figure = true, public_figure_note = 'Author', show_giving_totals = false where id = '00000000-0000-4000-c100-000000000005';
-insert into experiences (user_id, org_id, kind, note, created_at)
+insert into experiences (user_id, org_id, kind, note, created_at, hours)
 select distinct on (h.user_id, h.org_id) h.user_id, h.org_id, 'volunteered',
        (array['Three hours flew by. The regulars made me feel like I''d been there for years.', 'Well organized and really welcoming to first-timers. Going back next month.', 'Brought my teenager. We both want to sign up again.', 'Hard work, great people. You can see exactly where your time goes.', 'They trained us in ten minutes and trusted us right away.'])[1 + abs(hashtext(h.user_id::text || h.org_id::text)) % 5],
-       now() - make_interval(days => abs(hashtext(h.org_id::text || h.user_id::text)) % 40)
+       now() - make_interval(days => abs(hashtext(h.org_id::text || h.user_id::text)) % 40),
+       (select sum(x.hours) from volunteer_hours x where x.user_id = h.user_id and x.org_id = h.org_id)
   from volunteer_hours h where h.confirmed_at is not null and h.user_id::text like '00000000-0000-4000-c000-%' and abs(hashtext(h.user_id::text || 'exp')) % 3 = 0
 on conflict do nothing;
-insert into experiences (user_id, org_id, kind, note, created_at)
+insert into experiences (user_id, org_id, kind, note, created_at, amount_usd)
 select distinct on (g.user_id, g.org_id) g.user_id, g.org_id, 'gave',
        (array['Their updates show exactly what my gift did. That''s why I give monthly.', 'Small team, big results. Easy decision.', 'I saw their work up close first. Giving was the obvious next step.'])[1 + abs(hashtext(g.user_id::text || g.org_id::text)) % 3],
-       now() - make_interval(days => abs(hashtext(g.org_id::text || g.user_id::text)) % 60)
+       now() - make_interval(days => abs(hashtext(g.org_id::text || g.user_id::text)) % 60),
+       (select sum(x.amount_usd) from gifts x where x.user_id = g.user_id and x.org_id = g.org_id)
   from gifts g where g.user_id::text like '00000000-0000-4000-c000-%' and abs(hashtext(g.user_id::text || 'gexp')) % 5 = 0
 on conflict do nothing;
 
@@ -14011,5 +14013,8 @@ insert into messages (group_id, author_id, body, created_at) values ('00000000-0
 insert into messages (group_id, author_id, body, created_at) values ('00000000-0000-4000-e000-000000000012', (select user_id from group_members where group_id = '00000000-0000-4000-e000-000000000012' and role = 'member' order by md5('sunnyvale-foster-pets' || user_id::text) offset 3 limit 1), 'Our foster pup got adopted at the farmers market. Happy tears.', now() - interval '8 hours');
 update group_members set last_read_at = now() where group_id = '00000000-0000-4000-e000-000000000012';
 update groups set icon_path = 'communities/00000000-0000-4000-e000-000000000012/icon.png' where id = '00000000-0000-4000-e000-000000000012';  -- F-103 (scripts/gen-community-icons.mjs)
+update profiles p set location = (array['Mountain View, CA','Sunnyvale, CA','Palo Alto, CA','Los Altos, CA','Santa Clara, CA'])[1 + abs(hashtext(p.id::text)) % 5]
+  where p.id in (select gm.user_id from group_members gm where gm.group_id in ('00000000-0000-4000-e000-000000000009','00000000-0000-4000-e000-000000000010','00000000-0000-4000-e000-000000000011','00000000-0000-4000-e000-000000000012'))
+    and p.id::text like '00000000-0000-4000-c000-%';
 update org_events set lat = lat + ((abs(hashtext(id::text)) % 100) - 50) * 0.0005, lng = lng + ((abs(hashtext(id::text || 'x')) % 100) - 50) * 0.0006 where lat is not null;
 

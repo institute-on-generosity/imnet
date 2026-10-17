@@ -1,7 +1,7 @@
 import type { OrgType } from "@/lib/types"
 
-// Who's posting: an org type, or donors (people, F-079).
-export type FeedType = OrgType | "donor"
+// Who's posting: an org type, donors (people, F-079), or only who you follow (F-118).
+export type FeedType = OrgType | "donor" | "following"
 
 // Feed links keep both filters: cause and org type.
 export function feedHref(basePath: string, f: { cause?: string; type?: FeedType; before?: string }) {
@@ -14,5 +14,5 @@ export function feedHref(basePath: string, f: { cause?: string; type?: FeedType;
 }
 
 export function parseOrgType(v: unknown): FeedType | undefined {
-  return v === "nonprofit" || v === "foundation" || v === "donor" ? v : undefined
+  return v === "nonprofit" || v === "foundation" || v === "donor" || v === "following" ? v : undefined
 }

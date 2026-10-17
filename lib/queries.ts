@@ -848,20 +848,20 @@ export async function getFollowedPeople(userId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from("person_follows")
-    .select("person:profiles!person_follows_followee_id_fkey(id, handle, display_name, bio, avatar_url, location)")
+    .select("person:profiles!person_follows_followee_id_fkey(id, handle, display_name, bio, avatar_url, location, public_figure, public_figure_note)")
     .eq("follower_id", userId)
-  return ((data ?? []) as unknown as { person: { id: string; handle: string; display_name: string | null; bio: string | null; avatar_url: string | null; location: string | null } }[])
+  return ((data ?? []) as unknown as { person: { id: string; handle: string; display_name: string | null; bio: string | null; avatar_url: string | null; location: string | null; public_figure: boolean; public_figure_note: string | null } }[])
     .map((r) => r.person)
     .sort((a, b) => (a.display_name ?? a.handle).localeCompare(b.display_name ?? b.handle))
 }
 
 // Orgs in these causes the viewer doesn't follow yet, alphabetical (never popularity-ranked).
-export async function getOrgsInCauses(causes: string[], exclude: string[], limit = 5): Promise<OrgSummaryWithMission[]> {
+export async function getOrgsInCauses(causes: string[], exclude: string[], limit = 5): Promise<(OrgSummaryWithMission & { cover_url?: string | null; location?: string | null })[]> {
   if (causes.length === 0) return []
   const supabase = await createClient()
   const { data } = await supabase
     .from("orgs")
-    .select("id, slug, name, logo_url, org_type, mission, org_causes!inner(cause_slug)")
+    .select("id, slug, name, logo_url, org_type, mission, cover_url, location, org_causes!inner(cause_slug)")
     .eq("status", "verified")
     .in("org_causes.cause_slug", causes)
     .order("name")
@@ -1148,19 +1148,19 @@ export async function getThisWeekNear(at: { lat: number; lng: number }, radius =
 // F-111 Experiences (shared with your followers) and F-112 the involvement path
 // ---------------------------------------------------------------------------
 export type ExperienceKind = "volunteered" | "gave" | "attended"
-export type Experience = { id: string; kind: ExperienceKind; note: string | null; created_at: string; person: ChatAuthor & { public_figure: boolean } }
+export type Experience = { id: string; kind: ExperienceKind; note: string | null; hours: number | null; amount_usd: number | null; created_at: string; person: ChatAuthor & { public_figure: boolean } }
 
 // Experiences at an org that you're allowed to see (yours and people you follow; RLS decides).
 export async function getOrgExperiences(orgId: string): Promise<Experience[]> {
   const supabase = await createClient()
-  const { data } = await supabase.from("experiences").select("id, kind, note, created_at, person:profiles!inner(id, handle, display_name, avatar_url, public_figure)").eq("org_id", orgId).order("created_at", { ascending: false }).limit(30)
+  const { data } = await supabase.from("experiences").select("id, kind, note, hours, amount_usd, created_at, person:profiles!inner(id, handle, display_name, avatar_url, public_figure)").eq("org_id", orgId).order("created_at", { ascending: false }).limit(30)
   return (data ?? []) as unknown as Experience[]
 }
 
-export type PersonExperience = { id: string; kind: ExperienceKind; note: string | null; created_at: string; org: OrgSummary }
+export type PersonExperience = { id: string; kind: ExperienceKind; note: string | null; hours: number | null; amount_usd: number | null; created_at: string; org: OrgSummary }
 export async function getPersonExperiences(userId: string): Promise<PersonExperience[]> {
   const supabase = await createClient()
-  const { data } = await supabase.from("experiences").select("id, kind, note, created_at, org:orgs!inner(id, slug, name, logo_url, org_type)").eq("user_id", userId).order("created_at", { ascending: false }).limit(20)
+  const { data } = await supabase.from("experiences").select("id, kind, note, hours, amount_usd, created_at, org:orgs!inner(id, slug, name, logo_url, org_type)").eq("user_id", userId).order("created_at", { ascending: false }).limit(20)
   return (data ?? []) as unknown as PersonExperience[]
 }
 
@@ -1207,4 +1207,54 @@ export async function getNotableGivers(limit = 24): Promise<NotableGiver[]> {
   const people = (data ?? []) as Omit<NotableGiver, "givesTo">[]
   const giving = await Promise.all(people.map(async (p) => ((await supabase.rpc("giving_by_org", { target: p.id })).data ?? []) as (OrgSummary & { amount: number })[]))
   return people.map((p, i) => ({ ...p, givesTo: giving[i].sort((a, b) => b.amount - a.amount).slice(0, 4) }))
+}
+
+// F-114 Recent experiences from people you follow (RLS only returns those you may see).
+export type FriendExperience = PersonExperience & { person: ChatAuthor & { public_figure: boolean } }
+export async function getFriendsExperiences(userId: string, limit = 12): Promise<FriendExperience[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from("experiences")
+    .select("id, kind, note, hours, amount_usd, created_at, org:orgs!inner(id, slug, name, logo_url, org_type), person:profiles!inner(id, handle, display_name, avatar_url, public_figure)")
+    .neq("user_id", userId).order("created_at", { ascending: false }).limit(limit)
+  return (data ?? []) as unknown as FriendExperience[]
+}
+
+// Who a set of people give to (only those who opted in), for public figures you follow.
+export async function getGivesTo(personIds: string[]): Promise<Map<string, OrgSummary[]>> {
+  const supabase = await createClient()
+  const rows = await Promise.all(personIds.map(async (id) => [id, (((await supabase.rpc("giving_by_org", { target: id })).data ?? []) as (OrgSummary & { amount: number })[]).sort((a, b) => b.amount - a.amount).slice(0, 3)] as const))
+  return new Map(rows)
+}
+
+// F-115 People to follow: who shares communities with you (most first), then people in your city.
+// Excludes you, people you follow and public figures (they have their own row).
+export type FriendSuggestion = { id: string; handle: string; display_name: string | null; avatar_url: string | null; bio: string | null; reason: string }
+export async function getFriendSuggestions(userId: string, limit = 10): Promise<FriendSuggestion[]> {
+  const supabase = await createClient()
+  const [{ data: myGroups }, { data: follows }, { data: me }] = await Promise.all([
+    supabase.from("group_members").select("group_id").eq("user_id", userId),
+    supabase.from("person_follows").select("followee_id").eq("follower_id", userId),
+    supabase.from("profiles").select("location").eq("id", userId).maybeSingle(),
+  ])
+  const skip = new Set([userId, ...(follows ?? []).map((f) => f.followee_id)])
+  const shared = new Map<string, number>()
+  const groupIds = (myGroups ?? []).map((g) => g.group_id)
+  if (groupIds.length) {
+    const { data: co } = await supabase.from("group_members").select("user_id").in("group_id", groupIds).limit(2000)
+    for (const r of co ?? []) if (!skip.has(r.user_id)) shared.set(r.user_id, (shared.get(r.user_id) ?? 0) + 1)
+  }
+  const top = [...shared.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit * 2)
+  const PROFILE = "id, handle, display_name, avatar_url, bio, public_figure"
+  type P = Omit<FriendSuggestion, "reason"> & { public_figure: boolean }
+  const fromGroups = top.length ? (((await supabase.from("profiles").select(PROFILE).in("id", top.map(([id]) => id))).data ?? []) as P[]) : []
+  const out: FriendSuggestion[] = top
+    .map(([id, n]) => ({ p: fromGroups.find((x) => x.id === id), n }))
+    .filter((x): x is { p: P; n: number } => !!x.p && !x.p.public_figure)
+    .map(({ p, n }) => ({ id: p.id, handle: p.handle, display_name: p.display_name, avatar_url: p.avatar_url, bio: p.bio, reason: `In ${n} of your communities` }))
+  if (out.length < limit && me?.location) {
+    const { data: near } = await supabase.from("profiles").select(PROFILE).eq("location", me.location).eq("public_figure", false).limit(limit * 2)
+    const city = me.location.replace(/, [A-Z]{2}$/, "")
+    for (const p of (near ?? []) as P[]) if (!skip.has(p.id) && !out.some((o) => o.id === p.id)) out.push({ id: p.id, handle: p.handle, display_name: p.display_name, avatar_url: p.avatar_url, bio: p.bio, reason: `Near you · ${city}` })
+  }
+  return out.slice(0, limit)
 }

@@ -12,11 +12,11 @@ import type { OrgSummaryWithMission } from "@/lib/queries"
 import type { Cause } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-type Props = { causes: Cause[]; followed: string[]; orgsByCause: Record<string, OrgSummaryWithMission[]>; followingOrgIds: string[] }
+type Props = { causes: Cause[]; followed: string[]; orgsByCause: Record<string, OrgSummaryWithMission[]>; followingOrgIds: string[]; rail?: boolean }
 
 // Your causes (F-088). Each card shows who works on that cause (logos); open a card to see every
 // organization in it, follow them, or follow the cause with the Follow/Following pill.
-export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Props) {
+export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds, rail = false }: Props) {
   // Plain state so the pill flips on click and stays (B-032); the server is told in the background.
   const [mine, setMine] = useState(() => new Set(followed))
   const [open, setOpen] = useState<string | null>(null)
@@ -38,7 +38,7 @@ export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Pr
   // The panel follows its card in the source and spans the full row; dense packing lets the rest of
   // the card's row fill in before it, so the panel opens right under that row at any column count.
   return (
-    <ul className="grid grid-flow-row-dense grid-cols-2 gap-2 sm:grid-cols-3">
+    <ul className={rail ? "grid grid-cols-1 gap-2" : "grid grid-flow-row-dense grid-cols-2 gap-2 sm:grid-cols-3"}>
       {visible.map((c) => {
         const on = mine.has(c.slug)
         const expanded = open === c.slug
@@ -49,13 +49,13 @@ export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Pr
           <Fragment key={c.slug}>
             <li className={cn("relative rounded-xl border transition-colors", on ? "border-leaf bg-leaf-soft" : "bg-card", expanded && "ring-2 ring-leaf/40")}>
               <button type="button" aria-expanded={expanded} aria-controls={panelId} onClick={() => setOpen(expanded ? null : c.slug)}
-                className="flex w-full flex-col items-start gap-2.5 rounded-xl p-3 text-left hover:bg-black/[0.02]">
-                <span className={cn("grid size-10 shrink-0 place-items-center rounded-lg", on ? "bg-leaf text-white" : "bg-muted text-muted-foreground")}>
+                className={cn("flex w-full rounded-xl text-left hover:bg-black/[0.02]", rail ? "items-center gap-2.5 p-2.5 pr-24" : "flex-col items-start gap-2.5 p-3")}>
+                <span className={cn("grid shrink-0 place-items-center rounded-lg", rail ? "size-9" : "size-10", on ? "bg-leaf text-white" : "bg-muted text-muted-foreground")}>
                   <Icon className="size-5" aria-hidden />
                 </span>
                 <span className="w-full min-w-0">
                   <span className="block truncate text-sm font-semibold">{c.name}</span>
-                  <span className="mt-1 flex items-center gap-1.5">
+                  <span className={cn("flex items-center gap-1.5", rail ? "mt-0.5" : "mt-1")}>
                     <span className="flex shrink-0 -space-x-1.5" aria-hidden>
                       {orgs.slice(0, 3).map((o) => <span key={o.id} className="rounded-md ring-2 ring-card"><OrgMark org={o} size="sm" /></span>)}
                     </span>
@@ -66,13 +66,13 @@ export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Pr
                 </span>
               </button>
               <button type="button" aria-pressed={on} aria-label={`${on ? "Following" : "Follow"} ${c.name}`} onClick={() => toggle(c.slug)}
-                className={cn("absolute top-[18px] right-3 inline-flex h-7 items-center gap-1 rounded-full border pr-2.5 pl-[9px] text-xs font-semibold transition-[color,background-color,transform] active:scale-95",
+                className={cn(rail ? "absolute top-1/2 right-2.5 -translate-y-1/2" : "absolute top-[18px] right-3", "inline-flex h-7 items-center gap-1 rounded-full border pr-2.5 pl-[9px] text-xs font-semibold transition-[color,background-color,transform] active:scale-95",
                   on ? "border-leaf/40 bg-card text-leaf hover:bg-muted" : "border-leaf text-leaf hover:bg-leaf-soft")}>
                 {on ? <Check className="size-3.5" aria-hidden /> : <Plus className="size-3.5" aria-hidden />}{on ? "Following" : "Follow"}
               </button>
             </li>
             {expanded && (
-              <li id={panelId} className="col-span-2 sm:col-span-3">
+              <li id={panelId} className={rail ? "" : "col-span-2 sm:col-span-3"}>
                 <div className="rounded-xl border bg-card">
                   <div className="flex items-center gap-3 border-b p-3">
                     <p className="min-w-0 flex-1 text-sm"><span className="font-semibold">{c.name}</span> <span className="text-muted-foreground">· {orgs.length} organizations</span></p>
@@ -81,9 +81,9 @@ export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Pr
                       {on ? <Check className="size-3.5" aria-hidden /> : <Plus className="size-3.5" aria-hidden />}{on ? "Following cause" : "Follow cause"}
                     </button>
                   </div>
-                  <ul className="grid max-h-80 overflow-y-auto sm:grid-cols-2">
+                  <ul className={cn("grid max-h-80 overflow-y-auto", !rail && "sm:grid-cols-2")}>
                     {orgs.map((o) => (
-                      <li key={o.id} className="flex items-center gap-3 border-b px-3 py-2.5 sm:odd:border-r">
+                      <li key={o.id} className={cn("flex items-center gap-3 border-b px-3 py-2.5", !rail && "sm:odd:border-r")}>
                         <OrgMark org={o} size="md" />
                         <div className="min-w-0 flex-1">
                           <p className="flex items-center gap-1.5"><Link href={`/o/${o.slug}`} className="truncate text-sm font-semibold hover:underline">{o.name}</Link>{o.org_type === "foundation" && <FoundationMark />}</p>
@@ -100,7 +100,7 @@ export function CauseGrid({ causes, followed, orgsByCause, followingOrgIds }: Pr
         )
       })}
       {(hidden > 0 || (showAll && firstFollowed.size > 0)) && (
-        <li className="col-span-2 sm:col-span-3">
+        <li className={rail ? "" : "col-span-2 sm:col-span-3"}>
           <button type="button" onClick={() => setShowAll(!showAll)} aria-expanded={showAll}
             className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-2.5 text-sm font-medium text-muted-foreground hover:border-foreground/30 hover:text-foreground">
             {showAll ? "Show only causes you follow" : `Explore ${hidden} more ${hidden === 1 ? "cause" : "causes"}`}
